@@ -573,7 +573,10 @@ function handoverOpening(){
 }
 function openingState(){
   if(!S.ctx||S.ctx.current)return{mode:'manual'};
-  if(!isHead()){const h=handoverHere()?.ctx;return h?.current?{mode:'linked',actual:r2(Number(h.current.actual)),pending:false}:{mode:'waiting'};}
+  if(!isHead()){
+    const h=handoverHere()?.ctx,a=h?.current?.actual;
+    return h?.current&&a!=null&&isFinite(Number(a))?{mode:'linked',actual:r2(Number(a)),pending:false}:{mode:'waiting'};
+  }
   const o=handoverOpening();if(o)return Object.assign({mode:'linked'},o);
   const s=handoverHere(),h=s&&s.ctx;
   if(s&&s.loading&&S.ctx.prev&&S.ctx.prev.closing!=null&&isFinite(Number(S.ctx.prev.closing)))return{mode:'waiting',actual:r2(Number(S.ctx.prev.closing))};
@@ -801,7 +804,7 @@ function viewBranch(){
   const branches=BRANCHES.filter(b=>!b.testOnly).map(b=>'<button class="ui2-branch branch-'+b.id+'" data-act="branch" data-id="'+b.id+'"'+(S.busy?' disabled':'')+'><span>'+esc(b.title)+'</span><small>Открыть вечерний отчёт</small></button>').join('');
   let h='<div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div>';
   h+='<div class="ui2-home"><div class="ui2-tile primary"><span class="ui2-ico">≡</span><span><b>Вечерний отчёт</b><small>Выберите филиал ниже и заполните отчёт за сегодня</small></span></div><button class="ui2-tile wide" data-act="go" data-v="work"><span class="ui2-ico">₽</span><span><b>Мои начисления</b><small>Итог и состав начислений за период</small></span></button></div>';
-  h+='<div class="card ui2-branches"><h2>Выберите филиал</h2><p class="hint">Отчёт откроется за сегодняшний день. Денежные расчёты работают так же, как в версии 1.90.</p>'+branches+'<button class="btn sec small" data-act="help">Как заполнять отчёт</button></div>';
+  h+='<div class="card ui2-branches"><h2>Выберите филиал</h2><p class="hint">Отчёт откроется за сегодняшний день.</p>'+branches+'<button class="btn sec small" data-act="help">Как заполнять отчёт</button></div>';
   if(S.queue.length)h+='<div class="card quiet"><p class="hint">Не отправлено отчётов: '+S.queue.length+'. Нажмите «'+(S.online?'онлайн':'нет связи')+'» вверху.</p></div>';
   return h;
 }
@@ -829,23 +832,24 @@ const HINTS={
 };
 const hbtn=k=>'<button type="button" class="q" data-act="hint" data-h="'+k+'" aria-label="Подсказка">?</button>';
 const nfield=(p,label,val,extra='',hk='')=>'<label class="f"><span>'+label+(hk?hbtn(hk):'')+'</span><input data-p="'+p+'" inputmode="decimal" autocomplete="off" value="'+esc(fmtNum(val))+'" '+extra+'></label>';
-const moneyField=(p,title,sub,val,hk='')=>'<div class="mf"><label class="mf-copy" for="mf-'+p.replace(/[^a-z0-9_-]/gi,'-')+'"><b>'+title+'</b><small>'+sub+'</small></label><div class="num"><input id="mf-'+p.replace(/[^a-z0-9_-]/gi,'-')+'" data-p="'+p+'" inputmode="decimal" autocomplete="off" value="'+esc(fmtNum(val))+'" aria-label="'+esc(title)+'"></div></div>';
+const moneyField=(p,title,sub,val,hk='')=>'<div class="mf"><label class="mf-copy" for="mf-'+p.replace(/[^a-z0-9_-]/gi,'-')+'"><span class="mf-title"><b>'+title+'</b>'+(hk?hbtn(hk):'')+'</span><small>'+sub+'</small></label><div class="num"><input id="mf-'+p.replace(/[^a-z0-9_-]/gi,'-')+'" data-p="'+p+'" inputmode="decimal" autocomplete="off" value="'+esc(fmtNum(val))+'" aria-label="'+esc(title)+'"></div></div>';
 
 function handoverHtml(){
   const s=handoverHere();if(!s)return '';
   if(s.loading)return '<div class="card"><h2>Приёмка кассы</h2><p class="hint">Проверяем ожидаемый переходящий остаток…</p></div>';
   const h=s.ctx;if(!h||!h.ok||h.mode==='off')return '';
   const p=handoverPending(S.branch,S.date);
+  const sourceOk=!!(h.source&&h.source.report_date&&h.source.fingerprint);
   let x='<div class="card"><h2>Приёмка кассы</h2>'+
     '<p class="hint">Пересчитайте наличные и укажите, сколько приняли</p>';
-  if(h.expected!=null)x+='<div class="sum"><span>Должно быть в кассе</span><b>'+money(Number(h.expected))+'</b></div><p class="hint">Источник: итог отчёта за '+ruDate(h.source.report_date)+', версия '+h.source.report_version+'.</p>';
+  if(sourceOk&&h.expected!=null&&isFinite(Number(h.expected)))x+='<div class="sum"><span>Должно быть в кассе</span><b>'+money(Number(h.expected))+'</b></div><p class="hint">Источник: итог отчёта за '+ruDate(h.source.report_date)+', версия '+h.source.report_version+'.</p>';
   else x+='<div class="chk warn"><i>!</i><div>Нет подтверждённого предыдущего отчёта — ожидаемую сумму определить нельзя.</div></div>';
   if(s.offline||h.cached)x+='<div class="chk warn"><i>!</i><div>Показан последний сохранённый источник. При отправке сервер заново проверит его версию; устаревшую приёмку не примет.</div></div>';
   if(h.current){
     const bad=h.current.status==='discrepancy'&&Math.abs(Number(h.current.diff))>CFG.tol;
     x+='<div class="chk '+(bad?'bad':'ok')+'"><i>'+(bad?'!':'✓')+'</i><div><b>'+(bad?'Есть расхождение':'Касса принята')+'</b><br>Фактически: '+money(Number(h.current.actual))+(h.current.diff!=null?' · разница '+money(Number(h.current.diff)):'')+'<br><small>'+esc(h.current.accepted_by)+' · '+new Date(h.current.accepted_at).toLocaleString('ru-RU',{timeZone:'Asia/Omsk'})+' · сумма уже перенесена в отчёт</small></div></div>';
     if(h.can_correct)x+='<button class="btn sec small" data-act="hocorrect">Исправить отдельной записью</button>';
-  }else if(h.can_accept&&h.source){
+  }else if(h.can_accept&&sourceOk){
     x+='<label class="f"><span>Фактически принято</span><input id="ho-actual" inputmode="decimal" autocomplete="off" placeholder="Введите сумму руками"></label>'+
       '<p class="hint">Укажите фактическую сумму принятых денег. Вводить нужно всегда, даже если сумма совпала.</p>'+
       '<p class="hint">Принимает: <b>'+esc(S.person&&S.person.name)+'</b>. Нажатие — ваша персональная отметка о фактически принятой сумме.</p>'+
@@ -917,7 +921,10 @@ function viewForm(){
   const op=openingState();
   h+='<div class="card k-cash"><h2>Касса (инкассация)</h2>';
   if(op.mode==='linked')h+='<div class="cash-opening"><i>✓</i><div><b>Начало смены</b><small>'+(op.pending?'Утренний приём сохранён и будет отправлен при появлении связи.':'Взято из подтверждённого утреннего приёма кассы.')+' Повторно вводить не нужно.</small></div><strong>'+money(Number(op.actual))+'</strong></div>';
-  else if(op.mode==='waiting')h+=nfield('open','Фактически принято на начало смены, ₽',f.open)+'<div class="cash-opening wait"><i>!</i><div><b>Начало смены ещё не подтверждено</b><small>Ожидается '+money(Number(op.actual))+'. Пересчитайте наличные и подтвердите фактическую сумму в верхнем блоке.</small></div><strong>'+money(Number(op.actual))+'</strong></div>';
+  else if(op.mode==='waiting'){
+    const known=op.actual!=null&&isFinite(Number(op.actual)),expected=known?money(Number(op.actual)):'';
+    h+=nfield('open','Фактически принято на начало смены, ₽',f.open)+'<div class="cash-opening wait"><i>!</i><div><b>Начало смены ещё не подтверждено</b><small>'+(known?'Ожидается '+expected+'. ':'Ожидаем подтверждение утренней приёмки. ')+'Пересчитайте наличные и подтвердите фактическую сумму в верхнем блоке.</small></div>'+(known?'<strong>'+expected+'</strong>':'')+'</div>';
+  }
   else h+=nfield('open','Начало смены, ₽',f.open,'','open');
   if(op.mode==='manual'&&c.prev&&c.prev.closing!=null){
     const yd=addDays(S.date,-1),gap=c.prev.date!==yd;
@@ -2458,9 +2465,13 @@ document.addEventListener('input',e=>{
 document.addEventListener('input',e=>{if(!isField(e.target))return;document.body.classList.add('typing');clearTimeout(typT);typT=setTimeout(showBar,4000)},true);
 document.addEventListener('focusout',()=>{setTimeout(()=>{if(!isField(document.activeElement))showBar()},150)});
 document.addEventListener('keydown',e=>{
-  if(e.key!=='Enter'||!e.target||e.target.tagName!=='INPUT'||e.target.id==='pin')return;
-  e.target.blur();showBar();
-  if(S.view==='form'&&!S.busy){e.preventDefault();submit()}
+  const t=e.target;
+  if(e.key!=='Enter'||S.view!=='form'||!t||!t.matches('input,select')||t.id==='pin')return;
+  e.preventDefault();
+  const fields=[...document.querySelectorAll('#app input:not([disabled]),#app select:not([disabled]),#app textarea:not([disabled])')].filter(x=>x.offsetParent!==null);
+  const next=fields[fields.indexOf(t)+1];
+  if(next){next.focus({preventScroll:true});next.scrollIntoView({block:'center',behavior:'smooth'});if(next.select&&next.tagName==='INPUT')next.select()}
+  else{t.blur();showBar()}
 });
 document.addEventListener('pointerdown',e=>{const a=document.activeElement;if(isField(a)&&!e.target.closest('input,textarea,select,label,button'))a.blur()});
 document.addEventListener('change',e=>{

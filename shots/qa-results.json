@@ -1,6 +1,6 @@
 {
   "schema": "evrovet.ui2_device_matrix/v1",
-  "generated_at": "2026-11-15T11:04:20.681Z",
+  "generated_at": "2026-11-15T12:50:57.612Z",
   "widths": [
     320,
     375,
@@ -26,6 +26,11 @@
     "10-schedule-who-where",
     "11-schedule-person-card"
   ],
+  "behavior": {
+    "enter_moves_to_next": true,
+    "enter_does_not_submit": true,
+    "handover_has_amount_and_button": true
+  },
   "results": [
     {
       "engine": "chromium",

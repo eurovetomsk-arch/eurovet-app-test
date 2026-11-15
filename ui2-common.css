@@ -252,9 +252,11 @@ body.ui2 .hint{font-size:13.5px;line-height:1.45;color:var(--ev-soft)}
 body.ui2 .mf{display:grid;grid-template-columns:minmax(0,1fr) minmax(124px,138px);gap:10px;align-items:center;padding:11px 0;border-top:1px solid var(--ev-line)}
 body.ui2 .mf.first{border-top:0;padding-top:2px}
 body.ui2 .mf-copy{min-width:0}
-body.ui2 .mf-copy>b{display:block;font-size:15px;font-weight:700;line-height:1.2}
+body.ui2 .mf-title{display:flex;align-items:flex-start;gap:5px;min-width:0}
+body.ui2 .mf-title>b{display:block;min-width:0;font-size:15px;font-weight:700;line-height:1.2}
+body.ui2 .mf-title>.q{flex:none;width:26px;height:26px;margin:-4px 0 0 auto;font-size:12px}
 body.ui2 .mf-copy>small{display:block;margin-top:3px;padding:0;color:var(--ev-soft);background:none;border-radius:0;font-size:12px;line-height:1.3}
-body.ui2 .mf-copy,body.ui2 .mf-copy>b,body.ui2 .mf-copy>small{overflow-wrap:anywhere}
+body.ui2 .mf-copy,body.ui2 .mf-title,body.ui2 .mf-title>b,body.ui2 .mf-copy>small{overflow-wrap:anywhere}
 body.ui2 .num{position:relative;min-width:0}
 body.ui2 .num input{width:100%;height:50px;min-height:50px;margin:0;padding:0 32px 0 10px;border-radius:14px;border:1px solid var(--ev-line);background:#fff;outline:none;box-shadow:inset 0 2px 4px rgba(11,59,71,.07);font-size:19px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
 body.ui2 .num::after{content:"₽";position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:700;color:#8FAAB1;pointer-events:none}
@@ -297,7 +299,7 @@ body.ui2 .cal .h{font-size:11px;font-weight:800;letter-spacing:.04em;text-transf
 body.ui2 .cal .d{position:relative;width:100%;height:46px;min-width:0;padding:0;border-radius:12px;background:#F1F7F8;border:1px solid #E1ECEE;color:var(--ev-ink);font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
 body.ui2 .cal .d.o{background:transparent;border-color:transparent;color:#B5C9CE}
 body.ui2 .cal .d.f{color:#fff;border-color:transparent;box-shadow:0 3px 8px rgba(11,59,71,.18)}
-body.ui2 .cal .d.f small{font-size:10px;font-weight:700;opacity:.95;margin-top:1px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+body.ui2 .cal .d.f small{font-size:8px;font-weight:700;letter-spacing:-.02em;opacity:.95;margin-top:1px;max-width:100%;overflow:visible;white-space:nowrap;text-overflow:clip}
 body.ui2 .cal .d.today{outline:2px solid var(--ev-accent);outline-offset:1px}
 body.ui2 .cal .d.sel{background:#DDF0F4;border-color:var(--ev-accent)}
 body.ui2 .cal .dots{display:flex;gap:2px;height:auto;align-items:center;justify-content:center;margin-top:4px}
@@ -330,6 +332,8 @@ body.ui2 .bar,body.ui2 .nv{left:50%;right:auto;width:min(100%,480px);transform:t
 body.ui2 .bar .in{max-width:480px}
 body.ui2 .ov>.card{width:100%;max-width:480px;max-height:90dvh;padding-bottom:calc(26px + env(safe-area-inset-bottom));border-radius:26px 26px 0 0}
 body.ui2 .bar .btn{white-space:normal}
+body.ui2 .k-staff .tiles{grid-template-columns:repeat(auto-fit,minmax(min(145px,100%),1fr))}
+body.ui2 .k-staff .tile{padding-left:8px;padding-right:8px;font-size:14px;white-space:nowrap}
 
 @media(max-width:480px){
   body.ui2 .srow.big{flex-wrap:wrap}
