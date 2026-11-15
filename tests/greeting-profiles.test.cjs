@@ -2,8 +2,9 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
+const appSource=require('./app-source.cjs');
 
-const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
+const html=appSource(path.resolve(__dirname,'..'));
 
 function fn(src,name){
   const start=src.indexOf('function '+name+'(');

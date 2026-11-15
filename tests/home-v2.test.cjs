@@ -73,7 +73,7 @@ async function inspect(engineName,engine){
         const sectionTitles=await page.locator('.ui2-group-title').allTextContents();
         const expectedOrder=['Финансы','Препараты','Смена','Клиника'].filter(x=>sectionTitles.includes(x));
         assert.deepEqual(sectionTitles,expectedOrder,`${engineName}/${width}/${role}: section order`);
-        if(['doctor','assistant','head'].includes(role))assert.equal(await page.locator('.ui2-dose-icon').count(),1,`${engineName}/${width}/${role}: dose icon`);
+        if(['doctor','assistant','head'].includes(role))assert.equal(await page.locator('.ui2-role-tile img[src="icons/20-dose-calc.png"]').count(),1,`${engineName}/${width}/${role}: dose icon`);
         if(role==='assistant'){
           const supply=page.locator('.ui2-role-tile',{hasText:'Препараты и расходники'}),grid=supply.locator('..');
           const [sbox,gbox]=await Promise.all([supply.boundingBox(),grid.boundingBox()]);

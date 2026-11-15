@@ -2,6 +2,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const http=require('node:http');
 const path=require('node:path');
+const appSource=require('./app-source.cjs');
 function loadPlaywright(){
   for(const id of [process.env.EVROVET_PLAYWRIGHT_MODULE,'playwright'].filter(Boolean))try{return require(id)}catch(e){if(id==='playwright')throw e}
 }
@@ -22,7 +23,7 @@ async function fakeDeviceDate(page,iso){
 
 (async()=>{
   const cfg=fs.readFileSync(path.join(root,'config.js'),'utf8');
-  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  const html=appSource(root);
   assert.match(cfg,/sloganRotate:true/);
   for(const s of expected)assert.ok(cfg.includes("'"+s+"'"),'missing slogan: '+s);
   assert.match(html,/Date\.UTC\(d\.getFullYear\(\),d\.getMonth\(\),d\.getDate\(\)\)/);

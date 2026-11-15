@@ -3,11 +3,12 @@ const fs=require('node:fs');
 const cp=require('node:child_process');
 const path=require('node:path');
 const vm=require('node:vm');
+const appSource=require('./app-source.cjs');
 
 const root=path.resolve(__dirname,'..');
 const BASE_COMMIT='32f5862f536ba4cfd6a84174aa41321fb59587f1'; // initial 2.0 shell, already proven byte-identical to 1.90 business functions
-const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-const css=fs.readFileSync(path.join(root,'ui2-common.css'),'utf8');
+const html=appSource(root);
+const css=fs.readFileSync(path.join(root,'styles','view.css'),'utf8')+fs.readFileSync(path.join(root,'ui2-common.css'),'utf8');
 const base=cp.execFileSync('git',['show',BASE_COMMIT+':index.html'],{cwd:root,encoding:'utf8'});
 
 function fn(src,name){
@@ -58,8 +59,10 @@ function run(src,form,date='2026-11-15',withUi=false){
   return JSON.parse(JSON.stringify(sandbox.result));
 }
 
-assert.match(html,/appVer:'2\.0-test-3014'/);
+assert.match(html,/appVer:'2\.0-test-3046'/);
+assert.match(html,/name="evrovet-version" content="2\.0-test-3046"/);
 assert.match(html,/<link rel="stylesheet" href="ui2-common\.css">/);
+assert.match(html,/<link rel="stylesheet" href="styles\/view\.css">/);
 assert.match(html,/<body class="ui2">/);
 assert.match(css,/--ev-accent:#2A7D90/);
 assert.match(html,/tol:10,/,'10-ruble tolerance changed');
@@ -96,8 +99,8 @@ for(const [name,form] of scenarios){
   const before=run(base,form),after=run(html,form);
   assert.deepEqual(after.calc,before.calc,name+': checks changed');
   assert.equal(before.data.app,'2.0-test-2922');
-  assert.equal(after.data.app,'2.0-test-3014');
-  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3014'},name+': submitted report payload changed beyond exact version marker');
+  assert.equal(after.data.app,'2.0-test-3046');
+  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3046'},name+': submitted report payload changed beyond exact version marker');
 }
 
 const oldDay=baseForm({cash:'20000',cashless:'50000',adv_cash:'10000'});
@@ -172,5 +175,5 @@ vm.runInNewContext(fn(html,'openingState')+';result=openingState();',openingSand
 assert.deepEqual(JSON.parse(JSON.stringify(openingSandbox.result)),{mode:'waiting'},'missing actual must stay a numberless waiting state');
 assert.match(fn(html,'viewForm'),/const known=op\.actual!=null&&isFinite\(Number\(op\.actual\)\)/,'waiting UI must guard the expected amount');
 
-assert.match(html,/@media\(max-width:340px\)\{\.money-field\{grid-template-columns:1fr\}/,'320px fields must stack');
+assert.match(css,/@media\(max-width:340px\)\{\.money-field\{grid-template-columns:1fr\}/,'320px fields must stack');
 console.log('release 2.0 test: OK (6/6 advance scenarios, handover guards, Enter navigation, greeting, isolation)');
