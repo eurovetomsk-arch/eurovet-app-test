@@ -1,0 +1,7 @@
+{
+  "main": true,
+  "branch_selection": true,
+  "schedule": true,
+  "accruals": true,
+  "greeting": "Добрый вечер, Татьяна Владимировна"
+}
