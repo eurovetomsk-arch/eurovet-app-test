@@ -58,7 +58,7 @@ function run(src,form,date='2026-11-15',withUi=false){
   return JSON.parse(JSON.stringify(sandbox.result));
 }
 
-assert.match(html,/appVer:'2\.0-test-2922'/);
+assert.match(html,/appVer:'2\.0-test-2997'/);
 assert.match(html,/<link rel="stylesheet" href="ui2-common\.css">/);
 assert.match(html,/<body class="ui2">/);
 assert.match(css,/--ev-accent:#2A7D90/);
@@ -96,8 +96,8 @@ for(const [name,form] of scenarios){
   const before=run(base,form),after=run(html,form);
   assert.deepEqual(after.calc,before.calc,name+': checks changed');
   assert.equal(before.data.app,'2.0-test-2922');
-  assert.equal(after.data.app,'2.0-test-2922');
-  assert.deepEqual(after.data,before.data,name+': submitted report payload changed');
+  assert.equal(after.data.app,'2.0-test-2997');
+  assert.deepEqual({...after.data,app:before.data.app},before.data,name+': submitted report payload changed beyond version marker');
 }
 
 const oldDay=baseForm({cash:'20000',cashless:'50000',adv_cash:'10000'});
