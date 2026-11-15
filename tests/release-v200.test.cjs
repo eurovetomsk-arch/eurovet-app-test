@@ -139,6 +139,13 @@ assert.match(html,/txcibtcfuzqhhebeguby/,'test project missing');
 assert.doesNotMatch(html,/Денежные расчёты работают так же, как в версии 1\.90/,'service copy must not be visible');
 
 assert.match(html,/const moneyField=.*hk\?hbtn\(hk\)/,'money fields lost their help buttons');
+assert.match(html,/marksa:\['Маркса, 45','Маркса','Марк\.'\]/,'calendar must use the approved Marksa abbreviation');
+assert.match(html,/'70let':\['70 лет Октября, 20','70 лет','70 л\.'\]/,'calendar must use the approved 70 let abbreviation');
+assert.match(html,/pereleta:\['Перелёта, 19','Перелёта','Перел\.'\]/,'calendar must use the approved Pereleta abbreviation');
+assert.match(html,/SCH_B\[ks\[0\]\]\[2\]/,'my-shift calendar must render the short branch label');
+assert.match(css,/\.cal \.d\.f small\{font-size:10px/,'calendar branch labels must be 10px');
+assert.match(fn(html,'setHeader'),/h\.className=S\.view==='form'\?'form-head':''/,'report header must have a narrow-screen layout hook');
+assert.match(fn(html,'setHeader'),/S\.view==='form'\?'':' · Мой ЕВРОВЕТ'/,'report header subtitle must contain the role without branch/date noise');
 const keydown=html.slice(html.indexOf("document.addEventListener('keydown'"),html.indexOf("document.addEventListener('pointerdown'"));
 assert.match(keydown,/fields\.indexOf\(t\)\+1/,'Enter must move to the next report field');
 assert.doesNotMatch(keydown,/submit\s*\(/,'Enter must never submit a report');

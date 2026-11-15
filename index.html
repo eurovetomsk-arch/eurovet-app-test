@@ -693,9 +693,9 @@ async function openBranch(id){
 /* ====== Отрисовка ====== */
 function setHeader(){
   const h=$('#hdr');
+  h.className=S.view==='form'?'form-head':'';
   if(S.view==='login'||(S.view==='help'&&!S.person)){h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt=""><div><b>Мой ЕВРОВЕТ</b><small>Всё о вашей работе — в одном месте</small></div></div>'+netBadge();return}
-  const bt=S.branch&&(BRANCHES.find(b=>b.id===S.branch)||{}).title;
-  h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt=""><div><b>'+esc(S.person?(S.person.short_name||S.person.name):'')+'</b><small>'+esc(stageRole(S.person))+' · '+(S.view==='form'&&bt?esc(bt)+' · '+ruDate(S.date):'Мой ЕВРОВЕТ')+'</small></div></div><div class="hb">'+netBadge()+
+  h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt=""><div><b>'+esc(S.person?(S.person.short_name||S.person.name):'')+'</b><small>'+esc(stageRole(S.person))+(S.view==='form'?'':' · Мой ЕВРОВЕТ')+'</small></div></div><div class="hb">'+netBadge()+
     (S.view==='form'?'<button class="pill" data-act="back">Филиал</button>':'')+(S.view==='cc'&&canReport()&&!isHead()?'<button class="pill" data-act="back">Отчёт</button>':'')+'<button class="pill" data-act="menu">Меню</button></div>';
 }
 function netBadge(){
@@ -2152,7 +2152,7 @@ function appointmentsHtml(day){
 }
 
 /* ====== 1.71 График: «Мои смены» и «Кто где». Отдельно от финансов: читает только ev_whos_where, в ответе нет ни денег, ни часов ====== */
-const SCH_B={marksa:['Маркса, 45','Маркса'], '70let':['70 лет Октября, 20','70 лет'],pereleta:['Перелёта, 19','Перелёта'],cc:['Колл-центр','КЦ']};
+const SCH_B={marksa:['Маркса, 45','Маркса','Марк.'], '70let':['70 лет Октября, 20','70 лет','70 л.'],pereleta:['Перелёта, 19','Перелёта','Перел.'],cc:['Колл-центр','КЦ','КЦ']};
 const SCH_BO=['marksa','70let','pereleta','cc'];
 const SCH_R={admin:'Администратор',doctor:'Врач',assistant:'Ассистент',callcenter:'Колл-центр'};
 const SCH_RO={admin:0,doctor:1,assistant:2,callcenter:3};
@@ -2217,7 +2217,7 @@ function schMy(s,rows){
     if(!l)return '<div class="'+cl+'">'+d+'</div>';
     const ks=[...new Set(l.map(schBk))];
     const tap=apptAllowed()&&apptInWindow(dt),tag=tap?'button':'div',act=tap?' data-act="schappt" data-d="'+dt+'" aria-label="Показать записи за '+ruDate(dt)+'"':'';
-    if(ks.length===1)return '<'+tag+' class="'+cl+' f" style="background:'+schBranchColor(ks[0])+'"'+act+'>'+d+'<small>'+esc(SCH_B[ks[0]][1])+'</small></'+tag+'>';
+    if(ks.length===1)return '<'+tag+' class="'+cl+' f" style="background:'+schBranchColor(ks[0])+'"'+act+'>'+d+'<small>'+esc(SCH_B[ks[0]][2])+'</small></'+tag+'>';
     return '<'+tag+' class="'+cl+'"'+act+'>'+d+'<span class="dots">'+ks.map(k=>'<i style="background:'+schBranchColor(k)+'"></i>').join('')+'</span></'+tag+'>'});
   h+='<p class="hint" style="margin:12px 0 0">Нажмите на свою смену, чтобы увидеть записи пациентов на этот день.</p>';
   if(s.apptDay&&by[s.apptDay]&&apptAllowed()&&apptInWindow(s.apptDay))h+=appointmentsHtml(s.apptDay);
