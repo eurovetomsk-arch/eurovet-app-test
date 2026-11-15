@@ -60,16 +60,25 @@ async function inspect(engineName,engine){
         assert.ok(overflow<=1,`${engineName}/${width}/${role}: horizontal overflow ${overflow}`);
         assert.equal(errors.length,0,`${engineName}/${width}/${role}: ${errors.join('; ')}`);
         if(role==='head'){assert.match(body,/Отчёты сегодня: 2 из 3/);assert.match(body,/Ждём: Перелёта/)}
-        else{assert.match(body,/Сегодня вы на Маркса/);assert.match(body,/С вами: Иванова О\. В, Петров Д\. А/)}
+        else{assert.match(body,/Сегодня вы на Маркса/);assert.match(body,/С вами: Иванова О\. В\., Петров Д\. А\./)}
         const nav=await page.locator('.ui2-bottom-nav button').allTextContents();
         assert.deepEqual(nav,role==='courier'?['Главная','Начисления','Меню']:['Главная','График','Начисления','Меню']);
         if(role==='admin'){for(const t of ['Вечерний отчёт','Приём кассы','Вакцины','Препараты и расходники'])assert.match(body,new RegExp(t))}
-        if(role==='doctor')for(const t of ['Мои записи','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
+        if(role==='doctor')for(const t of ['Мои записи','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
         if(role==='assistant')for(const t of ['Мои начисления','Где я работаю','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
-        if(role==='callcenter')for(const t of ['Мои смены','Мои начисления'])assert.match(body,new RegExp(t));
-        if(role==='head'){for(const t of ['Деньги','Отчёты','Касса и сейф','Зарплаты','Люди и доступы','Отчёт филиала'])assert.match(body,new RegExp(t))}
+        if(role==='callcenter')for(const t of ['Мои смены','Мои начисления','Вакцины','Где я работаю'])assert.match(body,new RegExp(t));
+        if(role==='head'){for(const t of ['Деньги','Отчёты','Касса и сейф','Зарплаты','Заявки филиалов','Вакцины по филиалам','Расчёт дозы','Люди и доступы','Отчёт филиала'])assert.match(body,new RegExp(t))}
         if(role==='courier'){for(const t of ['Мои начисления','Вакцины по филиалам','Заявки филиалов','Заказ снабжения'])assert.match(body,new RegExp(t));assert.doesNotMatch(body,/График/)}
         if(role!=='head')assert.doesNotMatch(body,/Выручка, касса и сейфы всех филиалов/);
+        const sectionTitles=await page.locator('.ui2-group-title').allTextContents();
+        const expectedOrder=['Финансы','Препараты','Смена','Клиника'].filter(x=>sectionTitles.includes(x));
+        assert.deepEqual(sectionTitles,expectedOrder,`${engineName}/${width}/${role}: section order`);
+        if(['doctor','assistant','head'].includes(role))assert.equal(await page.locator('.ui2-dose-icon').count(),1,`${engineName}/${width}/${role}: dose icon`);
+        if(role==='assistant'){
+          const supply=page.locator('.ui2-role-tile',{hasText:'Препараты и расходники'}),grid=supply.locator('..');
+          const [sbox,gbox]=await Promise.all([supply.boundingBox(),grid.boundingBox()]);
+          assert.ok(sbox&&gbox&&Math.abs(sbox.width-gbox.width)<2,`${engineName}/${width}: assistant lone last tile not full width`);
+        }
         await page.close();
       }
     }
@@ -87,6 +96,15 @@ async function inspect(engineName,engine){
       for(const [engineName,engine] of Object.entries({chromium,firefox,webkit})){
         const browser=await engine.launch({headless:true});
         try{
+          const entry=await browser.newPage({viewport:{width:375,height:900}});
+          await entry.goto(appUrl,{waitUntil:'domcontentloaded'});
+          assert.equal(await entry.locator('.ui2-halo svg use').getAttribute('href'),'#evro',engineName+' entry evro symbol');
+          assert.equal(await entry.locator('.ui2-wordmark svg use').getAttribute('href'),'#evro',engineName+' wordmark evro symbol');
+          await entry.locator('[data-act="loginstart"]').click();
+          const pad=await entry.locator('.ui2-pad').boundingBox(),buttons=await entry.locator('.ui2-pad button:not(.blank)').all();
+          assert.ok(pad&&pad.width>320,engineName+' keypad is not full width at 375');
+          for(const button of buttons){const box=await button.boundingBox();assert.ok(box&&box.width>=72,engineName+' keypad button below 72px')}
+          await entry.close();
           const dual=await browser.newPage({viewport:{width:375,height:900}});
           await login(dual,{...profiles.doctor,admin:true,roles:['doctor','admin']});
           const body=await dual.locator('body').innerText();

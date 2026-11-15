@@ -39,6 +39,18 @@ async function render(page,person){
   await page.waitForFunction(()=>!document.body.innerText.includes('Загружаю сегодняшнюю смену'));
 }
 
+async function makeFlowNav(page){
+  await page.addStyleTag({content:'body.ui2{padding-bottom:0!important;background-attachment:scroll!important}body.ui2 .ui2-bottom-nav{position:static!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;transform:none!important;margin-top:18px!important}'});
+}
+
+async function fakeDeviceDate(page,iso){
+  await page.addInitScript(value=>{
+    const RealDate=Date,fixed=new RealDate(value+'T12:00:00');
+    class FakeDate extends RealDate{constructor(...args){super(...(args.length?args:[fixed.getTime()]))}static now(){return fixed.getTime()}}
+    globalThis.Date=FakeDate;
+  },iso);
+}
+
 (async()=>{
   fs.mkdirSync(out,{recursive:true});
   const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.woff2':'font/woff2','.webmanifest':'application/manifest+json'};
@@ -50,17 +62,24 @@ async function render(page,person){
     const entry=await browser.newPage({viewport:{width:375,height:900},deviceScaleFactor:1});
     await entry.goto(appUrl,{waitUntil:'domcontentloaded'});
     await entry.screenshot({path:path.join(out,'375-entry-start.png'),fullPage:true});
+    await entry.locator('.ui2-halo').screenshot({path:path.join(out,'375-entry-mark-closeup.png')});
     await entry.locator('[data-act="loginstart"]').click();
     await entry.screenshot({path:path.join(out,'375-entry-number.png'),fullPage:true});
     for(const n of '123')await entry.locator(`[data-act="logindigit"][data-n="${n}"]`).click();
     await entry.screenshot({path:path.join(out,'375-entry-pin.png'),fullPage:true});
     await entry.close();
+    const longest=await browser.newPage({viewport:{width:320,height:900},deviceScaleFactor:1});
+    await fakeDeviceDate(longest,'2026-01-03');
+    await longest.goto(appUrl,{waitUntil:'domcontentloaded'});
+    await longest.screenshot({path:path.join(out,'320-entry-longest-slogan.png'),fullPage:true});
+    await longest.close();
     for(const width of [375,320])for(const [role,person] of Object.entries(profiles)){
       const page=await browser.newPage({viewport:{width,height:role==='head'?1400:900},deviceScaleFactor:1});
       await render(page,person);
+      await makeFlowNav(page);
       await page.screenshot({path:path.join(out,`${width}-${role}.png`),fullPage:true});
       await page.close();
     }
   }finally{await browser.close();server.close()}
-  console.log(`home 2.0 shots: ${Object.keys(profiles).length*2+3} PNG`);
+  console.log(`home 2.0 shots: ${Object.keys(profiles).length*2+5} PNG`);
 })().catch(e=>{console.error(e);process.exit(1)});

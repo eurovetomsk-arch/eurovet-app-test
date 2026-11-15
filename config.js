@@ -34,14 +34,27 @@ window.EVROVET_UI2_CONFIG=Object.freeze({
     birthdays:false
   }),
   roleTiles:Object.freeze({
-    head:Object.freeze(['head_money','head_reports','head_cash_safe','head_payroll','people_roles']),
+    head:Object.freeze(['head_money','head_reports','head_cash_safe','head_payroll','supplies_all_requests','vaccines_all_branches','dose_calculator','people_roles']),
     admin:Object.freeze(['evening_report','cash_acceptance','vaccines','supplies']),
-    doctor:Object.freeze(['appointments','dose_calculator','supplies']),
+    doctor:Object.freeze(['appointments','vaccines','dose_calculator','supplies']),
     assistant_clinical:Object.freeze(['my_accruals','where_i_work','vaccines','dose_calculator','supplies']),
     assistant_tech:Object.freeze(['my_accruals','where_i_work','vaccines','dose_calculator','supplies']),
-    callcenter:Object.freeze(['callcenter_shift','my_accruals']),
+    callcenter:Object.freeze(['callcenter_shift','my_accruals','vaccines','where_i_work']),
     courier:Object.freeze(['my_accruals','vaccines_all_branches','supplies_all_requests','supply_order'])
   }),
+  slogans:Object.freeze([
+    'Ваша смена — наша забота',
+    'Мы ценим вас каждый день',
+    'Спасибо, что вы с нами',
+    'Вы — сердце нашей клиники',
+    'Мы рядом в каждой смене',
+    'Вы делаете мир добрее',
+    'С заботой о вашей работе',
+    'Сделано для вас',
+    'Ваша смена стала проще',
+    'Всё под рукой — для вас'
+  ]),
+  sloganRotate:true,
   navByRole:Object.freeze({
     default:Object.freeze(['home','schedule','accruals','menu']),
     courier:Object.freeze(['home','accruals','menu'])

@@ -58,7 +58,7 @@ function run(src,form,date='2026-11-15',withUi=false){
   return JSON.parse(JSON.stringify(sandbox.result));
 }
 
-assert.match(html,/appVer:'2\.0-test-3003'/);
+assert.match(html,/appVer:'2\.0-test-3014'/);
 assert.match(html,/<link rel="stylesheet" href="ui2-common\.css">/);
 assert.match(html,/<body class="ui2">/);
 assert.match(css,/--ev-accent:#2A7D90/);
@@ -96,8 +96,8 @@ for(const [name,form] of scenarios){
   const before=run(base,form),after=run(html,form);
   assert.deepEqual(after.calc,before.calc,name+': checks changed');
   assert.equal(before.data.app,'2.0-test-2922');
-  assert.equal(after.data.app,'2.0-test-3003');
-  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3003'},name+': submitted report payload changed beyond exact version marker');
+  assert.equal(after.data.app,'2.0-test-3014');
+  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3014'},name+': submitted report payload changed beyond exact version marker');
 }
 
 const oldDay=baseForm({cash:'20000',cashless:'50000',adv_cash:'10000'});
@@ -137,7 +137,7 @@ const productionRef=['ikxmzapf','mgqnnrsttuxc'].join('');
 assert.equal(html.includes(productionRef),false,'production project must not be referenced');
 assert.match(html,/txcibtcfuzqhhebeguby/,'test project missing');
 assert.doesNotMatch(html,/Денежные расчёты работают так же, как в версии 1\.90/,'service copy must not be visible');
-for(const phrase of ['Всё для вашей смены — в одном месте','Личный номер — 3 цифры','PIN — 6 цифр','Номер и PIN — ваша подпись. Никому не передавайте','Это общее устройство','Автоматический выход через 15 минут'])assert.match(html,new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'login copy missing: '+phrase);
+for(const phrase of ['Личный номер — 3 цифры','PIN — 6 цифр','Номер и PIN — ваша подпись. Никому не передавайте','Это общее устройство','Автоматический выход через 15 минут'])assert.match(html,new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'login copy missing: '+phrase);
 assert.match(css,/animation:ev-breathe 3\.2s/,'logo pulse must use the approved 3.2 second timing');
 assert.match(css,/@media\(prefers-reduced-motion:reduce\)/,'reduced motion guard missing');
 const rolesFn=fn(html,'personRoles');
