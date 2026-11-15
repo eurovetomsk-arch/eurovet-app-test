@@ -2,7 +2,11 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const http=require('node:http');
 const path=require('node:path');
-const {chromium,firefox,webkit}=require('/Users/agent/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+function loadPlaywright(){
+  const candidates=[process.env.EVROVET_PLAYWRIGHT_MODULE,'playwright'].filter(Boolean);
+  for(const id of candidates)try{return require(id)}catch(e){if(id===candidates[candidates.length-1])throw e}
+}
+const {chromium,firefox,webkit}=loadPlaywright();
 
 const root=path.resolve(__dirname,'..');
 let appUrl='';
@@ -25,6 +29,11 @@ async function stub(page,person){
       {date:today,branch:'marksa',person_id:991,short_name:'Иванова О. В.'},
       {date:today,branch:'marksa',person_id:992,short_name:'Петров Д. А.'}
     ]})});
+    if(name==='ev_day_status')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,branches:[
+      {branch:'marksa',submitted:true,open_flags:0},{branch:'70let',submitted:true,open_flags:0},{branch:'pereleta',submitted:false,open_flags:0}
+    ]})});
+    if(name==='ev_cash_on_hand')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:false})});
+    if(name==='ev_mr_list'||name==='ev_leave_pending')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,items:[]})});
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,rows:[],items:[]})});
   });
 }
@@ -32,9 +41,8 @@ async function stub(page,person){
 async function login(page,person){
   await stub(page,person);
   await page.goto(appUrl,{waitUntil:'domcontentloaded'});
-  await page.locator('#employee-number').fill('123');
-  await page.locator('#pin').fill('123456');
-  await page.locator('[data-act="login"]').click();
+  await page.locator('[data-act="loginstart"]').click();
+  for(const n of '123123456')await page.locator(`[data-act="logindigit"][data-n="${n}"]`).click();
   await page.locator('.ui2-home-screen').waitFor();
   await page.waitForFunction(()=>!document.body.innerText.includes('Загружаю сегодняшнюю смену'));
 }
@@ -51,16 +59,16 @@ async function inspect(engineName,engine){
         const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
         assert.ok(overflow<=1,`${engineName}/${width}/${role}: horizontal overflow ${overflow}`);
         assert.equal(errors.length,0,`${engineName}/${width}/${role}: ${errors.join('; ')}`);
-        assert.match(body,/Сегодня вы на Маркса/);
-        assert.match(body,/С вами: Иванова О\. В\., Петров Д\. А\./);
-        assert.doesNotMatch(body,/Вакцины|Расчёт доз|Препараты и расходники|Модули и роли/);
+        if(role==='head'){assert.match(body,/Отчёты сегодня: 2 из 3/);assert.match(body,/Ждём: Перелёта/)}
+        else{assert.match(body,/Сегодня вы на Маркса/);assert.match(body,/С вами: Иванова О\. В, Петров Д\. А/)}
         const nav=await page.locator('.ui2-bottom-nav button').allTextContents();
         assert.deepEqual(nav,role==='courier'?['Главная','Начисления','Меню']:['Главная','График','Начисления','Меню']);
-        if(role==='admin'){assert.match(body,/Вечерний отчёт/);assert.match(body,/Приём кассы/)}
-        if(role==='doctor')assert.match(body,/Мои записи/);
-        if(role==='callcenter')assert.match(body,/Мои смены/);
-        if(role==='head'){assert.match(body,/Деньги/);assert.match(body,/Отчёты/);assert.match(body,/Касса и сейф/);assert.match(body,/Зарплаты/)}
-        if(role==='courier'){assert.match(body,/Специалист АХО/);assert.doesNotMatch(body,/График/)}
+        if(role==='admin'){for(const t of ['Вечерний отчёт','Приём кассы','Вакцины','Препараты и расходники'])assert.match(body,new RegExp(t))}
+        if(role==='doctor')for(const t of ['Мои записи','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
+        if(role==='assistant')for(const t of ['Мои начисления','Где я работаю','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
+        if(role==='callcenter')for(const t of ['Мои смены','Мои начисления'])assert.match(body,new RegExp(t));
+        if(role==='head'){for(const t of ['Деньги','Отчёты','Касса и сейф','Зарплаты','Люди и доступы','Отчёт филиала'])assert.match(body,new RegExp(t))}
+        if(role==='courier'){for(const t of ['Мои начисления','Вакцины по филиалам','Заявки филиалов','Заказ снабжения'])assert.match(body,new RegExp(t));assert.doesNotMatch(body,/График/)}
         if(role!=='head')assert.doesNotMatch(body,/Выручка, касса и сейфы всех филиалов/);
         await page.close();
       }
@@ -76,14 +84,27 @@ async function inspect(engineName,engine){
     appUrl=`http://127.0.0.1:${server.address().port}/`;
     try{
       for(const [name,engine] of Object.entries({chromium,firefox,webkit}))await inspect(name,engine);
-      const browser=await chromium.launch({headless:true});
-      try{
-        const page=await browser.newPage({viewport:{width:375,height:900}});
-        await login(page,{...profiles.doctor,admin:true,roles:['doctor','admin']});
-        const body=await page.locator('body').innerText();
-        for(const title of ['Вечерний отчёт','Приём кассы','Мои записи'])assert.match(body,new RegExp(title));
-        assert.doesNotMatch(body,/Выручка, касса и сейфы всех филиалов/);
-      }finally{await browser.close()}
+      for(const [engineName,engine] of Object.entries({chromium,firefox,webkit})){
+        const browser=await engine.launch({headless:true});
+        try{
+          const dual=await browser.newPage({viewport:{width:375,height:900}});
+          await login(dual,{...profiles.doctor,admin:true,roles:['doctor','admin']});
+          const body=await dual.locator('body').innerText();
+          for(const title of ['Вечерний отчёт','Приём кассы','Мои записи','Расчёт дозы'])assert.match(body,new RegExp(title));
+          assert.doesNotMatch(body,/Выручка, касса и сейфы всех филиалов/);
+          await dual.close();
+          const leader=await browser.newPage({viewport:{width:375,height:900}});
+          await login(leader,{...profiles.head,admin:true,roles:['head','admin']});
+          const leaderBody=await leader.locator('body').innerText();
+          for(const title of ['Люди и доступы','Вечерний отчёт','Деньги'])assert.match(leaderBody,new RegExp(title),engineName+' leader union');
+          await leader.close();
+          const neutral=await browser.newPage({viewport:{width:375,height:900}});
+          await login(neutral,{id:199,full_name:'Безролевой Тест Тестович',short_name:'Безролевой Т. Т.',work:true,roles:[]});
+          const neutralBody=await neutral.locator('body').innerText();
+          for(const title of ['Вечерний отчёт','Мои записи','Мои начисления','Деньги'])assert.doesNotMatch(neutralBody,new RegExp(title),engineName+' no-role fallback');
+          await neutral.close();
+        }finally{await browser.close()}
+      }
     }finally{server.close()}
   }catch(e){throw e}
   console.log('home 2.0: OK (6 roles, dual-role union, 5 widths, 3 engines)');

@@ -1,7 +1,11 @@
 const fs=require('node:fs');
 const http=require('node:http');
 const path=require('node:path');
-const {chromium}=require('/Users/agent/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+function loadPlaywright(){
+  const candidates=[process.env.EVROVET_PLAYWRIGHT_MODULE,'playwright'].filter(Boolean);
+  for(const id of candidates)try{return require(id)}catch(e){if(id===candidates[candidates.length-1])throw e}
+}
+const {chromium}=loadPlaywright();
 
 const root=path.resolve(__dirname,'..');
 const out=path.join(root,'shots','home-v2');
@@ -23,13 +27,14 @@ async function render(page,person){
       {date:today,branch:'marksa',person_id:person.id,mine:true,short_name:person.short_name,start:'09:00',end:'21:00'},
       {date:today,branch:'marksa',person_id:991,short_name:'Иванова О. В.'},
       {date:today,branch:'marksa',person_id:992,short_name:'Петров Д. А.'}
-    ]}:{ok:true,rows:[],items:[]};
+    ]}:name==='ev_day_status'?{ok:true,branches:[
+      {branch:'marksa',submitted:true,open_flags:0},{branch:'70let',submitted:true,open_flags:0},{branch:'pereleta',submitted:false,open_flags:0}
+    ]}:name==='ev_cash_on_hand'?{ok:false}:{ok:true,rows:[],items:[]};
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
   });
   await page.goto(appUrl,{waitUntil:'domcontentloaded'});
-  await page.locator('#employee-number').fill('123');
-  await page.locator('#pin').fill('123456');
-  await page.locator('[data-act="login"]').click();
+  await page.locator('[data-act="loginstart"]').click();
+  for(const n of '123123456')await page.locator(`[data-act="logindigit"][data-n="${n}"]`).click();
   await page.locator('.ui2-home-screen').waitFor();
   await page.waitForFunction(()=>!document.body.innerText.includes('Загружаю сегодняшнюю смену'));
 }
@@ -42,12 +47,20 @@ async function render(page,person){
   appUrl=`http://127.0.0.1:${server.address().port}/`;
   const browser=await chromium.launch({headless:true});
   try{
+    const entry=await browser.newPage({viewport:{width:375,height:900},deviceScaleFactor:1});
+    await entry.goto(appUrl,{waitUntil:'domcontentloaded'});
+    await entry.screenshot({path:path.join(out,'375-entry-start.png'),fullPage:true});
+    await entry.locator('[data-act="loginstart"]').click();
+    await entry.screenshot({path:path.join(out,'375-entry-number.png'),fullPage:true});
+    for(const n of '123')await entry.locator(`[data-act="logindigit"][data-n="${n}"]`).click();
+    await entry.screenshot({path:path.join(out,'375-entry-pin.png'),fullPage:true});
+    await entry.close();
     for(const width of [375,320])for(const [role,person] of Object.entries(profiles)){
-      const page=await browser.newPage({viewport:{width,height:900},deviceScaleFactor:1});
+      const page=await browser.newPage({viewport:{width,height:role==='head'?1400:900},deviceScaleFactor:1});
       await render(page,person);
-      await page.screenshot({path:path.join(out,`${width}-${role}.png`),fullPage:false});
+      await page.screenshot({path:path.join(out,`${width}-${role}.png`),fullPage:true});
       await page.close();
     }
   }finally{await browser.close();server.close()}
-  console.log(`home 2.0 shots: ${Object.keys(profiles).length*2} PNG`);
+  console.log(`home 2.0 shots: ${Object.keys(profiles).length*2+3} PNG`);
 })().catch(e=>{console.error(e);process.exit(1)});

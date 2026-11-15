@@ -58,7 +58,7 @@ function run(src,form,date='2026-11-15',withUi=false){
   return JSON.parse(JSON.stringify(sandbox.result));
 }
 
-assert.match(html,/appVer:'2\.0-test-2997'/);
+assert.match(html,/appVer:'2\.0-test-3003'/);
 assert.match(html,/<link rel="stylesheet" href="ui2-common\.css">/);
 assert.match(html,/<body class="ui2">/);
 assert.match(css,/--ev-accent:#2A7D90/);
@@ -96,8 +96,8 @@ for(const [name,form] of scenarios){
   const before=run(base,form),after=run(html,form);
   assert.deepEqual(after.calc,before.calc,name+': checks changed');
   assert.equal(before.data.app,'2.0-test-2922');
-  assert.equal(after.data.app,'2.0-test-2997');
-  assert.deepEqual({...after.data,app:before.data.app},before.data,name+': submitted report payload changed beyond version marker');
+  assert.equal(after.data.app,'2.0-test-3003');
+  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3003'},name+': submitted report payload changed beyond exact version marker');
 }
 
 const oldDay=baseForm({cash:'20000',cashless:'50000',adv_cash:'10000'});
@@ -137,6 +137,13 @@ const productionRef=['ikxmzapf','mgqnnrsttuxc'].join('');
 assert.equal(html.includes(productionRef),false,'production project must not be referenced');
 assert.match(html,/txcibtcfuzqhhebeguby/,'test project missing');
 assert.doesNotMatch(html,/Денежные расчёты работают так же, как в версии 1\.90/,'service copy must not be visible');
+for(const phrase of ['Всё для вашей смены — в одном месте','Личный номер — 3 цифры','PIN — 6 цифр','Номер и PIN — ваша подпись. Никому не передавайте','Это общее устройство','Автоматический выход через 15 минут'])assert.match(html,new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'login copy missing: '+phrase);
+assert.match(css,/animation:ev-breathe 3\.2s/,'logo pulse must use the approved 3.2 second timing');
+assert.match(css,/@media\(prefers-reduced-motion:reduce\)/,'reduced motion guard missing');
+const rolesFn=fn(html,'personRoles');
+assert.doesNotMatch(rolesFn,/!roles\.size/,'missing roles must not default to admin or doctor');
+assert.match(html,/case'prepare'/,'future tiles must open the preparation screen');
+assert.match(fn(html,'prepareHtml'),/Раздел готовится/,'preparation screen title missing');
 
 assert.match(html,/const moneyField=.*hk\?hbtn\(hk\)/,'money fields lost their help buttons');
 assert.match(html,/marksa:\['Маркса, 45','Маркса','Марк\.'\]/,'calendar must use the approved Marksa abbreviation');
@@ -145,7 +152,7 @@ assert.match(html,/pereleta:\['Перелёта, 19','Перелёта','Пер�
 assert.match(html,/SCH_B\[ks\[0\]\]\[2\]/,'my-shift calendar must render the short branch label');
 assert.match(css,/\.cal \.d\.f small\{font-size:10px/,'calendar branch labels must be 10px');
 assert.match(fn(html,'setHeader'),/h\.className=S\.view==='form'\?'form-head':''/,'report header must have a narrow-screen layout hook');
-assert.match(fn(html,'setHeader'),/S\.view==='form'\?'':' · Мой ЕВРОВЕТ'/,'report header subtitle must contain the role without branch/date noise');
+assert.doesNotMatch(fn(html,'setHeader'),/ · Мой ЕВРОВЕТ/,'header role must not be clipped by a duplicate app name');
 const keydown=html.slice(html.indexOf("document.addEventListener('keydown'"),html.indexOf("document.addEventListener('pointerdown'"));
 assert.match(keydown,/fields\.indexOf\(t\)\+1/,'Enter must move to the next report field');
 assert.doesNotMatch(keydown,/submit\s*\(/,'Enter must never submit a report');

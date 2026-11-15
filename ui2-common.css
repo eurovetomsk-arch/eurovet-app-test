@@ -440,3 +440,47 @@ body.ui2 .k-staff .tile{padding-left:8px;padding-right:8px;font-size:14px;white-
   body.ui2 .step{display:grid;grid-template-columns:minmax(0,1fr) 42px 34px 42px;gap:8px}
   body.ui2 .step>span{grid-column:1/-1}
 }
+
+/* 2.0 — вход по макету этапа 1. */
+body.ui2.login-mode{padding-bottom:0}
+body.ui2 header.login-head{display:none}
+body.ui2.login-mode main{max-width:420px;min-height:100vh;min-height:100dvh;padding:0 22px}
+body.ui2 .ui2-login-shell{min-height:100vh;min-height:100dvh;padding:calc(42px + env(safe-area-inset-top,0px)) 0 calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;justify-content:flex-start;text-align:center}
+body.ui2 .ui2-login-spacer{flex:1;min-height:18px}
+body.ui2 .ui2-halo{width:172px;height:172px;border-radius:50%;display:grid;place-items:center;margin:0 auto;background:radial-gradient(circle,rgba(159,216,227,.30) 0%,rgba(74,160,180,.12) 45%,transparent 70%);animation:ev-breathe 3.2s cubic-bezier(.45,0,.25,1) infinite}
+body.ui2 .ui2-halo img{width:112px;height:112px;filter:brightness(0) invert(1) drop-shadow(0 0 18px rgba(159,216,227,.75)) drop-shadow(0 0 4px rgba(255,255,255,.6))}
+body.ui2 .ui2-wordmark{display:flex;align-items:baseline;justify-content:center;color:#fff;font-weight:800;letter-spacing:.04em;line-height:1;white-space:nowrap}
+body.ui2 .ui2-wordmark.lg{margin-top:28px;font-size:34px}
+body.ui2 .ui2-wordmark.sm{font-size:19px}
+body.ui2 .ui2-wordmark .gap{width:.32em}
+body.ui2 .ui2-wordmark img{width:.72em;height:.72em;margin:0 .03em;align-self:baseline;filter:brightness(0) invert(1);animation:none}
+body.ui2 .ui2-login-lead{margin:14px 0 0;color:rgba(234,246,248,.82);font-size:16px;line-height:1.45}
+body.ui2 .ui2-login-btn{height:60px;border-radius:20px;font-size:18px}
+body.ui2 .ui2-key-login h2{margin-top:34px;color:#fff;text-align:center;font-size:22px}
+body.ui2 .ui2-login-entry{min-height:150px;margin-top:22px}
+body.ui2 .ui2-field-label{margin-bottom:12px;color:rgba(234,246,248,.78);font-size:14px;font-weight:600;text-align:center}
+body.ui2 .ui2-digits{display:flex;justify-content:center;gap:12px}
+body.ui2 .ui2-digits span{width:62px;height:72px;border-radius:18px;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);font-size:32px;font-weight:700}
+body.ui2 .ui2-digits span.cur{border-color:var(--ev-mint);box-shadow:0 0 0 3px rgba(159,216,227,.18)}
+body.ui2 .ui2-dots{display:flex;justify-content:center;align-items:center;gap:16px;height:54px}
+body.ui2 .ui2-dots i{width:16px;height:16px;border-radius:50%;border:2px solid rgba(234,246,248,.48)}
+body.ui2 .ui2-dots i.on{border-color:var(--ev-mint);background:var(--ev-mint);box-shadow:0 0 11px rgba(159,216,227,.55)}
+body.ui2 .ui2-numrow{margin-top:8px;color:rgba(234,246,248,.72);font-size:13px}
+body.ui2 .ui2-numrow b{display:inline;color:#fff}
+body.ui2 .ui2-numrow button{padding:4px 6px;color:var(--ev-mint);background:transparent;border:0;text-decoration:underline}
+body.ui2 .ui2-key-login .ui2-shared{display:flex;align-items:flex-start;justify-content:center;gap:10px;max-width:280px;margin:14px auto 0;color:rgba(234,246,248,.82);font-size:12.5px;text-align:left}
+body.ui2 .ui2-key-login .ui2-shared input{flex:none;width:20px;height:20px;min-height:0;margin:1px 0 0;accent-color:var(--ev-accent-light)}
+body.ui2 .ui2-key-login .ui2-shared small{color:rgba(234,246,248,.62)}
+body.ui2 .ui2-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:0 auto}
+body.ui2 .ui2-pad button{height:58px;border-radius:18px;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);font-size:24px;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+body.ui2 .ui2-pad button:active{transform:scale(.97);background:rgba(159,216,227,.18)}
+body.ui2 .ui2-pad .blank{visibility:hidden}
+body.ui2 .ui2-pad .del{color:rgba(234,246,248,.72);background:transparent;border-color:transparent}
+body.ui2 .ui2-login-fine{margin:18px 0 0;color:rgba(234,246,248,.62);font-size:13px;line-height:1.45;text-align:center}
+body.ui2 .ui2-login-busy{position:fixed;inset:0;display:grid;place-items:center;color:#fff;background:rgba(3,22,28,.45);font-size:18px;font-weight:800;backdrop-filter:blur(3px)}
+body.ui2 .ui2-prepare{padding:24px;text-align:center}
+body.ui2 .ui2-prepare .ic{display:grid;place-items:center;width:76px;height:76px;margin:0 auto 14px;color:#D9F4F8}
+body.ui2 .ui2-prepare .ic img,body.ui2 .ui2-prepare .ic svg{width:76px;height:76px;object-fit:contain}
+body.ui2 .ui2-prepare h2{color:#fff}
+body.ui2 .ui2-prepare p{margin:10px 0 22px;color:rgba(234,246,248,.78)}
+@media(max-height:700px){body.ui2 .ui2-login-shell{padding-top:24px}.ui2-halo{width:136px!important;height:136px!important}.ui2-halo img{width:88px!important;height:88px!important}.ui2-login-entry{min-height:126px!important}.ui2-pad button{height:50px!important}}
