@@ -1,0 +1,1846 @@
+{
+  "schema": "evrovet.ui2_device_matrix/v1",
+  "generated_at": "2026-11-15T11:04:20.681Z",
+  "widths": [
+    320,
+    375,
+    414,
+    768,
+    1280
+  ],
+  "engines": [
+    "chromium",
+    "webkit",
+    "firefox"
+  ],
+  "frames": [
+    "01-main",
+    "02-branch-selection",
+    "03-cash-acceptance",
+    "04-report-top",
+    "05-report-clinic-advances",
+    "06-report-validation",
+    "07-accruals-top",
+    "08-accruals-payouts",
+    "09-schedule-my-shifts",
+    "10-schedule-who-where",
+    "11-schedule-person-card"
+  ],
+  "results": [
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "01-main",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "02-branch-selection",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "03-cash-acceptance",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "04-report-top",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "05-report-clinic-advances",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "06-report-validation",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "07-accruals-top",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "08-accruals-payouts",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "10-schedule-who-where",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "11-schedule-person-card",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "01-main",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "02-branch-selection",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "03-cash-acceptance",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "04-report-top",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "05-report-clinic-advances",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "06-report-validation",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "07-accruals-top",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "08-accruals-payouts",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "09-schedule-my-shifts",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "10-schedule-who-where",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 320,
+      "frame": "11-schedule-person-card",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "01-main",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "02-branch-selection",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "03-cash-acceptance",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "04-report-top",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "05-report-clinic-advances",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "06-report-validation",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "07-accruals-top",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "08-accruals-payouts",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "10-schedule-who-where",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 375,
+      "frame": "11-schedule-person-card",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "01-main",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "02-branch-selection",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "03-cash-acceptance",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "04-report-top",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "05-report-clinic-advances",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "06-report-validation",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "07-accruals-top",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "08-accruals-payouts",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "10-schedule-who-where",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 414,
+      "frame": "11-schedule-person-card",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "01-main",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "02-branch-selection",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "03-cash-acceptance",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "04-report-top",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "05-report-clinic-advances",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "06-report-validation",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "07-accruals-top",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "08-accruals-payouts",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "10-schedule-who-where",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 768,
+      "frame": "11-schedule-person-card",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "01-main",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "02-branch-selection",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "03-cash-acceptance",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "04-report-top",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "05-report-clinic-advances",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "06-report-validation",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "07-accruals-top",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "08-accruals-payouts",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "10-schedule-who-where",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "frame": "11-schedule-person-card",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "01-main",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "02-branch-selection",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "03-cash-acceptance",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "04-report-top",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "05-report-clinic-advances",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "06-report-validation",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "07-accruals-top",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "08-accruals-payouts",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "10-schedule-who-where",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "11-schedule-person-card",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "01-main",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "02-branch-selection",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "03-cash-acceptance",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "04-report-top",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "05-report-clinic-advances",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "06-report-validation",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "07-accruals-top",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "08-accruals-payouts",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "09-schedule-my-shifts",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "10-schedule-who-where",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 320,
+      "frame": "11-schedule-person-card",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "01-main",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "02-branch-selection",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "03-cash-acceptance",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "04-report-top",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "05-report-clinic-advances",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "06-report-validation",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "07-accruals-top",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "08-accruals-payouts",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "10-schedule-who-where",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "frame": "11-schedule-person-card",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "01-main",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "02-branch-selection",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "03-cash-acceptance",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "04-report-top",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "05-report-clinic-advances",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "06-report-validation",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "07-accruals-top",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "08-accruals-payouts",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "10-schedule-who-where",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 414,
+      "frame": "11-schedule-person-card",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "01-main",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "02-branch-selection",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "03-cash-acceptance",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "04-report-top",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "05-report-clinic-advances",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "06-report-validation",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "07-accruals-top",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "08-accruals-payouts",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "10-schedule-who-where",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 768,
+      "frame": "11-schedule-person-card",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "01-main",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "02-branch-selection",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "03-cash-acceptance",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "04-report-top",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "05-report-clinic-advances",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "06-report-validation",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "07-accruals-top",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "08-accruals-payouts",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "10-schedule-who-where",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "frame": "11-schedule-person-card",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "01-main",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "02-branch-selection",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "03-cash-acceptance",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "04-report-top",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "05-report-clinic-advances",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "06-report-validation",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "07-accruals-top",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "08-accruals-payouts",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "10-schedule-who-where",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "11-schedule-person-card",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "01-main",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "02-branch-selection",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "03-cash-acceptance",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "04-report-top",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "05-report-clinic-advances",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "06-report-validation",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "07-accruals-top",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "08-accruals-payouts",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "09-schedule-my-shifts",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "10-schedule-who-where",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 320,
+      "frame": "11-schedule-person-card",
+      "mode": "large-text-130",
+      "viewport": 320,
+      "document_width": 320,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "01-main",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "02-branch-selection",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "03-cash-acceptance",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "04-report-top",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "05-report-clinic-advances",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "06-report-validation",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "07-accruals-top",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "08-accruals-payouts",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "10-schedule-who-where",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 375,
+      "frame": "11-schedule-person-card",
+      "viewport": 375,
+      "document_width": 375,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "01-main",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "02-branch-selection",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "03-cash-acceptance",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "04-report-top",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "05-report-clinic-advances",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "06-report-validation",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "07-accruals-top",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "08-accruals-payouts",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "10-schedule-who-where",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 414,
+      "frame": "11-schedule-person-card",
+      "viewport": 414,
+      "document_width": 414,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "01-main",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "02-branch-selection",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "03-cash-acceptance",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "04-report-top",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "05-report-clinic-advances",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "06-report-validation",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "07-accruals-top",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "08-accruals-payouts",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "10-schedule-who-where",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 768,
+      "frame": "11-schedule-person-card",
+      "viewport": 768,
+      "document_width": 768,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "01-main",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "02-branch-selection",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "03-cash-acceptance",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "04-report-top",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "05-report-clinic-advances",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "06-report-validation",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "07-accruals-top",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "08-accruals-payouts",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "09-schedule-my-shifts",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "10-schedule-who-where",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    },
+    {
+      "engine": "firefox",
+      "width": 1280,
+      "frame": "11-schedule-person-card",
+      "viewport": 1280,
+      "document_width": 1280,
+      "pass": true,
+      "bad": []
+    }
+  ]
+}

@@ -702,7 +702,17 @@ function netBadge(){
   return '<button class="pill" data-act="queue" title="'+(S.online?'Связь есть':'Нет связи')+'"><span class="net'+(S.online?'':' off')+'"></span>'+lab+'</button>';
 }
 
+let evHistoryReady=false,evHistoryApplying=false,evHistoryView=null;
+function evNavSnapshot(){return{view:S.view,branch:S.branch,date:S.date,wkFrom:S.wkFrom||null,wkTo:S.wkTo||null,sch:S.sch?{m:S.sch.m,tab:S.sch.tab,day:S.sch.day,flt:S.sch.flt}:null}}
+function evSyncHistory(){
+  const snap=evNavSnapshot();
+  if(evHistoryApplying){evHistoryView=snap.view;return}
+  if(!evHistoryReady){history.replaceState({evrovet:snap},'',location.href);evHistoryReady=true}
+  else if(evHistoryView!==snap.view)history.pushState({evrovet:snap},'',location.href);
+  evHistoryView=snap.view;
+}
 function render(){
+  evSyncHistory();
   setHeader();
   const app=$('#app'),bar=$('#barwrap');bar.innerHTML='';
   if(S.view==='login')app.innerHTML=viewLogin();
@@ -721,6 +731,14 @@ function render(){
   if(isHead()&&(S.view==='branch'||S.view==='ctl'||S.view==='rev'||S.view==='sal'||(uiNew()&&S.view==='pay')||S.view==='sched'))bar.innerHTML=navHtml();
   else if(!isHead()&&S.person&&(S.view==='branch'||S.view==='work'||S.view==='cc'||S.view==='sched'))bar.innerHTML=navHtml(anav());
 }
+window.addEventListener('popstate',e=>{
+  const x=e.state&&e.state.evrovet;if(!x)return;
+  evHistoryApplying=true;
+  S.view=x.view||homeView();S.branch=x.branch||null;S.date=x.date||omskToday();
+  if(x.wkFrom){S.wkFrom=x.wkFrom;S.wkTo=x.wkTo}
+  if(x.sch){const s=schEnsure();s.m=x.sch.m;s.tab=x.sch.tab;s.day=x.sch.day;s.flt=x.sch.flt||''}
+  closeOv();render();window.scrollTo(0,0);evHistoryApplying=false;evHistoryView=S.view;
+});
 function currentHelpHtml(){return HELP_HTML
   .replace('разница до 10 рублей включительно','разница до 10 рублей включительно')
   .replace('Эти числа приложение потом сверит с суммой по врачам и с оплатами. Нал и безнал вместе должны давать общий вал.','Вал клиники приложение сверит с суммой по врачам. Наличные и безналичные показывают все деньги клиники за сегодня, включая суммы, положенные на аванс; приложение учтёт действия с авансами отдельно.')
@@ -763,8 +781,13 @@ function viewLogin(){
 function homeTab(){const t=S.homeTab||LS.get('ev_htab');return t==='cc'?'cc':'adm'}
 function homeTabs(){const t=homeTab();return '<div class="chips tabs" style="margin:0 0 10px">'+[['adm','Администраторы'],['cc','Колл-центр']].map(x=>'<button class="chip'+(t===x[0]?' on':'')+'" data-act="htab" data-t="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>'}
 function stageGreetingWord(h=(new Date()).getHours()){return h>=5&&h<12?'Доброе утро':h>=12&&h<17?'Добрый день':h>=17&&h<23?'Добрый вечер':'Здравствуйте';}
-function stageGreetingName(p){const a=String(p?.full_name||'').trim().split(/\s+/).filter(Boolean);return a.length>=2?a[1]:String(p?.short_name||p?.name||'').trim().split(/\s+/)[0]||'';}
-function stageGreeting(p){const n=stageGreetingName(p);return stageGreetingWord()+(n?', '+n:'')+'!';}
+function stageGreetingName(p){
+  const full=String(p?.full_name||p?.name||'').trim(),a=full.split(/\s+/).filter(Boolean);
+  if(a.length>=3)return a[1]+' '+a[2];
+  const short=String(p?.short_name||p?.name||full).trim();
+  return short||'';
+}
+function stageGreeting(p){const n=stageGreetingName(p);return stageGreetingWord()+(n?', '+n:'');}
 function stageRole(p){return p?.head?'Руководитель':p?.admin?'Администратор':p?.cc?'Колл-центр':p?.work?'Сотрудник':'';}
 function viewBranch(){
   if(isCC()&&!isHead())return '<div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div><div class="card"><button class="btn sec big" data-act="ccopen">Колл-центр: мои смены</button><p class="hint">Если сегодня вы на смене администратором, выберите филиал ниже.</p></div>';
@@ -806,7 +829,7 @@ const HINTS={
 };
 const hbtn=k=>'<button type="button" class="q" data-act="hint" data-h="'+k+'" aria-label="Подсказка">?</button>';
 const nfield=(p,label,val,extra='',hk='')=>'<label class="f"><span>'+label+(hk?hbtn(hk):'')+'</span><input data-p="'+p+'" inputmode="decimal" autocomplete="off" value="'+esc(fmtNum(val))+'" '+extra+'></label>';
-const moneyField=(p,title,sub,val,hk='')=>'<label class="money-field"><span class="mf-copy"><b>'+title+(hk?hbtn(hk):'')+'</b><small>'+sub+'</small></span><input data-p="'+p+'" inputmode="decimal" autocomplete="off" value="'+esc(fmtNum(val))+'" aria-label="'+esc(title)+'"></label>';
+const moneyField=(p,title,sub,val,hk='')=>'<div class="mf"><label class="mf-copy" for="mf-'+p.replace(/[^a-z0-9_-]/gi,'-')+'"><b>'+title+'</b><small>'+sub+'</small></label><div class="num"><input id="mf-'+p.replace(/[^a-z0-9_-]/gi,'-')+'" data-p="'+p+'" inputmode="decimal" autocomplete="off" value="'+esc(fmtNum(val))+'" aria-label="'+esc(title)+'"></div></div>';
 
 function handoverHtml(){
   const s=handoverHere();if(!s)return '';
@@ -862,20 +885,20 @@ function viewForm(){
   h+='<button class="btn sec small" style="margin-top:8px" data-act="addOther">+ Врач-замена или другая сумма не из списка</button>';
   h+='<div class="sum" style="margin-top:10px"><span>Сумма врачей</span><b id="s-docs"></b></div></div>';
 
-  h+='<div class="card k-clinic money-card"><div class="money-head"><h2>Деньги клиники'+hbtn('pay')+'</h2><span class="money-tag">только за сегодня</span></div>'+
+  h+='<div class="card k-clinic money-card"><div class="chead money-head"><h2>Деньги клиники<small>только за сегодня</small></h2>'+hbtn('pay')+'</div>'+
     '<p class="money-lead">Аптеку сюда не добавляйте — она заполняется отдельно ниже.</p>'+
     moneyField('total','Вал клиники','итог клиники из Vetmanager, без аптеки',f.total,'total')+
     moneyField('cash','Наличные клиники','все наличные клиники за сегодня, вместе с авансами, без аптеки',f.cash)+
     moneyField('cashless','Безнал клиники','весь безнал клиники за сегодня, вместе с авансами, без аптеки',f.cashless)+'</div>';
 
-  h+='<div class="card k-adv money-card"><div class="money-head"><h2>Авансы клиентов'+hbtn('adv')+'</h2><span class="money-tag">только за сегодня</span></div>'+
+  h+='<div class="card quiet k-adv money-card"><div class="chead money-head"><h2>Авансы клиентов<small>только за сегодня</small></h2>'+hbtn('adv')+'</div>'+
     moneyField('adv_cash','Положили на аванс сегодня наличными','входит в наличные клиники',f.adv_cash,'advcash')+
     moneyField('adv_cashless','Положили на аванс сегодня безналом','входит в безнал клиники',f.adv_cashless,'advcash')+
     moneyField('adv_out','Сняли с аванса сегодня','в оплату счетов',f.adv_out,'advout')+
     '<div class="advance-note"><span>i</span><div>Клиент дал деньги на аванс — пишем два раза: в наличные или безнал и в «Положили на аванс».<br>Клиент заплатил авансом — пишем один раз: в «Сняли с аванса». В наличные и безнал ничего.<br>Когда аванс был внесён — не важно.</div></div>'+
     '<div id="money-status" class="money-status wait"><span class="ms-icon">…</span><div><div class="money-summary">Заполните суммы выше.</div></div></div></div>';
 
-  h+='<div class="card k-pharm money-card"><div class="money-head"><h2>Аптека — отдельно'+hbtn('pharm')+'</h2></div>'+
+  h+='<div class="card k-pharm money-card"><div class="chead money-head"><h2>Аптека<small>считается отдельно</small></h2>'+hbtn('pharm')+'</div>'+
     '<p class="money-lead">Только продажи аптеки. Не переносите эти суммы в «Деньги клиники».</p>'+
     moneyField('ph_cash','Наличные аптеки','только наличные продажи аптеки',f.ph_cash)+
     moneyField('ph_cashless','Безналичные аптеки','карта и переводы за товары аптеки',f.ph_cashless)+
@@ -1483,10 +1506,11 @@ function perLabel(f,t){const M=['января','февраля','марта','а
 function workHtml(){
   const today=omskToday(),cs=perStart(today),f=S.wkFrom||cs,t=S.wkTo||perEnd(cs),r=S.work;
   const canPrev=f>PAY_START,canNext=f<cs,isCur=f===cs;
-  let h='<div class="card">'+(isHead()?'<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 10px">← На главную</button>':'')+'<h2>Мои начисления</h2>'+(S.person?'<p class="hint" style="margin:0 0 8px">Здравствуйте, '+esc(S.person.name)+'!</p>':'')
-    +'<div class="pernav"><button class="chip" data-act="wkshift" data-d="-1"'+(canPrev?'':' disabled')+' aria-label="Предыдущий период">‹</button><div class="perlab"><b>'+perLabel(f,t)+'</b><small>'+(isCur?'текущий период':ruDate(f)+' — '+ruDate(t))+'</small></div><button class="chip" data-act="wkshift" data-d="1"'+(canNext?'':' disabled')+' aria-label="Следующий период">›</button></div>'
-    +'<div class="chips">'+(isCur?'':'<button class="chip" data-act="wkper" data-from="'+cs+'" data-to="'+perEnd(cs)+'">Текущий период</button>')+'<button class="chip'+(S.wkHist?' on':'')+'" data-act="wkhist">История</button></div>'
-    +(canPrev?'':'<p class="hint" style="margin:6px 0 0">Начисления до 16.10.2026 считались вручную и в приложении не показываются.</p>')+'</div>';
+  let h=(S.person?'<p class="hello">'+esc(stageGreeting(S.person))+'</p>':'')+'<h1 class="screen-title">Мои начисления</h1>'
+    +'<div class="period"><button class="pn" data-act="wkshift" data-d="-1"'+(canPrev?'':' disabled')+' aria-label="Предыдущий период">‹</button><div class="pc"><b>'+perLabel(f,t)+'</b><small>'+(isCur?'текущий период':ruDate(f)+' — '+ruDate(t))+'</small></div><button class="pn" data-act="wkshift" data-d="1"'+(canNext?'':' disabled')+' aria-label="Следующий период">›</button></div>'
+    +'<div class="dseg"><button class="'+(S.wkHist?'':'on')+'" data-act="wkper" data-from="'+cs+'" data-to="'+perEnd(cs)+'">Текущий период</button><button class="'+(S.wkHist?'on':'')+'" data-act="wkhist">История</button></div>'
+    +(isHead()?'<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 12px">← На главную</button>':'')
+    +(canPrev?'':'<p class="hint" style="color:rgba(234,246,248,.72);margin:6px 2px 12px">Начисления до 16.10.2026 считались вручную и в приложении не показываются.</p>');
   if(S.wkHist)h+=histHtml();
   if(S.wkErr)return h+'<div class="card"><p>'+esc(S.wkErr)+'</p><button class="btn sec small" data-act="wkper" data-from="'+f+'" data-to="'+t+'">Повторить</button></div>';
   if(!r)return h+'<div class="card"><p class="hint">Загружаю…</p></div>';
@@ -2121,16 +2145,19 @@ function appointmentsHtml(day){
 }
 
 /* ====== 1.71 График: «Мои смены» и «Кто где». Отдельно от финансов: читает только ev_whos_where, в ответе нет ни денег, ни часов ====== */
-const SCH_B={marksa:['Маркса, 45','Маркса','#b5185c'],'70let':['70 Лет Октября, 20','70 лет','#0e8a6a'],pereleta:['Перелёта, 19','Перелёта','#1d4ed8'],cc:['Колл-центр','КЦ','#6b7280']};
+const SCH_B={marksa:['Маркса, 45','Маркса'], '70let':['70 лет Октября, 20','70 лет'],pereleta:['Перелёта, 19','Перелёта'],cc:['Колл-центр','КЦ']};
 const SCH_BO=['marksa','70let','pereleta','cc'];
 const SCH_R={admin:'Администратор',doctor:'Врач',assistant:'Ассистент',callcenter:'Колл-центр'};
 const SCH_RO={admin:0,doctor:1,assistant:2,callcenter:3};
-const SCH_RC={admin:'#d97706',doctor:'#7c3aed',assistant:'#0891b2',callcenter:'#6b7280'};
 const SCH_AT={'Борисов':'клинический','Медюкова':'клинический','Шпакова':'клинический','Юнгман':'технический','Салыкова':'технический','Кривогузова':'технический'}; // по справочнику ролей ev_person_roles (assistant_clinical / assistant_tech), как в расчёте зарплаты; новый ассистент — добавить сюда
 const schRole=r=>{let t=SCH_R[r.slot]||'';if(r.slot==='assistant'&&SCH_AT[r.name])t+=' '+SCH_AT[r.name];return t};
-const schPill=r=>'<span class="sch-rl" style="background:'+(SCH_RC[r.slot]||'#6b7280')+'">'+esc(schRole(r))+'</span>';
+const schBranchColor=k=>({marksa:'var(--ev-marksa)', '70let':'var(--ev-70let)',pereleta:'var(--ev-pereleta)',cc:'var(--ev-role-callcenter)'}[k]||'var(--ev-role-callcenter)');
+const schRoleColor=k=>({admin:'var(--ev-role-admin)',doctor:'var(--ev-role-doctor)',assistant:'var(--ev-role-assistant)',callcenter:'var(--ev-role-callcenter)'}[k]||'var(--ev-role-callcenter)');
+const schShort=v=>{const a=String(v||'').trim().split(/\s+/).filter(Boolean);if(a.length<2)return String(v||'');const ini=a.slice(1).map(x=>(x.replace(/[^А-ЯЁA-Z]/gi,'')[0]||'').toUpperCase()).filter(Boolean).slice(0,2);return a[0]+(ini.length?' '+ini.map(x=>x+'.').join(' '):'')};
+const schInitials=v=>{const a=String(v||'').trim().split(/\s+/).filter(Boolean),tail=a.slice(1).map(x=>(x.replace(/[^А-ЯЁA-Z]/gi,'')[0]||'').toUpperCase()).filter(Boolean);return ((tail[0]||a[0]?.[0]||'')+(tail[1]||a[0]?.[1]||'')).slice(0,2)};
+const schPill=r=>'<span class="role-pill" style="background:'+schRoleColor(r.slot)+'">'+esc(schRole(r))+'</span>';
 function schCcToday(rows){const t=omskToday(),n=rows.filter(r=>r.date===t&&schBk(r)==='cc').map(r=>r.name);
-  return '<div class="sch-cc"><b>Колл-центр сегодня</b>'+(n.length?esc(n.join(', ')):'<span style="color:var(--mute)">в графике никого нет</span>')+'</div>'}
+  return '<section class="card quiet"><div class="cc"><span class="av" style="background:'+schRoleColor('callcenter')+'">КЦ</span><span>Колл-центр сегодня: <b>'+(n.length?esc(n.map(schShort).join(', ')):'в графике никого нет')+'</b></span></div></section>'}
 const SCH_MN=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const SCH_DW=['пн','вт','ср','чт','пт','сб','вс'];
 const schBk=r=>r.branch||'cc';
@@ -2165,60 +2192,66 @@ async function loadSched(m){
 function schCal(m,cell){
   const n=schLast(m),lead=schDow(m+'-01'),today=omskToday();let h=SCH_DW.map(x=>'<div class="h">'+x+'</div>').join('');
   const pm=schShift(m,-1),pn=schLast(pm);
-  for(let i=lead-1;i>=0;i--)h+='<div class="sch-d o">'+(pn-i)+'</div>';
+  for(let i=lead-1;i>=0;i--)h+='<div class="d o">'+(pn-i)+'</div>';
   for(let d=1;d<=n;d++)h+=cell(m+'-'+String(d).padStart(2,'0'),d,today);
-  const tail=(7-(lead+n)%7)%7;for(let j=1;j<=tail;j++)h+='<div class="sch-d o">'+j+'</div>';
-  return '<div class="sch-cal">'+h+'</div>'}
+  const tail=(7-(lead+n)%7)%7;for(let j=1;j<=tail;j++)h+='<div class="d o">'+j+'</div>';
+  return '<div class="cal">'+h+'</div>'}
 function schHead(s){
-  return '<div class="chips"><button class="tile'+(s.tab==='my'?' on':'')+'" data-act="schtab" data-t="my">Мои смены</button><button class="tile'+(s.tab==='all'?' on':'')+'" data-act="schtab" data-t="all">Кто где</button></div>'
-   +'<div class="sch-top"><button data-act="schmon" data-n="-1" aria-label="Предыдущий месяц">‹</button><b>'+schTitle(s.m)+'</b><button data-act="schmon" data-n="1" aria-label="Следующий месяц">›</button></div>'}
+  return '<div class="period"><button class="pn" data-act="schmon" data-n="-1" aria-label="Предыдущий месяц">‹</button><div class="pc"><b>'+schTitle(s.m)+'</b><small>график опубликован</small></div><button class="pn" data-act="schmon" data-n="1" aria-label="Следующий месяц">›</button></div>'
+   +'<div class="dseg"><button class="'+(s.tab==='my'?'on':'')+'" data-act="schtab" data-t="my">Мои смены</button><button class="'+(s.tab==='all'?'on':'')+'" data-act="schtab" data-t="all">Кто где</button></div>'}
 function schMy(s,rows){
   const today=omskToday(),mine=rows.filter(r=>r.mine);
   const cnt={};mine.forEach(r=>{const k=schBk(r);cnt[k]=(cnt[k]||0)+1});
   const by={};mine.forEach(r=>{(by[r.date]=by[r.date]||[]).push(r)});
-  let h=schCcToday(rows)+'<div class="sch-tiles"><div><b>'+mine.length+'</b><small>смен в месяце</small></div><div><b>'+mine.filter(r=>r.date>=today).length+'</b><small>ещё впереди</small></div></div>';
-  h+='<div class="sch-leg">'+SCH_BO.filter(k=>k!=='cc'||cnt[k]).map(k=>'<span><i style="background:'+SCH_B[k][2]+'"></i>'+esc(SCH_B[k][0])+(cnt[k]?': '+cnt[k]:'')+'</span>').join('')+'</div>'+(mine.length?'':'<p class="hint">В этом месяце у вас нет смен</p>');
-  h+=schCal(s.m,(dt,d,t)=>{const l=by[dt];const cl='sch-d'+(dt===t?' today':'')+(s.apptDay===dt?' sel':'');
+  let h='<section class="card"><div class="stats"><div class="stat"><b>'+mine.length+'</b><small>смен в месяце</small></div><div class="stat"><b>'+mine.filter(r=>r.date>=today).length+'</b><small>ещё впереди</small></div></div>';
+  h+='<div class="leg">'+SCH_BO.filter(k=>k!=='cc'||cnt[k]).map(k=>'<span><i style="background:'+schBranchColor(k)+'"></i>'+esc(SCH_B[k][0])+(cnt[k]?' · '+cnt[k]:'')+'</span>').join('')+'</div>'+(mine.length?'':'<p class="hint">В этом месяце у вас нет смен</p>')+'</section>';
+  h+='<section class="card"><div class="chead"><h2>Мои смены</h2><span class="tag">'+esc(SCH_MN[Number(s.m.slice(5))-1])+'</span></div>';
+  h+=schCal(s.m,(dt,d,t)=>{const l=by[dt];const cl='d'+(dt===t?' today':'')+(s.apptDay===dt?' sel':'');
     if(!l)return '<div class="'+cl+'">'+d+'</div>';
     const ks=[...new Set(l.map(schBk))];
     const tap=apptAllowed()&&apptInWindow(dt),tag=tap?'button':'div',act=tap?' data-act="schappt" data-d="'+dt+'" aria-label="Показать записи за '+ruDate(dt)+'"':'';
-    if(ks.length===1)return '<'+tag+' class="'+cl+' f" style="background:'+SCH_B[ks[0]][2]+'"'+act+'>'+d+'<small>'+esc(SCH_B[ks[0]][1])+'</small></'+tag+'>';
-    return '<'+tag+' class="'+cl+' m"'+act+'>'+d+'<span class="sch-ms">'+ks.map(k=>'<small style="background:'+SCH_B[k][2]+'">'+esc(SCH_B[k][1])+'</small>').join('')+'</span></'+tag+'>'});
+    if(ks.length===1)return '<'+tag+' class="'+cl+' f" style="background:'+schBranchColor(ks[0])+'"'+act+'>'+d+'<small>'+esc(SCH_B[ks[0]][1])+'</small></'+tag+'>';
+    return '<'+tag+' class="'+cl+'"'+act+'>'+d+'<span class="dots">'+ks.map(k=>'<i style="background:'+schBranchColor(k)+'"></i>').join('')+'</span></'+tag+'>'});
+  h+='<p class="hint" style="margin:12px 0 0">Нажмите на свою смену, чтобы увидеть записи пациентов на этот день.</p>';
   if(s.apptDay&&by[s.apptDay]&&apptAllowed()&&apptInWindow(s.apptDay))h+=appointmentsHtml(s.apptDay);
+  h+='</section>';
   const up=mine.filter(r=>r.date>=today).sort((a,b)=>a.date<b.date?-1:1);
-  h+=up.map(r=>{const k=schBk(r),dw=SCH_DW[schDow(r.date)];return '<div class="sch-row"><span class="bar" style="background:'+SCH_B[k][2]+'"></span><span class="t"><b>'+(r.date===today?'Сегодня, ':'')+dw.charAt(0).toUpperCase()+dw.slice(1)+', '+ruDate(r.date)+'</b><small>'+esc(SCH_B[k][0])+'</small></span>'+schPill(r)+'</div>'}).join('');
-  return h}
+  if(up.length)h+='<section class="card"><div class="chead"><h2>Ближайшие смены</h2></div>'+up.map(r=>{const k=schBk(r),dw=SCH_DW[schDow(r.date)];return '<div class="srow schedule"><span class="sbar" style="background:'+schBranchColor(k)+'"></span><span class="t"><b>'+(r.date===today?'Сегодня, ':'')+dw+', '+ruDate(r.date)+'</b><small>'+esc(SCH_B[k][0])+'</small></span>'+schPill(r)+'</div>'}).join('')+'</section>';
+  return h+schCcToday(rows)}
 function schAll(s,rows){
   const today=omskToday(),f=s.flt;const vis=rows.filter(r=>!f||schBk(r)===f);
   const by={};vis.forEach(r=>{(by[r.date]=by[r.date]||[]).push(r)});
   const mineD={};rows.forEach(r=>{if(r.mine)mineD[r.date]=1});
-  let h='<div class="chips">'+[['','Все'],['marksa','Маркса'],['70let','70 лет'],['pereleta','Перелёта'],['cc','КЦ']].map(x=>'<button class="tile'+(f===x[0]?' on':'')+'" data-act="schflt" data-f="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>';
-  h+='<div class="sch-leg">'+SCH_BO.map(k=>'<span><i style="background:'+SCH_B[k][2]+'"></i>'+esc(SCH_B[k][1])+'</span>').join('')+'</div><div class="sch-leg"><span>Точка в календаре: сколько людей на филиале. ★ ваша смена</span></div><div class="sch-leg">'+['admin','doctor','assistant'].map(k=>'<span><i style="background:'+SCH_RC[k]+'"></i>'+SCH_R[k]+'</span>').join('')+'</div>'+schCcToday(rows);
+  let h='<div class="fchips">'+[['','Все'],['marksa','Маркса'],['70let','70 лет'],['pereleta','Перелёта'],['cc','Колл-центр']].map(x=>'<button class="pchip'+(f===x[0]?' on':'')+'" data-act="schflt" data-f="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>';
+  h+='<section class="card"><div class="chead"><h2>Кто где</h2><span class="tag">'+esc(SCH_MN[Number(s.m.slice(5))-1])+'</span></div><div class="leg" style="margin-bottom:12px">'+SCH_BO.map(k=>'<span><i style="background:'+schBranchColor(k)+'"></i>'+esc(SCH_B[k][1])+'</span>').join('')+'<span style="color:var(--ev-warn)">★ ваша смена</span></div>';
   h+=schCal(s.m,(dt,d,t)=>{const l=by[dt]||[];const c={};l.forEach(r=>{const k=schBk(r);c[k]=(c[k]||0)+1});
-    const dots=SCH_BO.filter(k=>c[k]&&(k!=='cc'||f==='cc')).map(k=>'<span class="sch-dt" style="background:'+SCH_B[k][2]+'">'+c[k]+'</span>').join('');
-    return '<button class="sch-d'+(dt===t?' today':'')+(dt===s.day?' sel':'')+'" data-act="schday" data-d="'+dt+'" aria-label="'+ruDate(dt)+'">'+d+(mineD[dt]?'<span class="sch-star">★</span>':'')+'<span class="sch-dots">'+dots+'</span></button>'});
+    const dots=SCH_BO.filter(k=>c[k]&&(k!=='cc'||f==='cc')).map(k=>'<i style="background:'+schBranchColor(k)+'"></i>').join('');
+    return '<button class="d'+(dt===t?' today':'')+(dt===s.day?' sel':'')+'" data-act="schday" data-d="'+dt+'" aria-label="'+ruDate(dt)+'">'+d+(mineD[dt]?'<span class="star">★</span>':'')+'<span class="dots">'+dots+'</span></button>'});
+  h+='<p class="hint" style="margin:12px 0 0">Точка — на филиале есть смена. Нажмите на день, чтобы увидеть, кто работает.</p></section>';
   s.pp=[];
   const dl=rows.filter(r=>r.date===s.day);
   if(s.day.slice(0,7)===s.m){
     const dw=SCH_DW[schDow(s.day)];
-    h+='<h3 style="margin:10px 0 0">'+ruDate(s.day)+', '+dw+(s.day===today?' · сегодня':'')+'</h3>';
+    h+='<section class="card"><div class="chead"><h2>'+ruDate(s.day)+', '+dw+(s.day===today?'<small>сегодня</small>':'')+'</h2></div>';
     SCH_BO.filter(k=>!f||k===f).forEach(k=>{
       const rr=dl.filter(r=>schBk(r)===k).sort((a,b)=>(SCH_RO[a.slot]-SCH_RO[b.slot])||(a.name<b.name?-1:1));
       if(k==='cc'&&!rr.length)return;
-      h+='<div class="sch-grp">'+esc(SCH_B[k][0])+'</div>';
-      if(k==='70let'&&dl.length&&!rr.some(r=>r.slot==='doctor'))h+='<div class="sch-row"><span class="bar" style="background:'+SCH_B[k][2]+'"></span><span class="t"><small>Врача нет</small></span></div>';
-      if(!rr.length&&k!=='70let')h+='<div class="sch-row"><span class="t"><small>Никого в графике</small></span></div>';
-      h+=rr.map(r=>'<div class="sch-row'+(r.full?' sch-tap':'')+(r.mine?' me':'')+'"'+(r.full?' data-act="schp" data-i="'+(s.pp.push(r)-1)+'"':'')+'><span class="bar" style="background:'+(SCH_RC[r.slot]||SCH_B[k][2])+'"></span><span class="t">'+esc(r.name)+(r.mine?' (вы)':'')+'</span>'+schPill(r)+(r.full?'<span class="sch-ch">›</span>':'')+'</div>').join('')})}
+      h+='<div class="grp"><i style="background:'+schBranchColor(k)+'"></i>'+esc(SCH_B[k][0])+'</div>';
+      if(k==='70let'&&dl.length&&!rr.some(r=>r.slot==='doctor'))h+='<div class="empty">Врача сегодня нет</div>';
+      if(!rr.length&&k!=='70let')h+='<div class="empty">Никого в графике</div>';
+      h+=rr.map(r=>'<div class="srow schedule'+(r.mine?' me':'')+'"'+(r.full?' data-act="schp" data-i="'+(s.pp.push(r)-1)+'"':'')+'><span class="av" style="background:'+schRoleColor(r.slot)+'">'+esc(schInitials(r.full||r.name))+'</span><span class="t"><b>'+esc(schShort(r.full||r.name))+'</b><small>'+esc(schRole(r))+(r.mine?' · это вы':'')+'</small></span>'+(r.full?'<span class="chev">›</span>':'')+'</div>').join('')});
+    h+='</section>'}
   return h}
 function schedHtml(){
   const s=schEnsure(),rows=schRows(s.m);
-  let h='<div class="card">'+(isHead()?'<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 10px">← На главную</button>':'')+'<h2>График</h2>'+schHead(s);
+  let h=(S.person?'<p class="hello">'+esc(stageGreeting(S.person))+'</p>':'')+'<h1 class="screen-title">График</h1>'+schHead(s);
+  if(isHead())h+='<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 12px">← На главную</button>';
   if(s.demo)h+='<p class="hint" style="background:var(--warnbg);color:var(--warn);border-radius:10px;padding:8px 10px">ПРИМЕР с выдуманными данными. Показывается только вам, настоящий график не загружен. <button class="pill" data-act="schdemo">Выключить пример</button></p>';
-  if(s.load&&!rows)h+='<p class="hint">Загружаем…</p>';
-  else if(s.err&&!rows)h+='<p class="hint" style="color:var(--bad)">'+esc(s.err)+'</p><button class="btn sec" data-act="schretry">Повторить</button>';
-  else if(!rows||!rows.length){h+='<p class="hint">График на '+schTitle(s.m).toLowerCase()+' ещё не опубликован.</p>';if(isHead())h+='<button class="btn sec" data-act="schdemo">Показать пример (выдуманные данные)</button>'}
+  if(s.load&&!rows)h+='<section class="card"><p class="hint">Загружаем…</p></section>';
+  else if(s.err&&!rows)h+='<section class="card"><p class="hint" style="color:var(--bad)">'+esc(s.err)+'</p><button class="btn sec" data-act="schretry">Повторить</button></section>';
+  else if(!rows||!rows.length){h+='<section class="card"><p class="hint">График на '+schTitle(s.m).toLowerCase()+' ещё не опубликован.</p>';if(isHead())h+='<button class="btn sec" data-act="schdemo">Показать пример (выдуманные данные)</button>';h+='</section>'}
   else h+=s.tab==='my'?schMy(s,rows):schAll(s,rows);
-  return h+'</div>'}
+  return h}
 function ccHtml(){
   if(!S.ccFrom){S.ccFrom=perStart(omskToday());S.ccTo=omskToday()}
   const today=omskToday(),cs=perStart(today),pe=addDays(cs,-1),ps=perStart(pe),f=S.ccFrom,t=S.ccTo,r=S.cc;
@@ -2424,7 +2457,11 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('input',e=>{if(!isField(e.target))return;document.body.classList.add('typing');clearTimeout(typT);typT=setTimeout(showBar,4000)},true);
 document.addEventListener('focusout',()=>{setTimeout(()=>{if(!isField(document.activeElement))showBar()},150)});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.tagName==='INPUT'){e.target.blur();showBar()}});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||!e.target||e.target.tagName!=='INPUT'||e.target.id==='pin')return;
+  e.target.blur();showBar();
+  if(S.view==='form'&&!S.busy){e.preventDefault();submit()}
+});
 document.addEventListener('pointerdown',e=>{const a=document.activeElement;if(isField(a)&&!e.target.closest('input,textarea,select,label,button'))a.blur()});
 document.addEventListener('change',e=>{
   const t=e.target;
@@ -2538,7 +2575,7 @@ document.addEventListener('click',async e=>{
     case'schedopen':showSched();break;
     case'schtab':schEnsure().tab=d.t;paint();break;
     case'schday':schEnsure().day=d.d;paint();break;
-    case'schp':{const r=(schEnsure().pp||[])[Number(d.i)];if(!r||!r.full)break;const f=String(r.full||r.name||'').trim(),sp=f.indexOf(' '),sn=sp>0?f.slice(0,sp):f,rest=sp>0?f.slice(sp+1):'';overlay('<div class="sch-pc"><span class="sch-rl" style="background:'+(SCH_RC[r.slot]||'#6b7280')+'">'+esc(schRole(r))+'</span><div class="sch-pn">'+esc(sn)+'</div>'+(rest?'<div class="sch-pf">'+esc(rest)+'</div><p class="hint">К сотруднику можно обращаться по имени и отчеству.</p>':'')+'<button class="btn sec" data-act="ovclose">Закрыть</button></div>');break}
+    case'schp':{const r=(schEnsure().pp||[])[Number(d.i)];if(!r||!r.full)break;const f=String(r.full||r.name||'').trim(),sp=f.indexOf(' '),sn=sp>0?f.slice(0,sp):f,rest=sp>0?f.slice(sp+1):'';overlay('<div class="sch-pc"><div class="pcard"><span class="av" style="background:'+schRoleColor(r.slot)+'">'+esc(schInitials(f))+'</span><div><h3>'+esc(sn)+'</h3>'+(rest?'<p>'+esc(rest)+'</p>':'')+'</div></div><p class="shint"><span class="role-pill" style="background:'+schRoleColor(r.slot)+'">'+esc(schRole(r))+'</span><br><br>К сотруднику можно обращаться по имени и отчеству.</p><button class="btn sec" data-act="ovclose">Закрыть</button></div>');break}
     case'schflt':schEnsure().flt=d.f;paint();break;
     case'schretry':loadSched(schEnsure().m);break;
     case'schdemo':{const s=schEnsure();if(isHead()){s.demo=!s.demo;paint()}break}
