@@ -59,16 +59,16 @@ function run(src,form,date='2026-11-15',withUi=false){
   return JSON.parse(JSON.stringify(sandbox.result));
 }
 
-assert.match(html,/appVer:'2\.0-test-3287'/);
-assert.match(html,/name="evrovet-version" content="2\.0-test-3287"/);
+assert.match(html,/appVer:'2\.0-test-3385'/);
+assert.match(html,/name="evrovet-version" content="2\.0-test-3385"/);
 assert.match(html,/<link rel="stylesheet" href="ui2-common\.css">/);
 assert.match(html,/<link rel="stylesheet" href="styles\/view\.css">/);
 assert.match(html,/<body class="ui2">/);
 assert.match(css,/--ev-accent:#2A7D90/);
 assert.match(html,/tol:10,/,'10-ruble tolerance changed');
 assert.equal(fn(html,'compute'),fn(base,'compute'),'compute must be byte-identical to 1.90');
-assert.equal(fn(html,'buildData'),fn(base,'buildData'),'buildData must be byte-identical to 1.90');
-assert.equal(fn(html,'formFromReport'),fn(base,'formFromReport'),'saved report mapping changed from 1.90');
+assert.equal(fn(html,'buildData').replace(',no_assistant:assistants.length===0&&f.no_assistant===true',''),fn(base,'buildData'),'buildData changed beyond the approved no_assistant flag');
+assert.equal(fn(html,'formFromReport').replace('  f.no_assistant=!!d.no_assistant&&!Object.keys(f.assistants).length;\n',''),fn(base,'formFromReport'),'saved report mapping changed beyond the approved no_assistant flag');
 
 const view=fn(html,'viewForm');
 const clinicAt=view.indexOf('k-clinic'),advanceAt=view.indexOf('k-adv'),pharmacyAt=view.indexOf('k-pharm');
@@ -99,8 +99,8 @@ for(const [name,form] of scenarios){
   const before=run(base,form),after=run(html,form);
   assert.deepEqual(after.calc,before.calc,name+': checks changed');
   assert.equal(before.data.app,'2.0-test-2922');
-  assert.equal(after.data.app,'2.0-test-3287');
-  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3287'},name+': submitted report payload changed beyond exact version marker');
+  assert.equal(after.data.app,'2.0-test-3385');
+  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3385',no_assistant:false},name+': submitted report payload changed beyond exact version marker and approved no_assistant flag');
 }
 
 const oldDay=baseForm({cash:'20000',cashless:'50000',adv_cash:'10000'});

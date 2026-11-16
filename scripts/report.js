@@ -256,7 +256,7 @@ function handoverHtml(){
 function viewForm(){
   if(handoverGate())return handoverHtml()||'<div class="card"><h2>Приёмка кассы</h2><p class="hint">Проверяем принятую сумму…</p></div>';
   const f=S.form,c=S.ctx;let h='';
-  if(S.formErrors&&S.formErrors.length)h+='<div class="chk bad" id="form-errors"><i>!</i><div><b>Не заполнено: '+S.formErrors.map(esc).join('; ')+'</b></div></div>';
+  if(S.formErrors&&S.formErrors.length)h+='<div class="chk bad" id="form-errors"><i>!</i><div><b>Исправьте перед отправкой: '+S.formErrors.map(esc).join('; ')+'</b></div></div>';
   if(S.draftTs){const dt=new Date(S.draftTs);const hm=dt.toLocaleString('ru-RU',{timeZone:'Asia/Omsk',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     h+='<div class="chk warn"><i>!</i><div>Восстановлен ваш несохранённый черновик от '+hm+'. Если это не сегодняшние цифры — очистите форму.<br><button class="btn sec small" style="margin-top:8px" data-act="clearDraft">Очистить форму и начать заново</button></div></div>';}
   if(S.ctxOffline)h+='<div class="chk warn"><i>!</i><div><b>Нет связи с сервером.</b> Утренний приём кассы и вчерашний итог сейчас недоступны. Впишите начало смены по факту. Отчёт сохранится на устройстве и уйдёт при появлении интернета.<br><button class="btn sec small" style="margin-top:8px" data-act="reloadctx">Обновить с сервера</button></div></div>';
@@ -347,7 +347,7 @@ function viewForm(){
       '<div class="step"><span>Фиксации на рентгене</span><button data-act="inc" data-p="assistants.'+k+'.fx" data-d="-1">−</button><output id="o-'+k+'-fx">'+v.fx+'</output><button data-act="inc" data-p="assistants.'+k+'.fx" data-d="1">+</button></div>'+
       '<label class="f"><span>Пришёл в (только если не в 9:00)</span><input type="time" data-p="assistants.'+k+'.came" value="'+esc(v.came||'')+'"></label><label class="f"><span>Ушёл в (только если не в 21:00)</span><input type="time" data-p="assistants.'+k+'.left" value="'+esc(v.left||'')+'"></label></div>';
   });
-  if(!Object.keys(f.assistants).length&&f.no_assistant===true)h+='<div class="chk ok"><i>✓</i><div><b>Ассистентов в смене не было</b><br><small>Подтверждено перед отправкой отчёта.</small></div></div>';
+  if(!Object.keys(f.assistants).length&&f.no_assistant===true)h+='<div class="chk ok"><i>✓</i><div><b>Ассистента не было (отметил админ)</b><br><small>Отметка сохранена в отчёте дня и видна руководителю.</small></div></div>';
   h+='</div>';
 
   h+='<div class="card k-misc"><h2>Прочее</h2><label class="f"><span>Примечание</span><textarea data-p="note" rows="2">'+esc(f.note)+'</textarea></label>'+

@@ -22,12 +22,14 @@ function fn(src,name){
   throw new Error('unterminated '+name);
 }
 
-assert.match(common,/appVer:'2\.0-test-3380'/);
+assert.match(common,/appVer:'2\.0-test-3385'/);
 assert.equal(fn(report,'compute'),fn(base,'compute'),'2.0 financial formulas changed');
 assert.equal(fn(report,'validate'),fn(base,'validate'),'2.0 existing validation rules changed');
 assert.match(fn(report,'submit'),/В смене не было ассистента\?/);
 assert.match(fn(report,'buildData'),/no_assistant:assistants\.length===0&&f\.no_assistant===true/);
-assert.match(fn(report,'viewForm'),/Не заполнено:/);
+assert.match(fn(report,'viewForm'),/Исправьте перед отправкой:/);
+assert.match(fn(report,'viewForm'),/Ассистента не было \(отметил админ\)/);
+assert.match(fn(report,'viewForm'),/видна руководителю/);
 assert.match(view,/case'assistantnone':S\.form\.no_assistant=true/);
 assert.match(view,/case'assistantadd'/);
 assert.match(view,/if\(g==='assistants'\)f\.no_assistant=false/);
