@@ -4,7 +4,7 @@ const CFG={
   url:'https://txcibtcfuzqhhebeguby.supabase.co',
   key:window.STAGE1?.key||'',
   tol:10,                // допустимая погрешность включительно, ₽
-  appVer:'2.0-test-c3'
+  appVer:'2.0-test-c4'
 };
 const BRANCHES=[
   {id:'marksa',title:'Маркса, 45'},
@@ -54,7 +54,9 @@ const omskToday=()=>{ // сегодня по Омску (UTC+6, без пере�
   return new Date(Date.now()+6*36e5).toISOString().slice(0,10)
 };
 const nf=new Intl.NumberFormat('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:2});
-const money=x=>nf.format(Math.round(x*100)/100)+' ₽';
+const nf2=new Intl.NumberFormat('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+/* 2.0: целые рубли без копеек (13 750 ₽), дробные — всегда два знака (1 082,70 ₽) */
+const money=x=>{const v=Math.round(x*100)/100;return (Number.isInteger(v)?nf:nf2).format(v)+' ₽'};
 const r2=x=>Math.round(x*100)/100;
 function num(s){ // null — пусто; NaN — некорректно
   if(s==null)return null;
