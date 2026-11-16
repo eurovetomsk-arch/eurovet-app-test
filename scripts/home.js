@@ -23,7 +23,7 @@ async function loadHomeWho(){
   try{
     const r=await rpc('ev_whos_where',{p_token:S.token,p_from:omskToday(),p_to:omskToday()},8000);
     if(!r||!r.ok)HOME_WHO.error='Сегодняшняя смена пока не загрузилась.';
-    else HOME_WHO.rows=Array.isArray(r.rows)?r.rows:[];
+    else HOME_WHO.rows=Array.isArray(r.shifts)?r.shifts:(Array.isArray(r.rows)?r.rows:[]); /* 2.0: сервер отдаёт shifts */
   }catch(e){HOME_WHO.error=e.net?'Нет связи: сегодняшняя смена пока не загрузилась.':'Сегодняшняя смена пока не загрузилась.'}
   HOME_WHO.loading=false;if(S.view==='branch')paint();
 }

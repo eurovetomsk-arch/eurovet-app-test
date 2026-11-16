@@ -51,7 +51,7 @@ async function copyPay(){
   const sp=(S.salTab==='sum'||S.salTab==='doc')?salPayInfo():null;
   let tx=S.salTab==='doc'?(sp?'Врачи '+ruDate(S.sal.from)+' — '+ruDate(S.sal.to):''):payText(S.sal,S.salTab);
   if(S.salTab==='doc'&&!sp)return;
-  if(sp)tx+='\nВрачи: '+(sp.docs.length?sp.docs.map(x=>'\n   '+x.name+' — '+money(x.doctor+x.sur)).join(''):'нет данных')+'\nВрачи всего: '+money(sp.docSum)+(Math.abs(sp.rest)>=0.5?'\nОклады и постоянные доплаты: '+money(sp.rest):'')+'\nВсего начислено с врачами и окладами: '+money(sp.total)+'\nПереведено на карту: '+money(sp.paid)+'\nНа руки: '+money(sp.toPay);
+  if(sp)tx+='\nВрачи: '+(sp.docs.length?sp.docs.map(x=>'\n   '+x.name+' — '+money(x.doctor+x.sur)).join(''):'нет данных')+'\nВрачи всего: '+money(sp.docSum)+(Math.abs(sp.rest)>=0.5?'\nОклады и постоянные доплаты: '+money(sp.rest):'')+'\nВсего начислено с врачами и окладами: '+money(sp.total)+'\nВыплачено: '+money(sp.paid)+'\nОстаток к выплате: '+money(sp.toPay);
   try{await navigator.clipboard.writeText(tx);toast('Ведомость скопирована');return}catch(e){}
   try{const ta=document.createElement('textarea');ta.value=tx;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-999px;top:0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();toast(ok?'Ведомость скопирована':'Не удалось скопировать',4000)}catch(e){toast('Не удалось скопировать',4000)}
 }
@@ -404,7 +404,7 @@ function safeBody(){
   if(S.payErr)return '<div class="card"><p>'+esc(S.payErr)+'</p></div>';
   if(!r)return '<div class="card"><p class="hint">Загружаю…</p></div>';
   const rows=r.rows||[],tot=r.total||{};
-  const CASH_SKIP=[17],skipRows=rows.filter(x=>CASH_SKIP.includes(Number(x.id))),skip=skipRows.reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),need=rows.filter(x=>!CASH_SKIP.includes(Number(x.id))).reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),bal=c?(c.balance!=null?N(c.balance):N(c.on_hand)):null,short=bal==null?null:need-bal;
+  const CASH_SKIP=((window.EVROVET_UI2_CONFIG||{}).cashExcludePersonIds||[]).map(Number),skipRows=rows.filter(x=>CASH_SKIP.includes(Number(x.id))),skip=skipRows.reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),need=rows.filter(x=>!CASH_SKIP.includes(Number(x.id))).reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),bal=c?(c.balance!=null?N(c.balance):N(c.on_hand)):null,short=bal==null?null:need-bal;
   const prov=!!r.provisional||(r.warnings||[]).some(w=>/не закрыт|не загружен/i.test(String(w)));
   h+='<div class="card"><h3 style="margin-top:2px">Зарплата за период</h3>'
     +'<div class="srow"><span>Начислено</span><b>'+money(N(tot.accrued))+'</b></div>'
@@ -576,7 +576,7 @@ function payHtml(){
 }
 
 /* ====== Люди (1.52): всё о человеке за период; сумма та же, что в «Зарплате» (ev_payroll_statement) ====== */
-const PPL_PART={admin:'Администратор: смены и аптека',assistant:'Ассистент',callcenter:'Колл-центр',doctor:'Врач: проценты (расчёт Vetmanager)',fixed:'Оклад',surcharge:'Доплата за продажи (Vetmanager)',extra:'Доплаты и вычеты',outsource:'Аутсорс: описания снимков'};
+const PPL_PART={admin:'Администратор: смены и аптека',assistant:'Ассистент',callcenter:'Колл-центр',doctor:'Проценты Vetmanager',fixed:'Оклад',surcharge:'Доплата за продажи (Vetmanager)',extra:'Доплаты и вычеты',outsource:'Аутсорс: описания снимков'};
 const PPL_ORDER=['admin','assistant','callcenter','doctor','outsource','fixed','surcharge','extra'];
 const PPL_GRP=[['doctor','Врачи'],['admin','Админы'],['assistant','Ассистенты'],['callcenter','Колл-центр'],['outsource','Аутсорс']];
 /* Люди - состав команды за период, включая сотрудников до первого начисления.
@@ -592,7 +592,17 @@ function pplRows(r){
   });
   return [...byId.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name),'ru'));
 }
-const pplHasGroup=(x,g)=>!!Number((x.parts||{})[g])||(x.roster_roles||[x.roster_role]).some(role=>PPL_ROLE_PART[role]===g);
+/* 2.0 (свод §13): человек стоит в ОДНОЙ группе — по основной роли. Порядок и исключения — настройка config.js (primaryRoleOrder, primaryRoleByPerson). */
+function pplMainGroup(x){
+  const cfg=window.EVROVET_UI2_CONFIG||{},over=(cfg.primaryRoleByPerson||{})[String(x.id)];
+  if(over)return PPL_ROLE_PART[over]||over;
+  const groups=[...new Set((x.roster_roles||[x.roster_role]).map(r=>PPL_ROLE_PART[r]).filter(Boolean))];
+  const order=cfg.primaryRoleOrder||['callcenter','admin','doctor','assistant','outsource'];
+  for(const g of order)if(groups.includes(g))return g;
+  const pr=x.parts||{};let best=null,bv=0;['admin','assistant','callcenter','doctor','outsource'].forEach(g=>{const v=Math.abs(Number(pr[g]||0));if(v>bv){bv=v;best=g}});
+  return best||groups[0]||null;
+}
+const pplHasGroup=(x,g)=>pplMainGroup(x)===g;
 async function loadExtras(from,to){
   const key=from+'|'+to;S.pplExKey=key;S.pplEx=null;
   try{const r=await rpc('ev_payroll_extras',{p_token:S.token,p_from:from,p_to:to},10000);
@@ -606,6 +616,7 @@ function pplCard(x){
   const ex=(S.pplEx||[]).filter(i=>String(i.person)===String(x.id)),exSum=ex.reduce((q,i)=>q+N(i.amount),0);
   let h='<div class="card"><button class="btn sec small" data-act="pplback" style="margin:0 0 10px">← Люди</button><h2>'+esc(x.name)+(S.person&&String(x.id)===String(S.person.id)?' <span class="chip on" style="padding:1px 8px;font-size:12px">это вы</span>':'')+'</h2><p class="hint" style="margin:0">'+ruDate(r.from)+' — '+ruDate(r.to)+(r.provisional?' · предварительно':'')+'</p></div>';
   if(x.roster_only)return h+'<div class="card"><h3>'+esc(PPL_ROLE_NAME[x.roster_role]||'Сотрудник')+'</h3><p>Начислений и выплат за выбранный период пока нет.</p><p class="hint">'+(PPL_ROLE_PART[x.roster_role]==='assistant'?'Смены и фиксации вносит администратор в отчёт филиала. После сохранения отчёта они попадут в расчёт.':'Начисления появятся после внесения рабочих данных за период.')+'</p></div>';
+  h+='<div class="card"><button class="btn small" data-act="pplsal" data-id="'+x.id+'">+ Доплата или вычет</button></div>';
   h+='<div class="card pay"><div class="srow big"><span>Начислено</span><b>'+money(N(x.accrued))+'</b></div>'
     +'<div class="srow"><span>− Выплачено</span><span>'+money(N(x.paid))+'</span></div>'
     +'<div class="srow big"><span>= '+(x.over_paid?'Переплата (проверить)':'Остаток к выплате')+'</span><b'+(x.over_paid?' style="color:var(--bad)"':'')+'>'+money(N(x.to_pay))+'</b></div>'
@@ -625,8 +636,36 @@ function pplCard(x){
   const canClose=!r.provisional&&!r.multi;
   h+='<div class="card"><div class="chips">'+(canClose&&!x.closed?'<button class="btn small" data-act="payclose1" data-id="'+x.id+'">Рассчитан</button>':'')
     +'<button class="btn small sec" data-act="paycard" data-id="'+x.id+'">История и выплаты</button>'
-    +'<button class="btn small sec" data-act="pplsal" data-id="'+x.id+'">+ Доплата или вычет</button></div></div>';
+    +'</div></div>';
+  h+=pplShiftsHtml(x);
   return h;
+}
+/* 2.0 (свод §13): «Смены по дням» в карточке — дата, филиал, роль, ставка, кто внёс (администратор, сдавший отчёт).
+   Источник: ev_salary (дни админов/ассистентов/колл-центра — тот же расчёт) и ev_revenue (кто сдал отчёт дня, вал врачей). */
+async function loadPplShifts(from,to){
+  const key=from+'|'+to;if(S.pplShKey===key&&S.pplSh)return;S.pplShKey=key;S.pplSh=null;
+  try{const [sal,rev]=await Promise.all([rpc('ev_salary',{p_token:S.token,p_from:from,p_to:to,p_test:false},12000),rpc('ev_revenue',{p_token:S.token,p_from:from,p_to:to},12000)]);
+    if(S.pplShKey!==key)return;S.pplSh={sal:(sal&&sal.ok)?sal:null,rev:(rev&&rev.ok)?rev:null};
+  }catch(e){if(S.pplShKey!==key)return;S.pplSh={sal:null,rev:null,err:true}}
+  if(S.view==='pay'&&S.pplMode)paint();
+}
+function pplShiftsHtml(x){
+  const r=S.pay;if(!r)return '';
+  if(!S.pplSh||S.pplShKey!==r.from+'|'+r.to){loadPplShifts(r.from,r.to);return '<div class="card"><h3 style="margin-top:2px">Смены по дням</h3><p class="hint">Загружаю…</p></div>'}
+  const sal=S.pplSh.sal,rev=S.pplSh.rev,id=String(x.id),rows=[];
+  const who=(b,d)=>{const q=((rev&&rev.reports)||[]).find(z=>String(z.branch)===String(b)&&String(z.date)===String(d));return q?q.by:''};
+  const rate=(sal&&sal.rates)||{};
+  ((sal&&sal.admins)||[]).filter(a=>String(a.id)===id).forEach(a=>(a.days||[]).forEach(d=>rows.push({date:d.date,branch:d.branch,role:'Администратор',rate:a.shift_rate,by:who(d.branch,d.date)})));
+  ((sal&&sal.assistants)||[]).filter(a=>String(a.id)===id).forEach(a=>(a.days||[]).forEach(d=>rows.push({date:d.date,branch:d.branch,role:d.role==='assistant_tech'?'Техн. ассистент':'Клин. ассистент',rate:d.rate,by:who(d.branch,d.date),fix:(Number(d.fix_normal)||0)+(Number(d.fix_xray)||0)})));
+  ((sal&&sal.callcenter)||[]).filter(a=>String(a.id)===id).forEach(a=>(a.days||[]).forEach(d=>rows.push({date:d.date,branch:'',role:'Колл-центр',rate:d.pay,by:'отметка в смене'})));
+  ((rev&&rev.reports)||[]).forEach(q=>(q.doctors||[]).forEach(dd=>{if(String(dd.name||'').trim()===String(x.name||'').trim())rows.push({date:q.date,branch:q.branch,role:'Врач',rate:null,by:q.by,val:dd.val})}));
+  rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.branch).localeCompare(String(b.branch)));
+  let h='<div class="card"><h3 style="margin-top:2px">Смены по дням</h3>';
+  if(!sal&&!rev)return h+'<p class="hint">Не удалось загрузить смены. Суммы выше от этого не меняются.</p></div>';
+  if(!rows.length)return h+'<p class="hint">За период смен в отчётах нет.</p></div>';
+  h+=rows.map(z=>'<div class="srow"><span><b>'+ruDate(z.date).slice(0,5)+'</b> · '+esc(z.branch?brTitle(z.branch):'—')+' · '+esc(z.role)
+    +'<br><small style="color:var(--mute)">'+(z.by?'внёс: '+esc(z.by):'')+(z.fix?' · фиксаций '+z.fix:'')+(z.val!=null?' · вал '+money(Number(z.val)):'')+'</small></span><b>'+(z.rate!=null?money(Number(z.rate)):'')+'</b></div>').join('');
+  return h+'<p class="hint" style="margin:6px 0 0">Смен: '+rows.length+'. Ставка — за смену; у врача начисление считает Vetmanager.</p></div>';
 }
 function pplHtml(){
   const today=omskToday(),cs=perStart(today),pe=addDays(cs,-1),ps=perStart(pe),r=S.pay;

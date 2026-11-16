@@ -167,7 +167,8 @@ async function submit(){
     overlay('<h2>В смене не было ассистента?</h2><p class="hint">Подтвердите это отдельно или вернитесь к форме и добавьте ассистента. Без выбора отчёт не отправится.</p><button class="btn" data-act="assistantnone">Да, не было</button><button class="btn sec" style="margin-top:8px" data-act="assistantadd">Добавить ассистента</button>');
     return;
   }
-  const data=buildData(v.calc);
+  if(!(await trapGate()))return; /* 2.0: ловушки отчёта (traps.js) */
+  const data=Object.assign(buildData(v.calc),trapData());
   const it={uid:uid(),branch:S.branch,date:S.date,data,reason:S.ctx.current?S.form.corr_reason.trim():null,
     client_time:new Date().toISOString(),status:'new',branchTitle:(BRANCHES.find(b=>b.id===S.branch)||{}).title,
     summary:summaryText(data)};
@@ -195,6 +196,7 @@ function summaryText(d){
   L.push('Инкасс. итог: '+d.cashbox.closing);
   d.assistants.forEach(a=>L.push('Ассистент '+aNm(a.name)+': фикс. '+a.fix_normal+', рентген '+a.fix_xray+(a.came?', пришёл '+a.came:'')+(a.left?', ушёл '+a.left:'')));
   if(d.no_assistant)L.push('Ассистентов в смене не было — подтверждено администратором');
+  if(typeof trapSummaryLines==='function')trapSummaryLines(d).forEach(x=>L.push(x));
   if(d.note)L.push('Примечание: '+d.note);
   if(d.diff_reason)L.push('Причина расхождений: '+d.diff_reason);
   return L.join('\n');

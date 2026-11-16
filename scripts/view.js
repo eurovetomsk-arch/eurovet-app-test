@@ -166,6 +166,26 @@ async function loadVmNames(){
   S.vmNamesBusy=false;
 }
 const FLAG_HINT={late_edit:'Отчёт изменён после 12:00 следующего дня: проверьте автора и причину.',locked_edit:'Изменён отчёт закрытого периода, по которому зарплата уже рассчитана: цифры могли разойтись с выплатой.'};
+const VM_COVERAGE_GAPS=[
+  ['invoices_complete','не подтверждены счета'],
+  ['revenue_summary_complete','не подтверждена выручка'],
+  ['payments_complete','не подтверждены наличные и безналичные платежи'],
+  ['cashbox_complete','не получено закрытие кассы Vetmanager']
+];
+/* 1.92 (2059c1b): причина неполной сверки — перенесено в 2.0 без изменений */
+function vmCoverageText(x){
+  if(!x||!x.coverage)return'';
+  const c=x&&x.coverage||{};
+  const gaps=VM_COVERAGE_GAPS.filter(g=>c[g[0]]!==true).map(g=>g[1]);
+  return gaps.length?'Нужно разобрать: '+gaps.join(', ')+'.':'Причина неполноты не указана в результате сверки.';
+}
+function vmCoverageForFlag(f){
+  return (S.ctlCoverage||[]).find(x=>
+    String(x.branch)===String(f.branch||S.branch)
+    &&String(x.date)===String(f.date||S.date)
+    &&Number(x.version)===Number(f.version)
+  );
+}
 function flagLine(f,where){
   const bad=f.level==='red';
   let nums='';
@@ -174,9 +194,10 @@ function flagLine(f,where){
   const bid=f.branch||S.branch,dt=f.date||S.date;
   const bt=(BRANCHES.find(b=>b.id===bid)||{}).title||bid;
   const who=where==='ctl'?'<small>'+esc(bt)+' · '+ruDate(dt)+'</small><br>':'';
+  const vmDetail=f.code==='vm_partial'?vmCoverageText(vmCoverageForFlag(f)):'';
   return '<div class="chk '+(f.accepted?'wait':bad?'bad':'warn')+'"><i>'+(f.accepted?'✓':'!')+'</i><div>'+who+'<b>'+esc(f.title)+'</b>'
     +(nums?'<br><small>'+esc(nums)+'</small>':'')
-    +(isHead()&&FLAG_HINT[f.code]?'<br><small>'+FLAG_HINT[f.code]+'</small>':'')+(isHead()&&f.detail?'<br><small>'+nameDetail(f.detail)+'</small>':'')
+    +(isHead()&&FLAG_HINT[f.code]?'<br><small>'+FLAG_HINT[f.code]+'</small>':'')+(isHead()&&(vmDetail||f.detail)?'<br><small>'+nameDetail(vmDetail||f.detail)+'</small>':'')
     +(f.accepted?'<br><small>принято руководителем</small>':'')
     +(isHead()&&!f.accepted&&!['vm_not_checked','vm_partial'].includes(f.code)?'<br><span class="fbtns"><button class="btn sec small" data-act="accept" data-bid="'+esc(bid)+'" data-dt="'+esc(dt)+'" data-code="'+esc(f.code)+'" data-ver="'+(Number(f.version)||0)+'">Принять</button><button class="btn sec small" data-act="fdet" data-bid="'+esc(bid)+'" data-dt="'+esc(dt)+'" data-code="'+esc(f.code)+'" data-ver="'+(Number(f.version)||0)+'">Подробнее</button></span>':'')
     +'</div></div>';
@@ -238,13 +259,13 @@ function ctlHtml(){
     const complete=cv.filter(x=>x.status==='complete').length;
     const waiting=cv.filter(x=>['pending','missing'].includes(x.status));
     const pending=waiting.length;
-    const incomplete=cv.filter(x=>!['complete','pending','missing'].includes(x.status)).length;
+    const incompleteRows=cv.filter(x=>!['complete','pending','missing'].includes(x.status)),incomplete=incompleteRows.length;
     const staleDays=waiting.reduce((n,x)=>Math.max(n,Math.max(0,Math.floor((Date.parse(omskToday()+'T00:00:00Z')-Date.parse(String(x.date||'')+'T00:00:00Z'))/86400000))),0);
     h+='<p class="hint">Открытых расхождений: '+open.length+'. Vetmanager подтвердил '+complete+' из '+cv.length+' текущих версий отчётов.</p>';
     if(pending)h+=staleDays>2
       ?'<div class="chk warn"><i>!</i><div><b>Сверка Vetmanager не проводилась '+staleDays+' '+(staleDays%10===1&&staleDays%100!==11?'день':([2,3,4].includes(staleDays%10)&&![12,13,14].includes(staleDays%100)?'дня':'дней'))+'</b><br><small>Ожидание длится больше двух суток. Строка видна только руководителю; отчёты и суммы она не меняет.</small></div></div>'
       :'<div class="chk wait"><i>…</i><div><b>Ожидают плановой сверки: '+pending+'</b><br><small>Сегодняшние отчёты проверятся автоматически после закрытия смен. Ничего принимать вручную не нужно.</small></div></div>';
-    if(incomplete)h+='<div class="chk bad"><i>!</i><div><b>Сверка Vetmanager не завершена: '+incomplete+'</b><br><small>Автоматическая проверка запускалась, но не подтвердила все обязательные блоки. Это требует разбора.</small></div></div>';
+    if(incomplete){const details=incompleteRows.map(x=>{const bt=(BRANCHES.find(b=>b.id===x.branch)||{}).title||x.branch;return bt+' · '+ruDate(x.date)+': '+vmCoverageText(x)}).join(' ');h+='<div class="chk bad"><i>!</i><div><b>Сверка Vetmanager не завершена: '+incomplete+'</b><br><small>'+esc(details)+'</small></div></div>'}
     h+=fl.length?fl.map(f=>flagLine(f,'ctl')).join(''):(cv.length&&complete+pending===cv.length?(pending?'<p>Подтверждённых расхождений сейчас нет. Идёт плановая сверка сегодняшних отчётов.</p>':'<p>Расхождений нет. Все текущие версии отчётов подтверждены Vetmanager.</p>'):'<p>Нет подтверждённых данных для вывода «расхождений нет».</p>');
   }
   return h+'</div>';
@@ -523,6 +544,7 @@ document.addEventListener('click',async e=>{
     case'addOther':S.form.others.push({title:'',val:''});saveDraft();render();break;
     case'delOther':S.form.others.splice(Number(d.i),1);saveDraft();render();break;
     case'submit':if(!S.busy)submit();break;
+    case'trap-pharm-closed':case'trap-pharm-fill':case'trap-sched-absent':case'trap-sched-add':await trapAct(a,b);break;
     case'assistantnone':S.form.no_assistant=true;saveDraft();closeOv();await submit();break;
     case'assistantadd':closeOv();setTimeout(()=>{const e=document.querySelector('.k-assist');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},0);break;
     case'copy':if(S.done)clip(S.done.summary);break;

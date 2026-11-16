@@ -55,6 +55,13 @@ window.EVROVET_UI2_CONFIG=Object.freeze({
     'Всё под рукой — для вас'
   ]),
   sloganRotate:true,
+  /* Семья (свод §14, слово Михаила 16.11): начисления считаются и видны, в «Остаток к выплате» сейфа (сколько наличных нужно) не входят.
+     Номера людей из ev_people. Настройка клиники, не код: менять здесь. */
+  /* Ведомость (свод §13): человек с двумя ролями стоит в одной группе — по основной роли.
+     Порядок групп и исключения по человеку (номер -> роль). Смага (админ+врач) — администратор; КЦ, выходящий админом, — колл-центр; врач, выходящий ассистентом, — врач. */
+  primaryRoleOrder:Object.freeze(['callcenter','admin','doctor','assistant','outsource']),
+  primaryRoleByPerson:Object.freeze({}),
+  cashExcludePersonIds:Object.freeze([1,6,17]),
   navByRole:Object.freeze({
     default:Object.freeze(['home','schedule','accruals','menu']),
     courier:Object.freeze(['home','accruals','menu'])
