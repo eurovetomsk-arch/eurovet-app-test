@@ -1126,17 +1126,20 @@ function muMatchBank(rows,idx){
     return o;
   });
 }
-/* Дата платежа предлагает период, но руководитель подтверждает его явно перед загрузкой. */
-function muDefaultPeriod(payDate){
-  const day=Number(String(payDate).slice(8,10)),ym=String(payDate).slice(0,7);
-  if(day<=5){
-    const prevEnd=new Date(Date.UTC(Number(ym.slice(0,4)),Number(ym.slice(5,7))-1,0)).toISOString().slice(0,10);
-    const f=muPeriodStart(prevEnd);return[f,muPeriodEnd(f)];
-  }
-  if(day<=20)return[ym+'-01',ym+'-15'];
-  const f=ym+'-16';return[f,muPeriodEnd(f)];
+/* Сервер возвращает только открытые периоды с готовыми начислениями. Дата платежа лишь отсекает будущие. */
+function muEligiblePeriods(payDate,periods){
+  return(periods||[]).map(p=>Array.isArray(p)?{from:p[0],to:p[1]}:p)
+    .filter(p=>p&&p.from&&p.to&&p.from<=payDate)
+    .sort((a,b)=>String(a.from).localeCompare(String(b.from)))
+    .map(p=>[p.from,p.to]);
 }
-function muPrevPeriods(today,n){const out=[];let s=muPeriodStart(today);if(n>0)out.push([s,muPeriodEnd(s)]);for(let i=1;i<n;i++){const prevEnd=new Date(Date.UTC(Number(s.slice(0,4)),Number(s.slice(5,7))-1,Number(s.slice(8,10))-1)).toISOString().slice(0,10);s=muPeriodStart(prevEnd);out.push([s,muPeriodEnd(s)])}return out}
+function muDefaultPeriod(payDate,periods){return muEligiblePeriods(payDate,periods)[0]||null}
+function muBankPayDate(b){const dates=(b&&b.rows||[]).map(r=>r.date).filter(Boolean).sort();return dates.length?dates[dates.length-1]:omskToday()}
+function muSyncBankPeriod(){
+  const b=S.mu&&S.mu.bank;if(!b)return;
+  b.openPeriods=muEligiblePeriods(muBankPayDate(b),(S.mu.batches||{}).periods);
+  if(!b.period||!b.openPeriods.some(p=>p[0]===b.period[0]&&p[1]===b.period[1]))b.period=b.openPeriods[0]||null;
+}
 const muGuessBranch=n=>/маркс|marks/i.test(n)?'marksa':/перел|perel/i.test(n)?'pereleta':/70|октябр/i.test(n)?'70let':'';
 function muDecode(buf){
   const u=new Uint8Array(buf);
@@ -1165,7 +1168,7 @@ function muHealthRows(h,nowMs,tt){tt=tt||(x=>x);
 const muAgeTxt=a=>a==null?'нет данных':a<1?'меньше часа назад':a<48?Math.round(a)+' ч назад':Math.round(a/24)+' дн назад';
 /*MU-PARSE-END*/
 const muF=n=>Number(n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
-const MU_ERR={session:'Сессия закончилась. Войдите заново.',forbidden:'Раздел только для руководителя.',duplicate_file:'Этот файл уже загружен.',period_or_kind:'Период должен быть 1–15 или 16–конец месяца.',period_issued:'Период уже выдан. Выберите другой',before_start:'Учёт в системе начинается с 16.10.2026.',row:'В файле есть сотрудник, которого нет в списке.',duplicate_person:'Один сотрудник дважды в файле.',branch:'Выберите филиал.',branch_already_loaded:'По этому филиалу и периоду файл уже загружен. Сначала отмените прежнюю загрузку.',input:'Файл не прошёл проверку.',pin_format:'PIN: ровно 6 цифр.',person:'Сотрудник не найден.'};
+const MU_ERR={session:'Сессия закончилась. Войдите заново.',forbidden:'Раздел только для руководителя.',duplicate_file:'Этот файл уже загружен.',period_or_kind:'Период должен быть 1–15 или 16–конец месяца.',period_issued:'Период уже выдан. Выберите другой',period_not_ready:'Для периода ещё не загружены начисления трёх филиалов',before_start:'Учёт в системе начинается с 16.10.2026.',row:'В файле есть сотрудник, которого нет в списке.',duplicate_person:'Один сотрудник дважды в файле.',branch:'Выберите филиал.',branch_already_loaded:'По этому филиалу и периоду файл уже загружен. Сначала отмените прежнюю загрузку.',input:'Файл не прошёл проверку.',pin_format:'PIN: ровно 6 цифр.',person:'Сотрудник не найден.'};
 const muBrTitle=id=>(BRANCHES.find(b=>b.id===id)||{title:id||'—'}).title;
 function muLoadX(){
   if(window.XLSX)return Promise.resolve();
@@ -1186,11 +1189,11 @@ async function showMU(){
     if((p&&p.error==='session')||(b&&b.error==='session')){S.mu=null;S.token=null;LS.del('ev_token');S.view='login';toast(MU_ERR.session);render();return}
     if(!p||!p.ok){S.mu.err=MU_ERR[p&&p.error]||'Не удалось загрузить список сотрудников';}
     else{S.mu.people=p.people;S.mu.idx=muIndex(p.people)}
-    if(b&&b.ok)S.mu.batches=b;
+    if(b&&b.ok){S.mu.batches=b;muSyncBankPeriod()}
   }catch(e){if(S.mu)S.mu.err=e.net?'Нет связи.':'Ошибка сервера.'}
   if(S.view==='mu')paint();
 }
-async function muReloadBatches(){try{const b=await rpc('ev_mu_batches',{p_token:S.token},15000);if(S.mu&&b&&b.ok){S.mu.batches=b}}catch(e){}if(S.view==='mu')paint()}
+async function muReloadBatches(){try{const b=await rpc('ev_mu_batches',{p_token:S.token},15000);if(S.mu&&b&&b.ok){S.mu.batches=b;muSyncBankPeriod()}}catch(e){}if(S.view==='mu')paint()}
 function muBatchDupVM(f){ // предупреждение до отправки
   const b=S.mu.batches;if(!b||!f.parsed||!f.parsed.period)return'';
   const hit=(b.vm||[]).find(x=>!x.cancelled&&x.branch===f.branch&&x.from===f.parsed.period[0]&&x.to===f.parsed.period[1]);
@@ -1241,15 +1244,13 @@ async function muPickBank(input){
     const pr=muParseBankText(dec.text);
     b.format=pr.format;b.issues=pr.issues.slice();
     b.rows=muMatchBank(pr.rows,S.mu.idx);
-    const dates=b.rows.map(r=>r.date).filter(Boolean).sort();
-    const pd=dates.length?dates[dates.length-1]:omskToday();
-    b.period=muDefaultPeriod(pd);
     if(!b.rows.length)b.issues.push('В файле не найдено ни одной строки с ФИО. Формат не распознан.');
   }catch(e){b.err=e&&e.message==='nocrypto'?'Нужно открывать приложение по https.':'Не удалось прочитать файл.'}
-  S.mu.bank=b;paint();
+  S.mu.bank=b;muSyncBankPeriod();paint();
 }
 async function muLoadBank(){
   const b=S.mu.bank;if(!b||S.mu.busy)return;
+  if(!b.period){toast('Нет открытого периода с готовыми начислениями',6000);return}
   const ok=b.rows.filter(r=>!r.err);if(!ok.length)return;
   const miss=b.rows.filter(r=>r.err);
   const tot=muR2(ok.reduce((s,r)=>s+r.amount,0));
@@ -1322,7 +1323,7 @@ function muHtml(){
   });
   h+='</div>';
   /* B. банк */
-  h+='<div class="card"><h2>2. Выплаты из банка</h2><p class="hint">Файл переводов (реестр банка, 1С, txt или csv). По дате платежа приложение предлагает период. Перед загрузкой обязательно проверьте и подтвердите его.</p>'
+  h+='<div class="card"><h2>2. Выплаты из банка</h2><p class="hint">Файл переводов (реестр банка, 1С, txt или csv). Приложение показывает только открытые периоды с готовыми начислениями, начавшиеся не позже даты платежа. Если их несколько, сначала выбран самый ранний. Перед загрузкой обязательно проверьте и подтвердите период.</p>'
     +'<label class="btn sec" style="display:block;text-align:center;margin:6px 0">Выбрать файл<input type="file" class="mufile" data-k="bank" accept=".txt,.csv,.tsv,.xml,.1c,.dat,text/*" style="display:none"></label>';
   const bk=m.bank;
   if(bk){
@@ -1331,16 +1332,16 @@ function muHtml(){
     else{
       const ok=bk.rows.filter(r=>!r.err),bad=bk.rows.filter(r=>r.err);
       h+='<div class="srow sub"><span>Формат: '+esc(bk.format)+', кодировка '+esc(bk.enc)+'</span></div>';
-      const sel=muPrevPeriods(omskToday(),4);
-      if(!sel.some(p=>p[0]===bk.period[0]))sel.unshift(bk.period);
-      h+='<div class="srow big" style="margin:10px 0"><span>Период</span><b>'+ruDate(bk.period[0])+' — '+ruDate(bk.period[1])+'</b></div>'
-        +'<label class="f"><span>Проверьте период</span><select id="mubper">'+sel.map(p=>'<option value="'+p[0]+'|'+p[1]+'"'+(p[0]===bk.period[0]?' selected':'')+'>'+ruDate(p[0])+' — '+ruDate(p[1])+'</option>').join('')+'</select></label>'
-        +'<div class="srow"><span>Распознано / итого</span><b>'+ok.length+' / '+muF(ok.reduce((s,r)=>s+r.amount,0))+' ₽</b></div>';
+      const sel=bk.openPeriods||[];
+      if(bk.period)h+='<div class="srow big" style="margin:10px 0"><span>Период</span><b>'+ruDate(bk.period[0])+' — '+ruDate(bk.period[1])+'</b></div>'
+        +'<label class="f"><span>Проверьте период</span><select id="mubper">'+sel.map(p=>'<option value="'+p[0]+'|'+p[1]+'"'+(p[0]===bk.period[0]?' selected':'')+'>'+ruDate(p[0])+' — '+ruDate(p[1])+'</option>').join('')+'</select></label>';
+      else h+='<div class="chk warn"><i>!</i><div><b>Нет открытого периода с готовыми начислениями</b><br>Сначала загрузите начисления врачей по трём филиалам. Уже выданные периоды в списке не показываются.</div></div>';
+      h+='<div class="srow"><span>Распознано / итого</span><b>'+ok.length+' / '+muF(ok.reduce((s,r)=>s+r.amount,0))+' ₽</b></div>';
       h+='<details open><summary>Строки ('+bk.rows.length+')</summary>'+bk.rows.map(r=>{const pe=r.person_id?(m.people||[]).find(x=>x.id===r.person_id):null;return'<div class="srow sub"><span>'+esc(pe?pe.short_name:r.fio)+(r.date?' · '+ruDate(r.date):'')+(r.err?'<br><span style="color:var(--bad)">'+esc(r.err)+' — будет пропущена</span>':'')+'</span><b>'+(r.amount!=null?muF(r.amount):'—')+'</b></div>'}).join('')+'</details>';
       if(bk.issues.length)h+='<div style="color:var(--bad);margin-top:4px;font-size:13px">'+bk.issues.map(esc).join('<br>')+'</div>';
       if(bad.length)h+='<div style="color:var(--warn);margin-top:4px;font-size:13px">Не сопоставлено строк: '+bad.length+'. Они не загрузятся.</div>';
       if(bk.done)h+='<div style="color:var(--ok);margin-top:6px;font-weight:700">'+esc(bk.done)+'</div>';
-      else h+='<button class="btn" style="margin-top:8px" data-act="mubankgo"'+((!ok.length||m.busy||bk.issues.length)?' disabled':'')+'>'+(m.busy?'Загрузка…':'Подтвердить и загрузить выплаты')+'</button>';
+      else h+='<button class="btn" style="margin-top:8px" data-act="mubankgo"'+((!ok.length||!bk.period||m.busy||bk.issues.length)?' disabled':'')+'>'+(m.busy?'Загрузка…':'Подтвердить и загрузить выплаты')+'</button>';
     }
     h+=' <button class="btn sec small" data-act="mubankdrop">Убрать из списка</button></div>';
   }
