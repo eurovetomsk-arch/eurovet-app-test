@@ -42,7 +42,8 @@ function homeTodayHtml(){
   const branch=mine.branch||mine.branch_id||mine.clinic||mine.clinic_id;
   const start=mine.start||mine.time_from||mine.from||'',end=mine.end||mine.time_to||mine.to||'';
   const peers=(rows||[]).filter(r=>r!==mine&&String(r.branch||r.branch_id||r.clinic||r.clinic_id||'')===String(branch||'')).map(r=>r.short_name||r.name||r.full_name).filter(Boolean).slice(0,3);
-  let line='Сегодня вы на <b>'+esc(homeBranchTitle(branch))+'</b>'+(start&&end?', '+esc(start)+'–'+esc(end):'')+'.';
+  /* 2.0: у смены колл-центра нет филиала — «Сегодня у вас смена в колл-центре» */
+  let line=(!branch&&mine.slot==='callcenter')?'Сегодня у вас смена <b>в колл-центре</b>':'Сегодня вы на <b>'+esc(homeBranchTitle(branch))+'</b>'+(start&&end?', '+esc(start)+'–'+esc(end):'')+'.';
   if(peers.length)line+='<br>С вами: '+peers.map(n=>esc(String(n).trim().replace(/\s+/g,' ').replace(/\.?$/,'.'))).join(', ');
   return '<div class="glass ui2-today"><span class="pin">📍</span><div>'+line+'</div></div>';
 }
