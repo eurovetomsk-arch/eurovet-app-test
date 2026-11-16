@@ -1,7 +1,7 @@
 'use strict';
 /* ====== Форма ====== */
 const emptyForm=()=>({admins:{},doctors:{},others:[],total:'',cash:'',cashless:'',ph_val:'',ph_cash:'',ph_cashless:'',
-  open:'',expenses:[],close:'',assistants:{},note:'',adv_cash:'',adv_cashless:'',adv_out:'',comp:'',cert:'',nc_comment:'',debt:'',debt_comment:'',repaid:'',diff_reason:'',corr_reason:''});
+  open:'',expenses:[],close:'',assistants:{},no_assistant:false,note:'',adv_cash:'',adv_cashless:'',adv_out:'',comp:'',cert:'',nc_comment:'',debt:'',debt_comment:'',repaid:'',diff_reason:'',corr_reason:''});
 const draftKey=()=>'ev_draft2:'+(S.person?S.person.id:0)+':'+S.branch+':'+S.date;
 let draftT;
 function freshForm(){
@@ -22,6 +22,7 @@ function formFromReport(d){ // загрузка ранее сданной вер
   f.open=s(d.cashbox&&d.cashbox.opening);f.close=s(d.cashbox&&d.cashbox.closing);
   f.expenses=((d.cashbox&&d.cashbox.expenses)||[]).map(e=>({article:e.article||'',amount:s(e.amount),comment:e.comment||'',method:e.method||(isRet(e.article||'')?'cash':'')}));
   (d.assistants||[]).forEach(a=>f.assistants[a.role+':'+a.id]={fn:a.fix_normal||0,fx:a.fix_xray||0,left:a.left||'',came:a.came||''});
+  f.no_assistant=!!d.no_assistant&&!Object.keys(f.assistants).length;
   f.note=d.note||'';f.adv_cash=s(d.advance_cash);f.adv_cashless=s(d.advance_cashless);f.adv_out=s(d.advance_out);f.comp=s(d.noncash&&d.noncash.bonus);f.cert=s(d.noncash&&d.noncash.certificate);f.nc_comment=(d.noncash&&d.noncash.comment)||'';f.debt=s(d.debt);f.debt_comment=d.debt_comment||'';f.repaid=s(d.debt_repaid);f.diff_reason=d.diff_reason||'';
   return f;
 }
@@ -103,7 +104,7 @@ function buildData(calc){
     cashbox:{opening:N(f.open),
       expenses:f.expenses.map(e=>({article:e.article,amount:N(e.amount),comment:(e.comment||'').trim()||null,method:isRet(e.article)?e.method:'cash'})),
       closing:N(f.close),expected_closing:calc.expected,prev_closing:(c.prev&&c.prev.closing!=null)?Number(c.prev.closing):null},
-    assistants,
+    assistants,no_assistant:assistants.length===0&&f.no_assistant===true,
     fix_totals:{normal:assistants.reduce((a,x)=>a+x.fix_normal,0),xray:assistants.reduce((a,x)=>a+x.fix_xray,0)},
     debt:f.debt===''?null:N(f.debt),debt_comment:(f.debt_comment||'').trim()||null,debt_repaid:f.repaid===''?null:N(f.repaid),
     advance_cash:f.adv_cash===''?null:N(f.adv_cash),advance_cashless:f.adv_cashless===''?null:N(f.adv_cashless),advance_out:f.adv_out===''?null:N(f.adv_out),
@@ -160,7 +161,12 @@ function kick(){
 
 async function submit(){
   const v=validate();
-  if(v.errs.length){toast(v.errs[0],5000);return}
+  if(v.errs.length){S.formErrors=v.errs.slice();render();setTimeout(()=>{const e=document.getElementById('form-errors');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},0);toast('Проверьте обязательные поля',5000);return}
+  S.formErrors=[];
+  if(!Object.keys(S.form.assistants).length&&S.form.no_assistant!==true){
+    overlay('<h2>В смене не было ассистента?</h2><p class="hint">Подтвердите это отдельно или вернитесь к форме и добавьте ассистента. Без выбора отчёт не отправится.</p><button class="btn" data-act="assistantnone">Да, не было</button><button class="btn sec" style="margin-top:8px" data-act="assistantadd">Добавить ассистента</button>');
+    return;
+  }
   const data=buildData(v.calc);
   const it={uid:uid(),branch:S.branch,date:S.date,data,reason:S.ctx.current?S.form.corr_reason.trim():null,
     client_time:new Date().toISOString(),status:'new',branchTitle:(BRANCHES.find(b=>b.id===S.branch)||{}).title,
@@ -188,6 +194,7 @@ function summaryText(d){
   if(d.advance_cash!=null||d.advance_cashless!=null||d.advance_out!=null)L.push('Аванс: принят нал '+(d.advance_cash||0)+', безнал '+(d.advance_cashless||0)+', списан '+(d.advance_out||0));
   L.push('Инкасс. итог: '+d.cashbox.closing);
   d.assistants.forEach(a=>L.push('Ассистент '+aNm(a.name)+': фикс. '+a.fix_normal+', рентген '+a.fix_xray+(a.came?', пришёл '+a.came:'')+(a.left?', ушёл '+a.left:'')));
+  if(d.no_assistant)L.push('Ассистентов в смене не было — подтверждено администратором');
   if(d.note)L.push('Примечание: '+d.note);
   if(d.diff_reason)L.push('Причина расхождений: '+d.diff_reason);
   return L.join('\n');
@@ -249,6 +256,7 @@ function handoverHtml(){
 function viewForm(){
   if(handoverGate())return handoverHtml()||'<div class="card"><h2>Приёмка кассы</h2><p class="hint">Проверяем принятую сумму…</p></div>';
   const f=S.form,c=S.ctx;let h='';
+  if(S.formErrors&&S.formErrors.length)h+='<div class="chk bad" id="form-errors"><i>!</i><div><b>Не заполнено: '+S.formErrors.map(esc).join('; ')+'</b></div></div>';
   if(S.draftTs){const dt=new Date(S.draftTs);const hm=dt.toLocaleString('ru-RU',{timeZone:'Asia/Omsk',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     h+='<div class="chk warn"><i>!</i><div>Восстановлен ваш несохранённый черновик от '+hm+'. Если это не сегодняшние цифры — очистите форму.<br><button class="btn sec small" style="margin-top:8px" data-act="clearDraft">Очистить форму и начать заново</button></div></div>';}
   if(S.ctxOffline)h+='<div class="chk warn"><i>!</i><div><b>Нет связи с сервером.</b> Утренний приём кассы и вчерашний итог сейчас недоступны. Впишите начало смены по факту. Отчёт сохранится на устройстве и уйдёт при появлении интернета.<br><button class="btn sec small" style="margin-top:8px" data-act="reloadctx">Обновить с сервера</button></div></div>';
@@ -339,6 +347,7 @@ function viewForm(){
       '<div class="step"><span>Фиксации на рентгене</span><button data-act="inc" data-p="assistants.'+k+'.fx" data-d="-1">−</button><output id="o-'+k+'-fx">'+v.fx+'</output><button data-act="inc" data-p="assistants.'+k+'.fx" data-d="1">+</button></div>'+
       '<label class="f"><span>Пришёл в (только если не в 9:00)</span><input type="time" data-p="assistants.'+k+'.came" value="'+esc(v.came||'')+'"></label><label class="f"><span>Ушёл в (только если не в 21:00)</span><input type="time" data-p="assistants.'+k+'.left" value="'+esc(v.left||'')+'"></label></div>';
   });
+  if(!Object.keys(f.assistants).length&&f.no_assistant===true)h+='<div class="chk ok"><i>✓</i><div><b>Ассистентов в смене не было</b><br><small>Подтверждено перед отправкой отчёта.</small></div></div>';
   h+='</div>';
 
   h+='<div class="card k-misc"><h2>Прочее</h2><label class="f"><span>Примечание</span><textarea data-p="note" rows="2">'+esc(f.note)+'</textarea></label>'+

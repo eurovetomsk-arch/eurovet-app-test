@@ -497,6 +497,7 @@ document.addEventListener('click',async e=>{
       const g=d.g,id=d.id,f=S.form;
       if(f[g][id])delete f[g][id];
       else f[g][id]=g==='doctors'?{val:''}:g==='admins'?{left:'',came:''}:{fn:0,fx:0,left:'',came:''};
+      if(g==='assistants')f.no_assistant=false;
       saveDraft();render();break}
     case'inc':{
       const cur=Number(getPath(S.form,d.p))||0;const nv=Math.max(0,Math.min(99,cur+Number(d.d)));
@@ -508,6 +509,8 @@ document.addEventListener('click',async e=>{
     case'addOther':S.form.others.push({title:'',val:''});saveDraft();render();break;
     case'delOther':S.form.others.splice(Number(d.i),1);saveDraft();render();break;
     case'submit':if(!S.busy)submit();break;
+    case'assistantnone':S.form.no_assistant=true;saveDraft();closeOv();await submit();break;
+    case'assistantadd':closeOv();setTimeout(()=>{const e=document.querySelector('.k-assist');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},0);break;
     case'copy':if(S.done)clip(S.done.summary);break;
     case'copyq':{const it=S.queue.find(x=>x.uid===d.id);if(it)clip(it.summary);break}
     case'dropq':{const it=S.queue.find(x=>x.uid===d.id);if(!it)break;if(!confirm('Убрать этот отчёт ('+it.branchTitle+', '+ruDate(it.date)+') из очереди? Итоги можно сначала скопировать.'))break;S.queue=S.queue.filter(x=>x.uid!==d.id);saveQueue();showQueue();render();break}
