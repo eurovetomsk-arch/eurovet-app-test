@@ -54,7 +54,7 @@ body.ui2{
     linear-gradient(165deg,var(--ev-frame-top),#114A58 48%,var(--ev-frame-bottom));
   background-attachment:fixed;
   font:600 16px/1.45 "Montserrat",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-  padding-bottom:112px;
+  padding-bottom:calc(120px + env(safe-area-inset-bottom));
 }
 body.ui2 *,body.ui2 *::before,body.ui2 *::after{box-sizing:border-box;max-width:100%;-webkit-tap-highlight-color:transparent}
 body.ui2 button,body.ui2 input,body.ui2 select,body.ui2 textarea{font:inherit}

@@ -520,9 +520,9 @@ function payHtml(){
   const newPayHead=uiNew()&&!S.paySafe&&!mu
     ?'<h1 class="screen-title">Зарплата за '+perLabel(f,t).replace(/\s+\d{4}$/,'')+'</h1><div class="pay-period-switch"><button class="btn sec small" data-act="payper"'+(prev?' data-from="'+prev[0]+'" data-to="'+prev[1]+'"':' disabled')+'>‹ прошлый</button><span aria-hidden="true">|</span><button class="btn sec small" data-act="payper"'+(next?' data-from="'+next[0]+'" data-to="'+next[1]+'"':' disabled')+'>следующий ›</button></div>'
     :'';
-  let h=(isHead()&&uiNew()&&!S.paySafe&&!mu?'<div class="card">'+pplSwitchHtml('pay')+'</div>':'')+newPayHead+'<div class="card">'+(uiNew()?'':'<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 10px">← На главную</button>')+(newPayHead?'':'<h2>'+(S.paySafe&&uiNew()?'Сейф':uiNew()?'Зарплата':'Ведомость')+'</h2>')+(newPayHead?'':'<div class="chips">'+chips+'</div>')+'<div class="chips"><button class="chip'+((mu||S.payDates)?' on':'')+'" data-act="paydates">Даты ▾</button></div>'
+  let h=(isHead()&&uiNew()&&!S.paySafe&&!mu?'<div class="card">'+pplSwitchHtml('pay')+'</div>':'')+newPayHead+'<div class="card">'+(uiNew()?'':'<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 10px">← На главную</button>')+(newPayHead?'':'<h2>'+(S.paySafe&&uiNew()?'Сейф':uiNew()?'Зарплата':'Ведомость')+'</h2>')+(newPayHead?'':'<div class="chips">'+chips+'</div>')+'<div class="chips"><button class="chip'+((mu||S.payDates)?' on':'')+'" data-act="paydates">'+(newPayHead?'Другой период ▾':'Даты ▾')+'</button></div>'
     +(S.payDates?'<div style="display:flex;gap:8px;align-items:flex-end;margin:6px 0"><label class="f" style="flex:1;min-width:0;margin:0"><span>С</span><input id="pdf" type="date" min="'+PAY_START+'" value="'+esc(f)+'"></label><label class="f" style="flex:1;min-width:0;margin:0"><span>По</span><input id="pdt" type="date" min="'+PAY_START+'" value="'+esc(t)+'"></label><button class="btn small" data-act="paydatesgo">Показать</button></div>':'')
-    +'<p class="hint" style="margin:6px 0">'+ruDate(f)+' — '+ruDate(t)+(mu?' · несколько периодов, только просмотр: «Рассчитан», выплаты и авансы вносятся по одному периоду':'')+'</p>'+(ps<PAY_START&&pers.length<2?'<p class="hint" style="margin:0">Учёт в приложении идёт с 16.10.2026; прошлый период появится после 1.11.</p>':'')+'</div>';
+    +(newPayHead&&!S.payDates&&!mu?'':'<p class="hint" style="margin:6px 0">'+ruDate(f)+' — '+ruDate(t))+(newPayHead&&!S.payDates&&!mu?'':'')+(mu?' · несколько периодов, только просмотр: «Рассчитан», выплаты и авансы вносятся по одному периоду':'')+(newPayHead&&!S.payDates&&!mu?'':'</p>')+(ps<PAY_START&&pers.length<2?'<p class="hint" style="margin:0">Учёт в приложении идёт с 16.10.2026; прошлый период появится после 1.11.</p>':'')+'</div>';
   if(S.paySafe&&uiNew())return h+safeBody();
   if(S.payErr)return h+'<div class="card"><p>'+esc(S.payErr)+'</p><button class="btn sec small" data-act="'+(S.payPeriodLookupError?'paydefault':'payper')+'"'+(S.payPeriodLookupError?'':' data-from="'+f+'" data-to="'+t+'"')+'>Повторить</button></div>';
   if(!r)return h+'<div class="card"><p class="hint">Загружаю…</p></div>';
@@ -535,7 +535,9 @@ function payHtml(){
   }
   h+='<div class="card pay"><h3 style="margin-top:2px">Итого по ведомости'+(r.provisional?' · предварительно':'')+'</h3>'
     +srow('К выплате всего (начислено)',money(Number(tt.accrued)))+srow('− Выплачено',money(Number(tt.paid)))
-    +'<div class="srow big"><span>= Остаток к выплате</span><b>'+money(Number(tt.to_pay))+'</b></div>'
+    +(!r.provisional&&Number(tt.people_n)&&Number(tt.closed_n)===Number(tt.people_n)
+      ?'<div class="srow big"><span>Выдано полностью ✓</span><b></b></div>'+(Math.abs(Number(tt.to_pay))>=0.005?'<div class="srow sub"><span>перенос разниц '+sgn(Number(tt.to_pay))+' в '+esc(nextPerLabel(r.to))+'</span><b></b></div>':'')
+      :'<div class="srow big"><span>= Остаток к выплате</span><b>'+money(Number(tt.to_pay))+'</b></div>')
     +'<div class="srow sub"><span>Рассчитано сотрудников</span><b>'+Number(tt.closed_n||0)+' из '+Number(tt.people_n||0)+'</b></div>'
     +(Number(tt.diff)?'<div class="srow sub"><span>Разница округлений и переплат</span><b>'+sgn(Number(tt.diff))+'</b></div>':'')
     +(Number(tt.adv_debt)?'<div class="srow sub"><span>Выдано в долг, не удержано</span><b>'+money(Number(tt.adv_debt))+'</b></div>':'')
@@ -561,7 +563,7 @@ function payHtml(){
   h+='<div class="chips" style="margin:4px 0">'+(canClose?'<button class="chip" data-act="payselall">Выбрать всех с остатком</button>':'')+'<button class="chip" data-act="payprint">Печать ведомости</button></div>';
   list.forEach(x=>{
     const ks=Object.keys(x.parts||{}).filter(k=>Number(x.parts[k])),op=String(S.payOpen)===String(x.id);
-    const tp=Number(x.to_pay),tcls=x.over_paid?' over':(tp<=0.005?' zero':''),tlab=x.over_paid?'Переплата (проверить)':(tp<=0.005?'Выплачено полностью ✓':'К выплате сейчас');
+    const tp=Number(x.to_pay),tcls=x.closed?' zero':x.over_paid?' over':(tp<=0.005?' zero':''),tlab=x.closed?(Math.abs(tp)>=0.005?'Выдано · разница в след. период':'Выдано полностью ✓'):x.over_paid?'Переплата (проверить)':(tp<=0.005?'Выплачено полностью ✓':'К выплате сейчас');
     h+='<div class="person pc'+(x.closed?' done':'')+'" style="cursor:pointer"><div class="pcrow"><div><div class="srow" data-act="payopenp" data-id="'+x.id+'"><span>'+(canClose&&!x.closed&&!x._doctorMissing?'<input type="checkbox" data-act="paysel" data-id="'+x.id+'"'+(sel[x.id]?' checked':'')+' style="width:20px;height:20px;vertical-align:middle;margin-right:8px">':'')+'<b>'+esc(x.name)+'</b><br><small style="color:var(--mute)">'+(x._doctorMissing?'Начисления врача за период не загружены':ks.length>1?ks.map(k=>PAY_PART[k]||k).join(' + '):esc(PAY_PART[ks[0]]||''))+'</small></span></div>'
       +'<div class="two"><span>начислено <b>'+money(Number(x.accrued))+'</b></span><span>выплачено <b>'+money(Number(x.paid))+'</b></span></div></div>'
       +'<div class="topay'+tcls+'"><span>'+tlab+'</span><b>'+money(tp)+'</b></div></div>'
@@ -578,7 +580,7 @@ function payHtml(){
   const al=(r.adj||[]).filter(i=>!i.is_cancel);
   if(r.multi)h+='<p class="hint">Доплаты и вычеты вносятся и видны по одному периоду.</p>';else if(!al.length)h+='<p class="hint">Доплат и вычетов за этот период нет.</p>';
   al.forEach(i=>{h+='<div class="person"'+(i.cancelled?' style="opacity:.55"':'')+'><div class="srow"><span><b'+(i.cancelled?' style="text-decoration:line-through"':'')+'>'+esc(i.name)+'</b><br><small>'+esc(SAL_KIND[i.kind]||i.kind)+' · '+ruDate(i.date)+(i.comment?' · '+esc(i.comment):'')+'</small></span><b>'+sgn(Number(i.amount))+'</b></div>'+(i.cancelled?'<small>отменено</small>':'<button class="btn sec small" style="margin-top:6px" data-act="salcancel" data-id="'+i.id+'">Отменить</button>')+'</div>'});
-  h+='</div><div class="card"><button class="btn sec small" data-act="paycopy">Скопировать ведомость</button><p class="hint">Excel-файл с этой ведомостью формирует Claude в общем чате по команде «ведомость за период».</p></div>';
+  h+='</div><div class="card"><button class="btn sec small" data-act="paycopy">Скопировать ведомость</button><button class="btn sec small" data-act="payxlsx" style="margin-left:8px">Скачать ведомость (Excel)</button></div>';
   return h;
 }
 
@@ -626,11 +628,13 @@ function pplCard(x){
   h+='<div class="card"><div class="chips"><button class="btn small" data-act="pplsalk" data-k="manual" data-id="'+x.id+'">+ Доплата</button><button class="btn small sec" data-act="pplsalk" data-k="other" data-id="'+x.id+'">− Вычет</button>'+(r.multi?'':'<button class="btn small sec" data-act="payaddform" data-id="'+x.id+'">Выплатить</button>')+'</div></div>';
   h+='<div class="card pay"><div class="srow big"><span>Начислено</span><b>'+money(N(x.accrued))+'</b></div>'
     +'<div class="srow"><span>− Выплачено</span><span>'+money(N(x.paid))+'</span></div>'
-    +'<div class="srow big"><span>= '+(x.over_paid?'Переплата (проверить)':'Остаток к выплате')+'</span><b'+(x.over_paid?' style="color:var(--bad)"':'')+'>'+money(N(x.to_pay))+'</b></div>'
-    +(x.closed?'<div class="srow sub"><span>✓ Рассчитан, разница</span><b>'+sgn(N(x.diff))+'</b></div>':'')
+    +(x.closed
+      ?(Math.abs(N(x.to_pay))>=0.005?'<div class="srow sub"><span>✓ Выдано. Разница '+sgn(N(x.to_pay))+' перенесена в '+esc(nextPerLabel(r.to))+'</span><b></b></div>':'<div class="srow sub"><span>✓ Выдано полностью</span><b></b></div>')
+      :'<div class="srow big"><span>= '+(x.over_paid?'Переплата (проверить)':'Остаток к выплате')+'</span><b'+(x.over_paid?' style="color:var(--bad)"':'')+'>'+money(N(x.to_pay))+'</b></div>')
     +(N(x.adv_debt)?'<div class="srow sub"><span>долг по авансу</span><b style="color:var(--bad)">'+money(N(x.adv_debt))+'</b></div>':'')+'</div>';
   h+='<div class="card"><h3 style="margin-top:2px">Почему столько</h3>';
-  PPL_ORDER.filter(k=>N(parts[k])).forEach(k=>{
+  const why=pplWhyRows(x);
+  if(why){h+=why}else PPL_ORDER.filter(k=>N(parts[k])).forEach(k=>{
     if(k==='extra'&&ex.length){
       ex.forEach(i=>{h+='<div class="srow"><span>Постоянная доплата<br><small style="color:var(--mute)">'+esc(i.label||'')+' · '+ruDate(i.date)+'</small></span><b>'+money(N(i.amount))+'</b></div>'});
       const rest=Math.round((N(parts.extra)-exSum)*100)/100;
@@ -656,6 +660,37 @@ async function loadPplShifts(from,to){
     if(S.pplShKey!==key)return;S.pplSh={sal:(sal&&sal.ok)?sal:null,rev:(rev&&rev.ok)?rev:null};
   }catch(e){if(S.pplShKey!==key)return;S.pplSh={sal:null,rev:null,err:true}}
   if(S.view==='pay'&&S.pplMode)paint();
+}
+function nextPerLabel(to){const a=addDays(to,1);return perLabel(a,perEnd(a)).replace(/\s+\d{4}$/,'')}
+/* 2.0 §15 «Почему столько»: раскладка начисления по строкам из того же расчёта (ev_salary + ведомость) */
+function pplWhyRows(x){
+  const sal=S.pplSh&&S.pplSh.sal,r=S.pay,N=v=>Number(v||0),parts=x.parts||{},id=String(x.id);if(!sal||!r)return '';
+  const row=(l,v,sub)=>'<div class="srow'+(sub?' sub':'')+'"><span>'+l+'</span><b>'+v+'</b></div>',rt=sal.rates||{};let h='';
+  const adjRows=items=>(items||[]).filter(i=>!i.is_cancel&&!i.cancelled).map(i=>row(esc(/^Перенос разницы/i.test(i.comment||'')?'Перенос разницы':i.kind==='other'&&N(i.amount)>0?'Корректировка':(SAL_KIND[i.kind]||i.kind))+' · '+ruDate(i.date).slice(0,5)+(i.comment?'<br><small style="color:var(--mute)">'+esc(i.comment)+'</small>':''),sgn(N(i.amount)),true)).join('');
+  const a=(sal.admins||[]).find(z=>String(z.id)===id);
+  if(a){h+='<h4 style="margin:10px 0 4px">Администратор</h4>'+row('Смены '+a.shifts+' × '+money(N(a.shift_rate)),money(N(a.shift_pay)))
+    +row(Math.round(N(a.pct)*10000)/100+' % с аптеки (вал '+money(N(a.pharm_val))+')',money(N(a.pct_pay)))+(N(a.late_pay)?row('Переработка '+a.late_hours+' ч',money(N(a.late_pay))):'')+adjRows(a.adj_items)}
+  const s=(sal.assistants||[]).find(z=>String(z.id)===id);
+  if(s){h+='<h4 style="margin:10px 0 4px">Ассистент</h4>'+row('Смены '+s.shifts,money(N(s.shift_pay)))
+    +((N(s.fix_normal)||N(s.fix_xray))?row('Фиксации: обычные '+N(s.fix_normal)+' × '+money(N(rt.fix_normal))+', рентген '+N(s.fix_xray)+' × '+money(N(rt.fix_xray)),money(N(s.fix_pay))):'')+adjRows(s.adj_items)}
+  const c=(sal.callcenter||[]).find(z=>String(z.id)===id);
+  if(c){h+='<h4 style="margin:10px 0 4px">Колл-центр</h4>'+row('Смены '+c.shifts+' × '+money(N(c.shift_rate)),money(N(c.shift_pay)))+row('Доля фонда от вала клиник',money(N(c.pct_pay)))+adjRows(c.adj_items)}
+  if(N(parts.doctor))h+=row('Проценты Vetmanager',money(N(parts.doctor)));
+  if(N(parts.surcharge))h+=row('Доплата за продажи (Vetmanager)',money(N(parts.surcharge)));
+  if(N(parts.fixed))h+=row('Оклад',money(N(parts.fixed)));
+  if(N(parts.outsource))h+=row('Аутсорс: описания снимков',money(N(parts.outsource)));
+  if(N(parts.extra)){const ex=(sal.extra||[]).find(z=>String(z.id)===id);const rec=(S.pplEx||[]).filter(i=>String(i.person)===id);
+    h+='<h4 style="margin:10px 0 4px">Доплаты и вычеты</h4>'+rec.map(i=>row('Постоянная доплата · '+esc(i.label||''),money(N(i.amount)),true)).join('')+(ex?adjRows(ex.adj_items):'')+row('Итого доплаты и вычеты',sgn(N(parts.extra)))}
+  if(!h)return '';
+  return h+'<div class="srow big"><span>Итого начислено</span><b>'+money(N(x.accrued))+'</b></div>';
+}
+async function payXlsx(){
+  const r=S.pay;if(!r||!r.rows){toast('Ведомость ещё загружается');return}
+  try{await muLoadX()}catch(e){toast('Не загрузился модуль Excel',5000);return}
+  const N=v=>Math.round(Number(v||0)*100)/100;
+  const data=pplRows(r).filter(x=>!x.roster_only).map(x=>({'Сотрудник':x.name,'Группа':{admin:'Администраторы',doctor:'Врачи',assistant:'Ассистенты',callcenter:'Колл-центр',outsource:'Аутсорс'}[pplMainGroup(x)]||'','Начислено':N(x.accrued),'Выплачено':N(x.paid),'Остаток к выплате':N(x.to_pay),'Выдано':x.closed?'да':'нет'}));
+  const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Ведомость');
+  XLSX.writeFile(wb,'Ведомость_'+r.from+'_'+r.to+'.xlsx');
 }
 function pplShiftsHtml(x){
   const r=S.pay;if(!r)return '';

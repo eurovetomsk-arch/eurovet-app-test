@@ -11,7 +11,8 @@ function stageGreetingName(p){
 function stageGreeting(p){const n=stageGreetingName(p);return stageGreetingWord()+(n?', '+n:'');}
 function stageRole(p){
   const labels=UI2.roleLabels||{};
-  return personRoles(p).map(r=>labels[r]||r).join(' · ');
+  const rs=personRoles(p);if(rs.includes('head'))return labels.head||'Руководитель'; /* 2.0: у руководителя только «Руководитель» */
+  return rs.map(r=>labels[r]||r).join(' · ');
 }
 
 const HOME_WHO={key:'',loading:false,rows:null,error:null};

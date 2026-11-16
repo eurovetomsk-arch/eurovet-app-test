@@ -449,6 +449,7 @@ document.addEventListener('click',async e=>{
     case'sakind':{const k=document.getElementById('sak');if(k)k.value=d.k;document.querySelectorAll('#sakc .chip').forEach(c=>c.classList.toggle('on',c.dataset.k===d.k));break}
     case'paytab':S.payTab=d.k;paint();break;
     case'paysel':{const m=S.paySel||(S.paySel={});m[d.id]=b.checked;paint();break}
+    case'payxlsx':payXlsx();break;
     case'paystat':S.payStat=d.k;paint();break;
     case'pplpayout':S.pplMode=!S.pplMode;S.pplId=null;paint();window.scrollTo(0,0);break;
     case'pplsalk':S.salPre=d.id;S.salKind=d.k;salAddForm();break;
