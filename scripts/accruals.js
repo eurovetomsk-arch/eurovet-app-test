@@ -502,6 +502,11 @@ function payrollDoctorRows(r,rows){
   rows.filter(x=>x.parts&&Number(x.parts.doctor)&&!out.some(d=>String(d.id)===String(x.id))).forEach(x=>out.push(x));
   return out;
 }
+function payrollAllRows(rows,doctorRows){
+  const out=(rows||[]).slice(),seen=new Set(out.map(x=>String(x.id)));
+  (doctorRows||[]).forEach(x=>{if(!seen.has(String(x.id))){seen.add(String(x.id));out.push(x)}});
+  return out;
+}
 function payHtml(){
   const today=omskToday(),cs=perStart(today),pe=addDays(cs,-1),ps=perStart(pe),f=S.payFrom||(ps>=PAY_START?ps:cs),t=S.payTo||(ps>=PAY_START?pe:perEnd(cs)),r=S.pay;
   const mu=!!(r&&r.multi)||!!S.payMulti;
@@ -533,13 +538,14 @@ function payHtml(){
     +(Number(tt.diff)?'<div class="srow sub"><span>Разница округлений и переплат</span><b>'+sgn(Number(tt.diff))+'</b></div>':'')
     +(Number(tt.adv_debt)?'<div class="srow sub"><span>Выдано в долг, не удержано</span><b>'+money(Number(tt.adv_debt))+'</b></div>':'')
     +'</div>';
+  if(!r.multi)h+='<div class="card"><button class="btn" data-act="saladd">+ Такси, доплата или вычет</button></div>';
   (r.warnings||[]).forEach(w=>{h+='<div class="chk warn"><i>!</i><div>'+esc(w)+'</div></div>'});
   const GRP=[['doctor','Врачи'],['outsource','Аутсорс'],['admin','Администраторы'],['assistant','Ассистенты'],['callcenter','Колл-центр'],['fixed','Оклад']];
-  const rows=r.rows||[],doctorRows=payrollDoctorRows(r,rows);
-  const has=g=>g==='doctor'?doctorRows.length:rows.filter(x=>x.parts&&x.parts[g]!=null&&Number(x.parts[g])).length;
+  const rows=r.rows||[],doctorRows=payrollDoctorRows(r,rows),allRows=payrollAllRows(rows,doctorRows);
+  const has=g=>g==='doctor'?doctorRows.length:allRows.filter(x=>x.parts&&x.parts[g]!=null&&Number(x.parts[g])).length;
   let pt=S.payTab||'all';const q=(S.paySearch||'').trim().toLowerCase();if(pt!=='all'&&pt!=='doctor'&&!has(pt))pt='all';
-  const shown=(pt==='all'?rows:pt==='doctor'?doctorRows:rows.filter(x=>x.parts&&Number(x.parts[pt]))).filter(x=>!q||String(x.name).toLowerCase().includes(q));
-  h+='<div class="card"><h3 style="margin-top:2px">По сотрудникам</h3><div class="wktabs"><button class="chip'+(pt==='all'?' on':'')+'" data-act="paytab" data-k="all"><span>Все</span> <b>'+rows.length+'</b></button>'+GRP.filter(g=>g[0]==='doctor'||has(g[0])).map(g=>'<button class="chip'+(pt===g[0]?' on':'')+'" data-act="paytab" data-k="'+g[0]+'"><span>'+g[1]+'</span> <b>'+has(g[0])+'</b></button>').join('')+'</div><input id="paysr" class="srch" placeholder="Найти сотрудника" value="'+esc(S.paySearch||'')+'" autocomplete="off">';
+  const shown=(pt==='all'?allRows:pt==='doctor'?doctorRows:allRows.filter(x=>x.parts&&Number(x.parts[pt]))).filter(x=>!q||String(x.name).toLowerCase().includes(q));
+  h+='<div class="card"><h3 style="margin-top:2px">По сотрудникам</h3><div class="wktabs"><button class="chip'+(pt==='all'?' on':'')+'" data-act="paytab" data-k="all"><span>Все</span> <b>'+allRows.length+'</b></button>'+GRP.filter(g=>g[0]==='doctor'||has(g[0])).map(g=>'<button class="chip'+(pt===g[0]?' on':'')+'" data-act="paytab" data-k="'+g[0]+'"><span>'+g[1]+'</span> <b>'+has(g[0])+'</b></button>').join('')+'</div><input id="paysr" class="srch" placeholder="Найти сотрудника" value="'+esc(S.paySearch||'')+'" autocomplete="off">';
   const sel=S.paySel||(S.paySel={});const canClose=!r.provisional&&!r.multi;
   const list=shown.filter(x=>!S.payOnly||(!x.closed&&Number(x.to_pay)>0.005));
   h+='<div class="chips" style="margin:4px 0"><button class="chip'+(S.payOnly?' on':'')+'" data-act="payonly">Только с остатком</button>'
@@ -559,7 +565,7 @@ function payHtml(){
   const nsel=Object.keys(sel).filter(k=>sel[k]).length;
   if(canClose&&nsel)h+='<div style="position:sticky;bottom:8px"><button class="btn" data-act="payclosesel">Рассчитать выбранных ('+nsel+')</button></div>';
   if(pt!=='all')h+='<div class="srow big"><span>Итого по группе</span><b>'+money(shown.reduce((q,x)=>q+Number(x.accrued),0))+'</b></div>';
-  h+='</div><div class="card">'+(r.multi?'':'<button class="btn sec" style="margin:0 0 8px" data-act="saladd">+ Доплата или вычет</button>')+'';
+  h+='</div><div class="card">';
   const al=(r.adj||[]).filter(i=>!i.is_cancel);
   if(r.multi)h+='<p class="hint">Доплаты и вычеты вносятся и видны по одному периоду.</p>';else if(!al.length)h+='<p class="hint">Доплат и вычетов за этот период нет.</p>';
   al.forEach(i=>{h+='<div class="person"'+(i.cancelled?' style="opacity:.55"':'')+'><div class="srow"><span><b'+(i.cancelled?' style="text-decoration:line-through"':'')+'>'+esc(i.name)+'</b><br><small>'+esc(SAL_KIND[i.kind]||i.kind)+' · '+ruDate(i.date)+(i.comment?' · '+esc(i.comment):'')+'</small></span><b>'+sgn(Number(i.amount))+'</b></div>'+(i.cancelled?'<small>отменено</small>':'<button class="btn sec small" style="margin-top:6px" data-act="salcancel" data-id="'+i.id+'">Отменить</button>')+'</div>'});

@@ -59,8 +59,8 @@ function run(src,form,date='2026-11-15',withUi=false){
   return JSON.parse(JSON.stringify(sandbox.result));
 }
 
-assert.match(html,/appVer:'2\.0-test-3248'/);
-assert.match(html,/name="evrovet-version" content="2\.0-test-3248"/);
+assert.match(html,/appVer:'2\.0-test-3251'/);
+assert.match(html,/name="evrovet-version" content="2\.0-test-3251"/);
 assert.match(html,/<link rel="stylesheet" href="ui2-common\.css">/);
 assert.match(html,/<link rel="stylesheet" href="styles\/view\.css">/);
 assert.match(html,/<body class="ui2">/);
@@ -99,8 +99,8 @@ for(const [name,form] of scenarios){
   const before=run(base,form),after=run(html,form);
   assert.deepEqual(after.calc,before.calc,name+': checks changed');
   assert.equal(before.data.app,'2.0-test-2922');
-  assert.equal(after.data.app,'2.0-test-3248');
-  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3248'},name+': submitted report payload changed beyond exact version marker');
+  assert.equal(after.data.app,'2.0-test-3251');
+  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3251'},name+': submitted report payload changed beyond exact version marker');
 }
 
 const oldDay=baseForm({cash:'20000',cashless:'50000',adv_cash:'10000'});
@@ -187,6 +187,18 @@ assert.match(fn(html,'showPay'),/rpc\('ev_mu_batches'/,'payroll default must use
 assert.match(fn(html,'payHtml'),/Зарплата за/);
 assert.match(fn(html,'payHtml'),/‹ прошлый/);
 assert.match(fn(html,'payHtml'),/следующий ›/);
+const allRowsSandbox={result:null,String,Set,Array};
+vm.runInNewContext(`
+  ${fn(html,'payrollAllRows')}
+  const rows=Array.from({length:8},(_,i)=>({id:i+1,name:'Сотрудник '+(i+1)}));
+  const doctors=Array.from({length:9},(_,i)=>({id:i+1,name:'Врач '+(i+1)}));
+  result={count:payrollAllRows(rows,doctors).length,ids:payrollAllRows(rows,doctors).map(x=>x.id)};
+`,allRowsSandbox);
+assert.equal(allRowsSandbox.result.count,9,'All count must include every unique doctor shown by the doctor filter');
+assert.deepEqual(Array.from(allRowsSandbox.result.ids),[1,2,3,4,5,6,7,8,9],'All rows must be a unique union, not a sum of group counts');
+const payHtmlSource=fn(html,'payHtml');
+assert.match(payHtmlSource,/\+ Такси, доплата или вычет/);
+assert.ok(payHtmlSource.indexOf('+ Такси, доплата или вычет')<payHtmlSource.indexOf('По сотрудникам'),'adjustment action must be above the employee list');
 assert.match(html,/period_issued:'Период уже выдан\. Выберите другой'/);
 assert.match(html,/period_not_ready:'Для периода ещё не загружены начисления трёх филиалов'/);
 assert.match(html,/Если их несколько, сначала выбран самый ранний\. Перед загрузкой обязательно проверьте и подтвердите период/);
