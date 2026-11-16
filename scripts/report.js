@@ -140,7 +140,7 @@ async function flush(auto){
         S.token=null;LS.del('ev_token');S.view='login';it.status='need_login';break;
       }else if(res.error==='reason_required'){it.status='needs_reason'}
       else if(res.error==='conflict'){it.status='offline'}
-      else{it.status='error';it.err=res.error==='date_range'?'дата старше 7 дней, такой отчёт подать нельзя, напишите руководителю':res.error==='window_closed'?'Время правки вышло (до 12:00 следующего дня). Напишите руководителю':res.error}
+      else{it.status='error';it.err=res.error==='date_range'?'дата старше 7 дней, такой отчёт подать нельзя, напишите руководителю':res.error==='window_closed'?'Время правки вышло (до 12:00 следующего дня). Напишите руководителю':res.error==='person_two_branches'?'Один человек не может быть в отчётах двух филиалов в один день: '+((res.people||[]).join(', ')||'проверьте состав смены')+'. Исправьте состав и отправьте снова':res.error}
     }
   }finally{
     flushing=false;saveQueue();

@@ -49,7 +49,9 @@ function headTodayHtml(){
   const d=S.day;
   if(!d||d.date!==omskToday())return '<div class="glass ui2-today"><span class="pin">⌛</span><div>Загружаю статус отчётов…</div></div>';
   const list=Array.isArray(d.list)?d.list:[],done=list.filter(x=>x.submitted).length,waiting=list.filter(x=>!x.submitted).map(x=>brTitle(x.branch));
-  return '<div class="glass ui2-today"><span class="pin">✓</span><div><b>Отчёты сегодня: '+done+' из 3.</b>'+(waiting.length?'<br>Ждём: '+waiting.map(esc).join(', '):'<br>Все три филиала сдали отчёты')+'</div></div>';
+  /* 2.0, ловушка 8 (свод §14): к 22:00 не сдан — красным руководителю (напоминание в Telegram — расписание Штаба/Mac) */
+  const hm=new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Omsk',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date()),late=hm>='22:00'&&waiting.length;
+  return '<div class="glass ui2-today'+(late?' bad':'')+'"><span class="pin">'+(late?'!':'✓')+'</span><div><b>Отчёты сегодня: '+done+' из '+list.length+'.</b>'+(waiting.length?'<br>'+(late?'Не сдан к 22:00: ':'Ждём: ')+waiting.map(esc).join(', '):'<br>Все филиалы сдали отчёты')+'</div></div>';
 }
 function homeIcon(name){
   const files={evening_report:'icons/01-evening-report.png',cash_acceptance:'icons/03-cash-acceptance.png',appointments:'icons/10-my-appointments.png',callcenter_shift:'icons/08-my-schedule.png',where_i_work:'icons/07-who-is-where.png',my_accruals:'icons/09-my-accruals.png',vaccines:'icons/05-vaccines.png',vaccines_all_branches:'icons/05-vaccines.png',dose_calculator:'icons/20-dose-calc.png',supplies:'icons/21-order.png',supplies_all_requests:'icons/06-drug-request.png',supply_order:'icons/21-order.png',head_money:'icons/14-revenue-director-only.png',head_reports:'icons/04-audit.png',head_cash_safe:'icons/19-safe.png',head_payroll:'icons/09-my-accruals.png',people_roles:'icons/12-employees.png'};
