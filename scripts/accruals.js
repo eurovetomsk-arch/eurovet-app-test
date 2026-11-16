@@ -330,7 +330,7 @@ async function showPay(from,to){
   if(S.view==='pay')paint();
 }
 
-/* ====== Сейф (1.56): к выплате, выплачено, осталось наличными, остаток в сейфе, нехватка ====== */
+/* ====== Сейф (1.56): начислено, выплачено, остаток к выплате, остаток в сейфе, нехватка ====== */
 async function loadSafe(){
   try{const r=await rpc('ev_cash_on_hand',{p_token:S.token},8000);S.cash=(r&&r.ok)?r:null;S.safeErr=(r&&r.ok)?null:(r&&r.error==='forbidden'?'Нет доступа':'Не удалось загрузить сейф')}
   catch(e){S.safeErr=e.net?'Нет связи.':'Ошибка сервера.'}
@@ -340,14 +340,13 @@ function safeBody(){
   const r=S.pay,c=S.cash,N=v=>Number(v||0);let h='';
   if(S.payErr)return '<div class="card"><p>'+esc(S.payErr)+'</p></div>';
   if(!r)return '<div class="card"><p class="hint">Загружаю…</p></div>';
-  const rows=r.rows||[],tot=r.total||{},card=rows.reduce((q,x)=>q+N(x.paid_card),0),cashPaid=rows.reduce((q,x)=>q+N(x.paid_cash),0),adv=rows.reduce((q,x)=>q+N(x.paid_adv),0);
+  const rows=r.rows||[],tot=r.total||{};
   const CASH_SKIP=[17],skipRows=rows.filter(x=>CASH_SKIP.includes(Number(x.id))),skip=skipRows.reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),need=rows.filter(x=>!CASH_SKIP.includes(Number(x.id))).reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),bal=c?(c.balance!=null?N(c.balance):N(c.on_hand)):null,short=bal==null?null:need-bal;
   const prov=!!r.provisional||(r.warnings||[]).some(w=>/не закрыт|не загружен/i.test(String(w)));
   h+='<div class="card"><h3 style="margin-top:2px">Зарплата за период</h3>'
-    +'<div class="srow"><span>К выплате всего (начислено)</span><b>'+money(N(tot.accrued))+'</b></div>'
-    +'<div class="srow"><span>Уже выплачено</span><b>'+money(N(tot.paid))+'</b></div>'
-    +'<div class="srow sub"><span>картой</span><b>'+money(card)+'</b></div><div class="srow sub"><span>наличными</span><b>'+money(cashPaid)+'</b></div>'+(adv?'<div class="srow sub"><span>авансом</span><b>'+money(adv)+'</b></div>':'')
-    +'<div class="srow big"><span>Осталось выплатить наличными</span><b>'+money(need)+'</b></div>'+(skipRows.length?'<div class="srow sub"><span>не в расчёте кэша: '+skipRows.map(x=>esc(x.name)).join(', ')+' (начислено, рассчитываетесь сами)</span><b>'+money(skip)+'</b></div>':'')
+    +'<div class="srow"><span>Начислено</span><b>'+money(N(tot.accrued))+'</b></div>'
+    +'<div class="srow"><span>Выплачено</span><b>'+money(N(tot.paid))+'</b></div>'
+    +'<div class="srow big"><span>Остаток к выплате</span><b>'+money(need)+'</b></div>'+(skipRows.length?'<div class="srow sub"><span>не входит в общую выдачу: '+skipRows.map(x=>esc(x.name)).join(', ')+' (расчёт ведётся отдельно)</span><b>'+money(skip)+'</b></div>':'')
     +((r.warnings||[]).length?'<p class="hint" style="margin-top:8px">'+r.warnings.map(esc).join('<br>')+'</p>':'')+'</div>';
   h+='<div class="card"><h3 style="margin-top:2px">Сейф</h3>';
   if(!c)h+='<p class="hint">'+esc(S.safeErr||'Загружаю…')+'</p>';
@@ -480,10 +479,9 @@ function payHtml(){
     +(canClose?'<button class="chip" data-act="payselall">Выбрать всех с остатком</button>':'')+'<button class="chip" data-act="payprint">Печать ведомости</button></div>';
   list.forEach(x=>{
     const ks=Object.keys(x.parts||{}).filter(k=>Number(x.parts[k])),op=String(S.payOpen)===String(x.id);
-    const br=[];if(Number(x.paid_card))if(Number(x.paid_cash))br.push('наличные '+money(Number(x.paid_cash)));if(Number(x.paid_adv))br.push('аванс '+money(Number(x.paid_adv)));
     const tp=Number(x.to_pay),tcls=x.over_paid?' over':(tp<=0.005?' zero':''),tlab=x.over_paid?'Переплата (проверить)':(tp<=0.005?'Выплачено полностью ✓':'К выплате сейчас');
     h+='<div class="person pc'+(x.closed?' done':'')+'" style="cursor:pointer"><div class="pcrow"><div><div class="srow" data-act="payopenp" data-id="'+x.id+'"><span>'+(canClose&&!x.closed&&!x._doctorMissing?'<input type="checkbox" data-act="paysel" data-id="'+x.id+'"'+(sel[x.id]?' checked':'')+' style="width:20px;height:20px;vertical-align:middle;margin-right:8px">':'')+'<b>'+esc(x.name)+'</b><br><small style="color:var(--mute)">'+(x._doctorMissing?'Начисления врача за период не загружены':ks.length>1?ks.map(k=>PAY_PART[k]||k).join(' + '):esc(PAY_PART[ks[0]]||''))+'</small></span></div>'
-      +'<div class="two"><span>начислено <b>'+money(Number(x.accrued))+'</b></span><span>выплачено <b>'+money(Number(x.paid))+'</b></span></div>'+(br.length?'<small class="two" style="display:block;margin-top:2px">'+br.join(' · ')+'</small>':'')+'</div>'
+      +'<div class="two"><span>начислено <b>'+money(Number(x.accrued))+'</b></span><span>выплачено <b>'+money(Number(x.paid))+'</b></span></div></div>'
       +'<div class="topay'+tcls+'"><span>'+tlab+'</span><b>'+money(tp)+'</b></div></div>'
       +(x.closed?'<div class="srow sub"><span>✓ Рассчитан, разница</span><b>'+sgn(Number(x.diff||0))+'</b></div>':'')
       +(Number(x.adv_debt)?'<div class="srow sub"><span>долг по авансу</span><b style="color:var(--red,#c0392b)">'+money(Number(x.adv_debt))+'</b></div>':'')
@@ -533,9 +531,8 @@ function pplCard(x){
   const ex=(S.pplEx||[]).filter(i=>String(i.person)===String(x.id)),exSum=ex.reduce((q,i)=>q+N(i.amount),0);
   let h='<div class="card"><button class="btn sec small" data-act="pplback" style="margin:0 0 10px">← Люди</button><h2>'+esc(x.name)+(S.person&&String(x.id)===String(S.person.id)?' <span class="chip on" style="padding:1px 8px;font-size:12px">это вы</span>':'')+'</h2><p class="hint" style="margin:0">'+ruDate(r.from)+' — '+ruDate(r.to)+(r.provisional?' · предварительно':'')+'</p></div>';
   if(x.roster_only)return h+'<div class="card"><h3>'+esc(PPL_ROLE_NAME[x.roster_role]||'Сотрудник')+'</h3><p>Начислений и выплат за выбранный период пока нет.</p><p class="hint">'+(PPL_ROLE_PART[x.roster_role]==='assistant'?'Смены и фиксации вносит администратор в отчёт филиала. После сохранения отчёта они попадут в расчёт.':'Начисления появятся после внесения рабочих данных за период.')+'</p></div>';
-  const br=[];if(N(x.paid_card))if(N(x.paid_cash))br.push('наличные '+money(N(x.paid_cash)));if(N(x.paid_adv))br.push('аванс '+money(N(x.paid_adv)));
   h+='<div class="card pay"><div class="srow big"><span>Начислено</span><b>'+money(N(x.accrued))+'</b></div>'
-    +'<div class="srow"><span>− Выплачено'+(br.length?'<br><small style="color:var(--mute)">'+br.join(' · ')+'</small>':'')+'</span><span>'+money(N(x.paid))+'</span></div>'
+    +'<div class="srow"><span>− Выплачено</span><span>'+money(N(x.paid))+'</span></div>'
     +'<div class="srow big"><span>= '+(x.over_paid?'Переплата (проверить)':'Остаток к выплате')+'</span><b'+(x.over_paid?' style="color:var(--bad)"':'')+'>'+money(N(x.to_pay))+'</b></div>'
     +(x.closed?'<div class="srow sub"><span>✓ Рассчитан, разница</span><b>'+sgn(N(x.diff))+'</b></div>':'')
     +(N(x.adv_debt)?'<div class="srow sub"><span>долг по авансу</span><b style="color:var(--bad)">'+money(N(x.adv_debt))+'</b></div>':'')+'</div>';
@@ -587,9 +584,9 @@ function payCloseForm(ids){
   S.payUid=uid();
   const rows=ids.map(i=>{const x=payRow(i),def=Math.max(0,Math.round(Number(x.to_pay)));
     return '<div class="person" data-pid="'+x.id+'"><div class="srow"><span><b>'+esc(x.name)+'</b><br><small style="color:var(--mute)">начислено '+money(Number(x.accrued))+', выплачено '+money(Number(x.paid))+'</small></span><b>'+money(Number(x.to_pay))+'</b></div>'
-      +'<label class="f"><span>Выдаю сейчас наличными, ₽</span><input class="pcash" data-pid="'+x.id+'" data-to="'+Number(x.to_pay)+'" data-paid="'+Number(x.paid)+'" data-acc="'+Number(x.accrued)+'" inputmode="decimal" value="'+def+'"></label>'
+      +'<label class="f"><span>Выплачиваю сейчас, ₽</span><input class="pcash" data-pid="'+x.id+'" data-to="'+Number(x.to_pay)+'" data-paid="'+Number(x.paid)+'" data-acc="'+Number(x.accrued)+'" inputmode="decimal" value="'+def+'"></label>'
       +'<div class="srow sub"><span>разница по периоду</span><b class="pdiff">'+sgn(Math.round((Number(x.paid)+def-Number(x.accrued))*100)/100)+'</b></div></div>'}).join('');
-  overlay('<h2>Рассчитан за период</h2><p class="hint">'+ruDate(S.payFrom)+' — '+ruDate(S.payTo)+'. Укажите, сколько выдаёте наличными сейчас (0, если уже всё выплачено). Разница с начисленным (копейки, недоплата, переплата) запишется автоматически; сотрудник её не видит.</p>'+rows
+  overlay('<h2>Рассчитан за период</h2><p class="hint">'+ruDate(S.payFrom)+' — '+ruDate(S.payTo)+'. Укажите сумму текущей выплаты (0, если уже всё выплачено). Разница с начисленным запишется автоматически; сотрудник её не видит.</p>'+rows
     +'<button class="btn" data-act="payclosego" style="margin-top:8px">Отметить: рассчитан</button><button class="btn sec" style="margin-top:8px" data-act="paycardback">Назад</button>');
   document.querySelectorAll('.pcash').forEach(el=>el.addEventListener('input',()=>{const v=num(el.value)||0,d=Math.round((Number(el.dataset.paid)+v-Number(el.dataset.acc))*100)/100;const o=el.closest('.person').querySelector('.pdiff');if(o)o.textContent=sgn(d)}));
 }
@@ -612,7 +609,7 @@ async function payCard(id){
   try{
     const r=await rpc('ev_payroll_person',{p_token:S.token,p_person:Number(id)},12000);
     if(!r||!r.ok){overlay('<h2>'+esc(x.name)+'</h2><p>'+esc(PAY_ERR[r&&r.error]||'Не удалось загрузить')+'</p><button class="btn sec" data-act="paycardback">Закрыть</button>');return}
-    const MT={card:'Выплата',cash:'наличные',other:'другое',advance:'аванс'};
+    const MT={card:'Выплата',cash:'Выплата',other:'Прочая выплата',advance:'Зачтённый аванс'};
     let h='<h2>'+esc(x.name)+'</h2><div class="srow big"><span>Накопленная разница (с 16.10)</span><b>'+sgn(Number(r.diff_total))+'</b></div>';
     h+='<h3>Периоды</h3>'+((r.closures||[]).length?(r.closures).map(c=>'<div class="srow"><span>'+ruDate(c.from)+' — '+ruDate(c.to)+'<br><small style="color:var(--mute)">начислено '+money(Number(c.accrued))+', выплачено '+money(Number(c.paid_total))+'</small></span><b>'+sgn(Number(c.diff))+'</b></div>').join(''):'<p class="hint">Рассчитанных периодов нет.</p>');
     if(x.closed)h+='<button class="btn sec small" data-act="payunclose" data-id="'+id+'">Снять отметку «Рассчитан» за текущий период</button>';
@@ -625,8 +622,8 @@ async function payCard(id){
 }
 function payAddForm(id){
   const x=payRow(id)||{name:''},td=omskToday(),dt=td<S.payFrom?S.payFrom:td;S.payUid=uid();
-  overlay('<h2>Внести выплату</h2><p class="hint">'+esc(x.name)+', период '+ruDate(S.payFrom)+' — '+ruDate(S.payTo)+'. Выплаты на карту подтягиваются из банковского файла, здесь вносятся наличные и прочее.</p>'
-    +'<div class="f"><span>Способ</span><div class="chips"><button type="button" class="chip on" data-act="paymeth" data-k="cash">Наличные</button><button type="button" class="chip" data-act="paymeth" data-k="other">Другое</button></div><input type="hidden" id="pam" value="cash"></div>'
+  overlay('<h2>Внести выплату</h2><p class="hint">'+esc(x.name)+', период '+ruDate(S.payFrom)+' — '+ruDate(S.payTo)+'. Выплаты из реестра банка загружаются отдельно. Здесь — прочие выплаты.</p>'
+    +'<div class="f"><span>Вид записи</span><div class="chips"><button type="button" class="chip on" data-act="paymeth" data-k="cash">Обычная выплата</button><button type="button" class="chip" data-act="paymeth" data-k="other">Другая выплата</button></div><input type="hidden" id="pam" value="cash"></div>'
     +'<label class="f"><span>Сумма, ₽</span><input id="paa" inputmode="decimal" value="'+Math.max(0,Math.round(Number(x.to_pay||0)))+'"></label>'
     +'<label class="f"><span>Дата выдачи</span><input id="pad" type="date" value="'+esc(dt)+'"></label>'
     +'<label class="f"><span>Комментарий</span><input id="pan" maxlength="300"></label>'
@@ -1129,13 +1126,17 @@ function muMatchBank(rows,idx){
     return o;
   });
 }
-/* Период по умолчанию для выплаты: последний ЗАКОНЧИВШИЙСЯ до даты платежа */
+/* Дата платежа предлагает период, но руководитель подтверждает его явно перед загрузкой. */
 function muDefaultPeriod(payDate){
-  const s=muPeriodStart(payDate);
-  const prevEnd=new Date(Date.UTC(Number(s.slice(0,4)),Number(s.slice(5,7))-1,Number(s.slice(8,10))-1)).toISOString().slice(0,10);
-  const f=muPeriodStart(prevEnd);return[f,muPeriodEnd(f)];
+  const day=Number(String(payDate).slice(8,10)),ym=String(payDate).slice(0,7);
+  if(day<=5){
+    const prevEnd=new Date(Date.UTC(Number(ym.slice(0,4)),Number(ym.slice(5,7))-1,0)).toISOString().slice(0,10);
+    const f=muPeriodStart(prevEnd);return[f,muPeriodEnd(f)];
+  }
+  if(day<=20)return[ym+'-01',ym+'-15'];
+  const f=ym+'-16';return[f,muPeriodEnd(f)];
 }
-function muPrevPeriods(today,n){const out=[];let s=muPeriodStart(today);for(let i=0;i<n;i++){const prevEnd=new Date(Date.UTC(Number(s.slice(0,4)),Number(s.slice(5,7))-1,Number(s.slice(8,10))-1)).toISOString().slice(0,10);s=muPeriodStart(prevEnd);out.push([s,muPeriodEnd(s)])}return out}
+function muPrevPeriods(today,n){const out=[];let s=muPeriodStart(today);if(n>0)out.push([s,muPeriodEnd(s)]);for(let i=1;i<n;i++){const prevEnd=new Date(Date.UTC(Number(s.slice(0,4)),Number(s.slice(5,7))-1,Number(s.slice(8,10))-1)).toISOString().slice(0,10);s=muPeriodStart(prevEnd);out.push([s,muPeriodEnd(s)])}return out}
 const muGuessBranch=n=>/маркс|marks/i.test(n)?'marksa':/перел|perel/i.test(n)?'pereleta':/70|октябр/i.test(n)?'70let':'';
 function muDecode(buf){
   const u=new Uint8Array(buf);
@@ -1164,7 +1165,7 @@ function muHealthRows(h,nowMs,tt){tt=tt||(x=>x);
 const muAgeTxt=a=>a==null?'нет данных':a<1?'меньше часа назад':a<48?Math.round(a)+' ч назад':Math.round(a/24)+' дн назад';
 /*MU-PARSE-END*/
 const muF=n=>Number(n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
-const MU_ERR={session:'Сессия закончилась. Войдите заново.',forbidden:'Раздел только для руководителя.',duplicate_file:'Этот файл уже загружен.',period_or_kind:'Период должен быть 1–15 или 16–конец месяца.',before_start:'Учёт в системе начинается с 16.10.2026.',row:'В файле есть сотрудник, которого нет в списке.',duplicate_person:'Один сотрудник дважды в файле.',branch:'Выберите филиал.',branch_already_loaded:'По этому филиалу и периоду файл уже загружен. Сначала отмените прежнюю загрузку.',input:'Файл не прошёл проверку.',pin_format:'PIN: ровно 6 цифр.',person:'Сотрудник не найден.'};
+const MU_ERR={session:'Сессия закончилась. Войдите заново.',forbidden:'Раздел только для руководителя.',duplicate_file:'Этот файл уже загружен.',period_or_kind:'Период должен быть 1–15 или 16–конец месяца.',period_issued:'Период уже выдан. Выберите другой',before_start:'Учёт в системе начинается с 16.10.2026.',row:'В файле есть сотрудник, которого нет в списке.',duplicate_person:'Один сотрудник дважды в файле.',branch:'Выберите филиал.',branch_already_loaded:'По этому филиалу и периоду файл уже загружен. Сначала отмените прежнюю загрузку.',input:'Файл не прошёл проверку.',pin_format:'PIN: ровно 6 цифр.',person:'Сотрудник не найден.'};
 const muBrTitle=id=>(BRANCHES.find(b=>b.id===id)||{title:id||'—'}).title;
 function muLoadX(){
   if(window.XLSX)return Promise.resolve();
@@ -1253,6 +1254,7 @@ async function muLoadBank(){
   const miss=b.rows.filter(r=>r.err);
   const tot=muR2(ok.reduce((s,r)=>s+r.amount,0));
   const sel=document.getElementById('mubper');const per=sel?sel.value.split('|'):b.period;
+  b.period=per;
   if(!confirm('Загрузить выплаты банка за период '+ruDate(per[0])+' — '+ruDate(per[1])+'?\nСтрок: '+ok.length+', итого '+muF(tot)+' ₽'+(miss.length?'\n\nБудут пропущены ('+miss.length+'): '+miss.slice(0,5).map(r=>r.fio+' ('+r.err+')').join(', '):'')))return;
   S.mu.busy=true;paint();
   try{
@@ -1320,7 +1322,7 @@ function muHtml(){
   });
   h+='</div>';
   /* B. банк */
-  h+='<div class="card"><h2>2. Выплаты из банка</h2><p class="hint">Файл переводов (реестр банка, 1С, txt или csv). Выплата относится к периоду, который вы выберете (по умолчанию последний закончившийся перед датой платежа).</p>'
+  h+='<div class="card"><h2>2. Выплаты из банка</h2><p class="hint">Файл переводов (реестр банка, 1С, txt или csv). По дате платежа приложение предлагает период. Перед загрузкой обязательно проверьте и подтвердите его.</p>'
     +'<label class="btn sec" style="display:block;text-align:center;margin:6px 0">Выбрать файл<input type="file" class="mufile" data-k="bank" accept=".txt,.csv,.tsv,.xml,.1c,.dat,text/*" style="display:none"></label>';
   const bk=m.bank;
   if(bk){
@@ -1331,13 +1333,14 @@ function muHtml(){
       h+='<div class="srow sub"><span>Формат: '+esc(bk.format)+', кодировка '+esc(bk.enc)+'</span></div>';
       const sel=muPrevPeriods(omskToday(),4);
       if(!sel.some(p=>p[0]===bk.period[0]))sel.unshift(bk.period);
-      h+='<label class="f"><span>Период выплаты</span><select id="mubper">'+sel.map(p=>'<option value="'+p[0]+'|'+p[1]+'"'+(p[0]===bk.period[0]?' selected':'')+'>'+ruDate(p[0])+' — '+ruDate(p[1])+'</option>').join('')+'</select></label>'
+      h+='<div class="srow big" style="margin:10px 0"><span>Период</span><b>'+ruDate(bk.period[0])+' — '+ruDate(bk.period[1])+'</b></div>'
+        +'<label class="f"><span>Проверьте период</span><select id="mubper">'+sel.map(p=>'<option value="'+p[0]+'|'+p[1]+'"'+(p[0]===bk.period[0]?' selected':'')+'>'+ruDate(p[0])+' — '+ruDate(p[1])+'</option>').join('')+'</select></label>'
         +'<div class="srow"><span>Распознано / итого</span><b>'+ok.length+' / '+muF(ok.reduce((s,r)=>s+r.amount,0))+' ₽</b></div>';
       h+='<details open><summary>Строки ('+bk.rows.length+')</summary>'+bk.rows.map(r=>{const pe=r.person_id?(m.people||[]).find(x=>x.id===r.person_id):null;return'<div class="srow sub"><span>'+esc(pe?pe.short_name:r.fio)+(r.date?' · '+ruDate(r.date):'')+(r.err?'<br><span style="color:var(--bad)">'+esc(r.err)+' — будет пропущена</span>':'')+'</span><b>'+(r.amount!=null?muF(r.amount):'—')+'</b></div>'}).join('')+'</details>';
       if(bk.issues.length)h+='<div style="color:var(--bad);margin-top:4px;font-size:13px">'+bk.issues.map(esc).join('<br>')+'</div>';
       if(bad.length)h+='<div style="color:var(--warn);margin-top:4px;font-size:13px">Не сопоставлено строк: '+bad.length+'. Они не загрузятся.</div>';
       if(bk.done)h+='<div style="color:var(--ok);margin-top:6px;font-weight:700">'+esc(bk.done)+'</div>';
-      else h+='<button class="btn" style="margin-top:8px" data-act="mubankgo"'+((!ok.length||m.busy||bk.issues.length)?' disabled':'')+'>'+(m.busy?'Загрузка…':'Загрузить выплаты')+'</button>';
+      else h+='<button class="btn" style="margin-top:8px" data-act="mubankgo"'+((!ok.length||m.busy||bk.issues.length)?' disabled':'')+'>'+(m.busy?'Загрузка…':'Подтвердить и загрузить выплаты')+'</button>';
     }
     h+=' <button class="btn sec small" data-act="mubankdrop">Убрать из списка</button></div>';
   }

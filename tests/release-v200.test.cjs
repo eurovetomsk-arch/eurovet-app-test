@@ -59,8 +59,8 @@ function run(src,form,date='2026-11-15',withUi=false){
   return JSON.parse(JSON.stringify(sandbox.result));
 }
 
-assert.match(html,/appVer:'2\.0-test-3046'/);
-assert.match(html,/name="evrovet-version" content="2\.0-test-3046"/);
+assert.match(html,/appVer:'2\.0-test-3224'/);
+assert.match(html,/name="evrovet-version" content="2\.0-test-3224"/);
 assert.match(html,/<link rel="stylesheet" href="ui2-common\.css">/);
 assert.match(html,/<link rel="stylesheet" href="styles\/view\.css">/);
 assert.match(html,/<body class="ui2">/);
@@ -99,8 +99,8 @@ for(const [name,form] of scenarios){
   const before=run(base,form),after=run(html,form);
   assert.deepEqual(after.calc,before.calc,name+': checks changed');
   assert.equal(before.data.app,'2.0-test-2922');
-  assert.equal(after.data.app,'2.0-test-3046');
-  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3046'},name+': submitted report payload changed beyond exact version marker');
+  assert.equal(after.data.app,'2.0-test-3224');
+  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3224'},name+': submitted report payload changed beyond exact version marker');
 }
 
 const oldDay=baseForm({cash:'20000',cashless:'50000',adv_cash:'10000'});
@@ -147,6 +147,39 @@ const rolesFn=fn(html,'personRoles');
 assert.doesNotMatch(rolesFn,/!roles\.size/,'missing roles must not default to admin or doctor');
 assert.match(html,/case'prepare'/,'future tiles must open the preparation screen');
 assert.match(fn(html,'prepareHtml'),/Раздел готовится/,'preparation screen title missing');
+
+const periodSandbox={result:null,Date,Number,String,Array};
+vm.runInNewContext(`
+  const muPeriodEnd=d=>Number(d.slice(8,10))<=15?d.slice(0,8)+'15':new Date(Date.UTC(Number(d.slice(0,4)),Number(d.slice(5,7)),0)).toISOString().slice(0,10);
+  const muPeriodStart=d=>Number(d.slice(8,10))<=15?d.slice(0,8)+'01':d.slice(0,8)+'16';
+  ${fn(html,'muDefaultPeriod')}
+  ${fn(html,'muPrevPeriods')}
+  result={
+    d1311:muDefaultPeriod('2026-11-13'),
+    d2910:muDefaultPeriod('2026-10-29'),
+    d0211:muDefaultPeriod('2026-11-02'),
+    d1711:muDefaultPeriod('2026-11-17'),
+    list:muPrevPeriods('2026-11-16',4)
+  };
+`,periodSandbox);
+assert.deepEqual(Array.from(periodSandbox.result.d1311),['2026-11-01','2026-11-15']);
+assert.deepEqual(Array.from(periodSandbox.result.d2910),['2026-10-16','2026-10-31']);
+assert.deepEqual(Array.from(periodSandbox.result.d0211),['2026-10-16','2026-10-31']);
+assert.deepEqual(Array.from(periodSandbox.result.d1711),['2026-11-01','2026-11-15']);
+assert.deepEqual(Array.from(periodSandbox.result.list[0]),['2026-11-16','2026-11-30'],'current period must be first in the list');
+assert.match(html,/period_issued:'Период уже выдан\. Выберите другой'/);
+assert.match(html,/Перед загрузкой обязательно проверьте и подтвердите его/);
+assert.match(html,/Подтвердить и загрузить выплаты/);
+assert.match(html,/t\.id==='mubper'.*S\.mu\.bank\.period=t\.value\.split\('\|'\)/s,'period selector must update the large confirmed period');
+
+for(const name of ['safeBody','pplCard','payCloseForm','payAddForm']){
+  const source=fn(html,name);
+  for(const phrase of ['на карту','картой','наличными','в конверте'])assert.doesNotMatch(source,new RegExp(phrase,'i'),name+' contains forbidden salary wording: '+phrase);
+}
+assert.match(fn(html,'safeBody'),/Начислено/);
+assert.match(fn(html,'safeBody'),/Выплачено/);
+assert.match(fn(html,'safeBody'),/Остаток к выплате/);
+assert.match(fn(html,'payAddForm'),/Выплаты из реестра банка загружаются отдельно\. Здесь — прочие выплаты/);
 
 assert.match(html,/const moneyField=.*hk\?hbtn\(hk\)/,'money fields lost their help buttons');
 assert.match(html,/marksa:\['Маркса, 45','Маркса','Марк\.'\]/,'calendar must use the approved Marksa abbreviation');

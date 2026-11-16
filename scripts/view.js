@@ -392,6 +392,7 @@ document.addEventListener('change',e=>{
   if(t.id==='shared-device'){S.loginShared=!!t.checked;return}
   if(t.classList&&t.classList.contains('mufile')){if(t.dataset.k==='bank')muPickBank(t);else muPickVM(t);return}
   if(t.classList&&t.classList.contains('mubr')&&S.mu){const f=S.mu.files[Number(t.dataset.i)];if(f){f.branch=t.value;paint()}return}
+  if(t.id==='mubper'&&S.mu&&S.mu.bank){S.mu.bank.period=t.value.split('|');paint();return}
   if(t.id==='mupinp'&&S.mu){S.mu.pinPerson=t.value;S.mu.pin=null;return}
   if(t.id==='dt'){S.date=t.value||omskToday();S.dateManual=S.date!==omskToday();return}
   if(t.dataset&&t.dataset.p&&S.form&&t.tagName==='SELECT'){setPath(S.form,t.dataset.p,t.value);
