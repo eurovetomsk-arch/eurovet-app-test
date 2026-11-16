@@ -253,6 +253,15 @@ function handoverHtml(){
   return x+'</div>';
 }
 
+function transitExpected(){return ((S.transit&&S.transit.items)||[]).filter(x=>String(x.branch)===String(S.branch)&&String(x.date)===String(S.date)&&x.status!=='cancelled').reduce((q,x)=>q+Number(x.amount||0),0)}
+function transitDeclared(){return (S.form.expenses||[]).filter(x=>/инкассац/i.test(String(x.article||''))).reduce((q,x)=>q+N(x.amount),0)}
+function updateTransitCheck(){
+  const e=$('#transit-check');if(!e)return;
+  const expected=transitExpected(),declared=transitDeclared(),ready=declared>0,diff=r2(declared-expected),ok=ready&&Math.abs(diff)<=CFG.tol;
+  e.className='chk '+(!ready?'wait':ok?'ok':'bad');
+  e.innerHTML='<i>'+(!ready?'…':ok?'✓':'!')+'</i><div><b>'+(!ready?'Ожидается сумма в отчёте':ok?'Инкассация сошлась':'Инкассация не сошлась')+'</b><br><small>Ожидается '+money(expected)+' · в отчёте '+money(declared)+(ready?' · разница '+money(diff):'')+'</small></div>';
+}
+
 function viewForm(){
   if(handoverGate())return handoverHtml()||'<div class="card"><h2>Приёмка кассы</h2><p class="hint">Проверяем принятую сумму…</p></div>';
   const f=S.form,c=S.ctx;let h='';
@@ -326,6 +335,8 @@ function viewForm(){
     if(gap)h+='<div class="chk warn"><i>!</i><div>В системе нет отчёта за '+ruDate(yd)+(c.prev.date<addDays(S.date,-2)?' и предыдущие дни до '+ruDate(c.prev.date):'')+'. Остаток взят из последнего сданного — за '+ruDate(c.prev.date)+'. Сверьте с реальной кассой; если отчёт за пропущенный день ещё не сдан — сдайте его.</div></div>';
   }else if(op.mode==='manual'&&!S.ctxOffline)h+='<p class="hint">Утренний приём кассы недоступен или предыдущего отчёта нет — впишите начало смены по факту.</p>';
   h+='<h3>Расходы'+hbtn('exp')+'</h3>';
+  const tx=transitExpected();
+  h+='<div class="sum"><span>Передано в инкассацию сегодня</span><b>'+money(tx)+'</b></div><p class="hint">Сумму в расходе введите сами: приложение не подставляет её за вас.</p><div id="transit-check" class="chk wait"></div><button class="btn sec small" data-act="transitgive">Отдал инкассацию</button>';
   f.expenses.forEach((e,i)=>{
     h+='<div class="person"><label class="f"><span>Статья</span><select data-p="expenses.'+i+'.article"><option value="">— выберите —</option>'+
       c.articles.map(a=>'<option'+(e.article===a.title?' selected':'')+'>'+esc(a.title)+'</option>').join('')+'</select></label>'+
@@ -397,6 +408,7 @@ function updateChecks(){
   }
   const phRows='<div class="srow"><span>Наличные + безналичные</span><b>'+money(r2(N(f.ph_cash)+N(f.ph_cashless)))+'</b></div><div class="srow total"><span>= Вал аптеки</span><b>'+money(N(f.ph_val))+'</b></div>';
   moneyStatus('#pharm-status',ph,phRows);
+  updateTransitCheck();
   const bad=calc.checks.filter(c=>c.ready&&!c.ok).length;
   const st=$('#barst');
   if(st)st.innerHTML=bad?'<b style="color:var(--bad)">Расхождений: '+bad+'</b>':(calc.checks.some(c=>c.ready)?'<b style="color:var(--ok)">Расхождений нет</b>':'<span style="color:var(--mute)">Заполните отчёт</span>');

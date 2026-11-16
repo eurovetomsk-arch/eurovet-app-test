@@ -395,7 +395,7 @@ async function showPay(from,to){
 
 /* ====== Сейф (1.56): начислено, выплачено, остаток к выплате, остаток в сейфе, нехватка ====== */
 async function loadSafe(){
-  try{const r=await rpc('ev_cash_on_hand',{p_token:S.token},8000);S.cash=(r&&r.ok)?r:null;S.safeErr=(r&&r.ok)?null:(r&&r.error==='forbidden'?'Нет доступа':'Не удалось загрузить сейф')}
+  try{const [r,m]=await Promise.all([rpc('ev_cash_on_hand',{p_token:S.token},8000),rpc('ev_my_cash_today',{p_token:S.token},8000)]);S.cash=(r&&r.ok)?r:null;S.myCash=(m&&m.ok)?m:null;S.safeErr=(r&&r.ok)?null:(r&&r.error==='forbidden'?'Нет доступа':'Не удалось загрузить сейф')}
   catch(e){S.safeErr=e.net?'Нет связи.':'Ошибка сервера.'}
   if(S.view==='pay'&&S.paySafe)paint();
 }
@@ -421,9 +421,11 @@ function safeBody(){
       /* 1.68: крупная цветная строка-вердикт: красная «не хватает», зелёная «хватает» */
       +'<div class="srow" style="margin-top:10px;padding:12px 14px;border-radius:12px;font-size:21px;font-weight:800;background:var(--'+(lack?'badbg':'okbg')+');color:var(--'+(lack?'bad':'ok')+')"><span>'+(lack?'Не хватает кэша':'Кэша хватает')+'</span><b>'+money(Math.abs(short))+'</b></div>'
       +'<p class="hint">'+(prov?'Предварительно: период не закрыт. ':'')+(bal<0?'Минус: взято больше, чем подтверждено инкассаций. ':'')+(N(c.pending)?'Не подтверждено вами: '+money(N(c.pending))+' (не входит). ':'')+'</p>';
+    if(S.myCash)h+='<div class="person"><h3>Мои деньги сегодня</h3><div class="srow"><span>Забрано с филиалов</span><b>'+money(N(S.myCash.collections))+'</b></div><div class="srow"><span>Взято из сейфа</span><b>'+money(N(S.myCash.safe_out))+'</b></div><div class="srow"><span>Выдано из кассы сотрудникам</span><b>−'+money(N(S.myCash.cash_payroll))+'</b></div><div class="srow big"><span>Должно быть на руках</span><b>'+money(N(S.myCash.on_hand))+'</b></div><button class="btn sec small" data-act="transitpickup">Забрал с филиала</button></div>';
     S.safeUid=S.safeUid||uid();
     h+='<h3>Взял из сейфа</h3><label class="f"><span>Сумма, ₽</span><input id="soa" inputmode="decimal"></label>'
       +'<label class="f"><span>Дата</span><input id="sod" type="date" min="2026-10-16" value="'+esc(omskToday())+'"></label>'
+      +'<label class="f"><span>Назначение</span><select id="sop"><option value="salary">Зарплата</option><option value="other">Другое</option></select></label>'
       +'<label class="f"><span>Комментарий</span><input id="son" maxlength="300" placeholder="например, выплата админам"></label>'
       +'<button class="btn" data-act="safeadd">Отметить</button>';
     const outs=c.outs||[];
@@ -433,11 +435,11 @@ function safeBody(){
 }
 async function doSafeAdd(){
   if(S.safeBusy)return;
-  const v=num(($('#soa')||{}).value),dt=($('#sod')||{}).value,n=(($('#son')||{}).value||'').trim();
+  const v=num(($('#soa')||{}).value),dt=($('#sod')||{}).value,p=(($('#sop')||{}).value||'other'),n=(($('#son')||{}).value||'').trim();
   if(v==null||isNaN(v)||v<=0){toast('Введите сумму больше нуля');return}if(!dt){toast('Укажите дату');return}
   S.safeBusy=true;
   try{
-    const r=await rpc('ev_safe_out_add',{p_token:S.token,p_amount:v,p_date:dt,p_note:n||null,p_uid:S.safeUid||uid()},10000);
+    const r=await rpc('ev_safe_out_add_v2',{p_token:S.token,p_amount:v,p_date:dt,p_purpose:p,p_note:n||null,p_uid:S.safeUid||uid()},10000);
     if(!r||!r.ok){toast(r&&r.error==='input'?'Проверьте сумму и дату (не раньше 16.10, не в будущем)':'Не удалось: '+(r&&r.error),7000);return}
     S.safeUid=null;toast('Отмечено');await loadSafe();
   }catch(e){toast(e.net?'Нет связи, ничего не сохранено':'Ошибка сервера',6000)}

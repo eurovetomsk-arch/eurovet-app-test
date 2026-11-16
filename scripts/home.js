@@ -95,6 +95,7 @@ function showHomeBranches(){
 function viewBranch(){
   if(isHead()){loadDayStatus();if(S.mr==null&&S.cash==null&&S.lv==null)loadMr()}else loadHomeWho();
   let h='<section class="ui2-home-screen"><div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div>'+(isHead()?headTodayHtml():homeTodayHtml())+homeSectionsHtml();
+  if(isHead())h+='<div class="glass"><h2>Деньги в моменте</h2><div class="chips"><button class="btn small" data-act="transitpickup">Забрал с филиала</button><button class="btn sec small" data-act="go" data-v="safe">Взял из сейфа</button></div></div>';
   if(isHead())h+='<div class="mrbox">'+mrHtml()+'</div>'+dayStatusHtml()+headReportHtml();
   if(S.queue.length)h+='<div class="card quiet"><p class="hint">Не отправлено отчётов: '+S.queue.length+'. Нажмите «'+(S.online?'онлайн':'нет связи')+'» вверху.</p></div>';
   return h+'</section>';

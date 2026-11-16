@@ -88,6 +88,17 @@ function cashHtml(){
     +'<p class="hint">Считаются только инкассации, которые вы подтвердили'+(c.balance!=null?', минус то, что вы отметили как взятое из сейфа.':'. Расходы и выдачи не вычитаются.')+'</p></div>';
 }
 function mrHtml(){return cashHtml()+mrHtml0()+lvHtml()}
+async function loadTransit(branch,date){
+  if(!S.token)return;
+  try{const r=await rpc('ev_collection_transit_list',{p_token:S.token,p_branch:branch||null,p_date:date||omskToday()},8000);if(r&&r.ok){S.transit=r;if(S.view==='form'||S.view==='branch')paint()}}catch(e){}
+}
+function transitGiveForm(){S.transitUid=S.transitUid||uid();overlay('<h2>Отдал инкассацию</h2><p class="hint">Запишем факт передачи сейчас. В отчёте сумму введите отдельно.</p><label class="f"><span>Сумма, ₽</span><input id="tra" inputmode="decimal"></label><label class="f"><span>Кому</span><input id="trr" maxlength="80" value="Михаил"></label><button class="btn" data-act="transitgo" data-source="admin">Отдал</button><button class="btn sec" style="margin-top:8px" data-act="ovclose">Отмена</button>')}
+function transitPickupForm(){S.transitUid=S.transitUid||uid();overlay('<h2>Забрал с филиала</h2><label class="f"><span>Филиал</span><select id="trb">'+BRANCHES.filter(x=>!x.testOnly).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.title)+'</option>').join('')+'</select></label><label class="f"><span>Сумма, ₽</span><input id="tra" inputmode="decimal"></label><button class="btn" data-act="transitgo" data-source="head">Забрал</button><button class="btn sec" style="margin-top:8px" data-act="ovclose">Отмена</button>')}
+async function doTransit(source){
+  const amount=num((($('#tra')||{}).value)),branch=source==='admin'?S.branch:(($('#trb')||{}).value),recipient=(($('#trr')||{}).value||'').trim();
+  if(amount==null||amount<=0){toast('Введите сумму');return}
+  try{const fn=source==='admin'?'ev_collection_handoff':'ev_collection_pickup',args=source==='admin'?{p_token:S.token,p_branch:branch,p_amount:amount,p_recipient:recipient,p_uid:S.transitUid}:{p_token:S.token,p_branch:branch,p_amount:amount,p_uid:S.transitUid};const r=await rpc(fn,args,10000);if(!r||!r.ok){toast('Не удалось: '+(r&&r.error),6000);return}S.transitUid=null;closeOv();toast(source==='admin'?'Передача записана':'Получение записано');await loadTransit(branch,omskToday())}catch(e){toast(e.net?'Нет связи':'Ошибка сервера',6000)}
+}
 /* 1.57: «ушёл позже / пришёл раньше» ждёт подтверждения руководителя (ev_leave_pending / ev_leave_decide) */
 function lvHtml(){
   if(!isHead()||!S.lv||!S.lv.length)return'';
@@ -422,6 +433,9 @@ document.addEventListener('click',async e=>{
     case'payaddform':payAddForm(d.id);break;
     case'payaddgo':doPayAdd(d.id);break;
     case'safeadd':doSafeAdd();break;
+    case'transitgive':transitGiveForm();break;
+    case'transitpickup':transitPickupForm();break;
+    case'transitgo':doTransit(d.source);break;
     case'safecancel':doSafeCancel(d.id);break;
     case'advform':advForm(d.id);break;
     case'advgo':doAdvAdd(d.id);break;

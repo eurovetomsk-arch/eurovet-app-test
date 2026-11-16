@@ -48,6 +48,7 @@ function run(src,form,date='2026-11-15',withUi=false){
     const N=s=>{const v=num(s);return(v==null||isNaN(v))?0:v};
     const isRet=a=>a==='Возврат клиника'||a==='Возврат аптека';
     const isNcRet=e=>isRet(e.article)&&e.method==='noncash';
+    function updateTransitCheck(){}
     const ruDate=d=>d.split('-').reverse().join('.');
     const aNm=n=>String(n==null?'':n).replace(/\\s+[А-ЯЁ]\\.(?:\\s?[А-ЯЁ]\\.)?$/,'');
     const $=s=>nodes[s]||null;

@@ -98,6 +98,7 @@ const S={
   branch:null,date:omskToday(),dateManual:false,ctx:null,ctxOffline:false,
   form:null,loginList:[],pick:null,shared:false,
   queue:LS.get('ev_queue',[]),handoverQueue:LS.get('ev_handover_queue',[]),handover:null,
+  transit:null,transitUid:null,myCash:null,
   online:navigator.onLine,done:null,busy:false,
   ccVal:null,ccValRange:null,ccValLoad:false,ccValErr:null,ccValUid:null
 };
