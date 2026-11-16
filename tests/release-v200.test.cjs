@@ -59,8 +59,8 @@ function run(src,form,date='2026-11-15',withUi=false){
   return JSON.parse(JSON.stringify(sandbox.result));
 }
 
-assert.match(html,/appVer:'2\.0-test-3251'/);
-assert.match(html,/name="evrovet-version" content="2\.0-test-3251"/);
+assert.match(html,/appVer:'2\.0-test-3287'/);
+assert.match(html,/name="evrovet-version" content="2\.0-test-3287"/);
 assert.match(html,/<link rel="stylesheet" href="ui2-common\.css">/);
 assert.match(html,/<link rel="stylesheet" href="styles\/view\.css">/);
 assert.match(html,/<body class="ui2">/);
@@ -99,8 +99,8 @@ for(const [name,form] of scenarios){
   const before=run(base,form),after=run(html,form);
   assert.deepEqual(after.calc,before.calc,name+': checks changed');
   assert.equal(before.data.app,'2.0-test-2922');
-  assert.equal(after.data.app,'2.0-test-3251');
-  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3251'},name+': submitted report payload changed beyond exact version marker');
+  assert.equal(after.data.app,'2.0-test-3287');
+  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3287'},name+': submitted report payload changed beyond exact version marker');
 }
 
 const oldDay=baseForm({cash:'20000',cashless:'50000',adv_cash:'10000'});
@@ -201,6 +201,7 @@ assert.match(payHtmlSource,/\+ Такси, доплата или вычет/);
 assert.ok(payHtmlSource.indexOf('+ Такси, доплата или вычет')<payHtmlSource.indexOf('По сотрудникам'),'adjustment action must be above the employee list');
 assert.match(html,/period_issued:'Период уже выдан\. Выберите другой'/);
 assert.match(html,/period_not_ready:'Для периода ещё не загружены начисления трёх филиалов'/);
+assert.match(html,/period_future:'Период начинается позже даты платежа\. Выберите другой'/);
 assert.match(html,/Если их несколько, сначала выбран самый ранний\. Перед загрузкой обязательно проверьте и подтвердите период/);
 assert.match(html,/Подтвердить и загрузить выплаты/);
 assert.match(fn(html,'muHtml'),/Уже выданные периоды в списке не показываются/);

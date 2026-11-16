@@ -112,6 +112,7 @@ SET search_path TO ''
 AS $function$
 DECLARE
   v bigint := public.ev__mu_head(p_token);
+  v_pay_date date;
 BEGIN
   IF v IS NULL THEN
     RETURN jsonb_build_object('ok', false, 'error', 'session');
@@ -126,6 +127,14 @@ BEGIN
       AND i.period_to = p_to
   ) THEN
     RETURN jsonb_build_object('ok', false, 'error', 'period_issued');
+  END IF;
+  SELECT max((r ->> 'date')::date)
+    INTO v_pay_date
+  FROM jsonb_array_elements(COALESCE(p_rows, '[]'::jsonb)) AS r
+  WHERE jsonb_typeof(r) = 'object'
+    AND COALESCE(r ->> 'date', '') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$';
+  IF v_pay_date IS NOT NULL AND p_from > v_pay_date THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'period_future');
   END IF;
   IF NOT EXISTS (
     SELECT 1
