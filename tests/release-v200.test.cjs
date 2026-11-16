@@ -59,8 +59,8 @@ function run(src,form,date='2026-11-15',withUi=false){
   return JSON.parse(JSON.stringify(sandbox.result));
 }
 
-assert.match(html,/appVer:'2\.0-test-3234'/);
-assert.match(html,/name="evrovet-version" content="2\.0-test-3234"/);
+assert.match(html,/appVer:'2\.0-test-3248'/);
+assert.match(html,/name="evrovet-version" content="2\.0-test-3248"/);
 assert.match(html,/<link rel="stylesheet" href="ui2-common\.css">/);
 assert.match(html,/<link rel="stylesheet" href="styles\/view\.css">/);
 assert.match(html,/<body class="ui2">/);
@@ -99,8 +99,8 @@ for(const [name,form] of scenarios){
   const before=run(base,form),after=run(html,form);
   assert.deepEqual(after.calc,before.calc,name+': checks changed');
   assert.equal(before.data.app,'2.0-test-2922');
-  assert.equal(after.data.app,'2.0-test-3234');
-  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3234'},name+': submitted report payload changed beyond exact version marker');
+  assert.equal(after.data.app,'2.0-test-3248');
+  assert.deepEqual(after.data,{...before.data,app:'2.0-test-3248'},name+': submitted report payload changed beyond exact version marker');
 }
 
 const oldDay=baseForm({cash:'20000',cashless:'50000',adv_cash:'10000'});
@@ -169,6 +169,24 @@ assert.deepEqual(Array.from(periodSandbox.result.d0211),['2026-10-16','2026-10-3
 assert.deepEqual(Array.from(periodSandbox.result.twoOpen,x=>Array.from(x)),[['2026-10-16','2026-10-31'],['2026-11-01','2026-11-15']],'earliest open period must be first');
 assert.deepEqual(Array.from(periodSandbox.result.pastIssued,x=>Array.from(x)),[['2026-11-01','2026-11-15']],'issued period must be absent');
 assert.deepEqual(Array.from(periodSandbox.result.futureExcluded,x=>Array.from(x)),[['2026-10-16','2026-10-31']],'periods starting after payment date must be absent');
+const payrollPeriodSandbox={result:null,Date,Number,String,Array};
+vm.runInNewContext(`
+  const PAY_START='2026-10-16';
+  const addDays=(s,n)=>new Date(Date.parse(s+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
+  const perStart=d=>Number(d.slice(8))<=15?d.slice(0,8)+'01':d.slice(0,8)+'16';
+  const perEnd=d=>Number(d.slice(8))<=15?d.slice(0,8)+'15':new Date(Date.UTC(Number(d.slice(0,4)),Number(d.slice(5,7)),0)).toISOString().slice(0,10);
+  ${fn(html,'muEligiblePeriods')}
+  ${fn(html,'muDefaultPeriod')}
+  ${fn(html,'payrollDefaultPeriod')}
+  const nov={from:'2026-11-01',to:'2026-11-15'};
+  result={unissued:payrollDefaultPeriod('2026-11-16',[nov]),issued:payrollDefaultPeriod('2026-11-16',[])};
+`,payrollPeriodSandbox);
+assert.deepEqual(Array.from(payrollPeriodSandbox.result.unissued),['2026-11-01','2026-11-15'],'16 Nov must open the first unissued 1–15 period');
+assert.deepEqual(Array.from(payrollPeriodSandbox.result.issued),['2026-11-16','2026-11-30'],'after 1–15 is issued, 16–30 must open');
+assert.match(fn(html,'showPay'),/rpc\('ev_mu_batches'/,'payroll default must use the same server period list as bank upload');
+assert.match(fn(html,'payHtml'),/Зарплата за/);
+assert.match(fn(html,'payHtml'),/‹ прошлый/);
+assert.match(fn(html,'payHtml'),/следующий ›/);
 assert.match(html,/period_issued:'Период уже выдан\. Выберите другой'/);
 assert.match(html,/period_not_ready:'Для периода ещё не загружены начисления трёх филиалов'/);
 assert.match(html,/Если их несколько, сначала выбран самый ранний\. Перед загрузкой обязательно проверьте и подтвердите период/);

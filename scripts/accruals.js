@@ -365,10 +365,24 @@ function workHtml(){
 }
 
 /* ====== Ведомость руководителя (с 1.46): начислено, выплачено, остаток к выплате; с 1.49 расчёт, наличные, авансы, печать ======= */
+function payrollDefaultPeriod(today,periods){
+  const open=muDefaultPeriod(today,periods);
+  return open||[perStart(today),perEnd(today)];
+}
 async function showPay(from,to){
   const today=omskToday();
-  if(!from){const cs=perStart(today),pe=addDays(cs,-1);if(!S.pplMode&&perStart(pe)>=PAY_START){from=perStart(pe);to=pe}else{from=cs;to=perEnd(cs)}}
-  S.payFrom=from;S.payTo=to;S.payMulti=null;closeOv();S.view='pay';S.pay=null;S.payErr=null;paint();window.scrollTo(0,0);
+  if(!from){
+    try{
+      const b=await rpc('ev_mu_batches',{p_token:S.token},15000);
+      if(b&&b.error==='session'){S.token=null;S.work=null;S.wkAdm=null;S.wkHist=false;S.wkHistData=null;S.pay=null;LS.del('ev_token');S.view='login';toast('Сессия закончилась. Войдите заново.');render();loadLoginList().then(render);return}
+      if(!b||!b.ok)throw new Error('periods');
+      [from,to]=payrollDefaultPeriod(today,b.periods);
+    }catch(e){
+      const rg=payrollDefaultPeriod(today,[]);from=rg[0];to=rg[1];
+      S.payFrom=from;S.payTo=to;S.payMulti=null;S.payPeriodLookupError=true;closeOv();S.view='pay';S.pay=null;S.payErr='Не удалось определить первый невыплаченный период. Повторите загрузку.';paint();window.scrollTo(0,0);return;
+    }
+  }
+  S.payFrom=from;S.payTo=to;S.payMulti=null;S.payPeriodLookupError=false;closeOv();S.view='pay';S.pay=null;S.payErr=null;paint();window.scrollTo(0,0);
   if(S.pplMode&&uiNew())loadExtras(from,to);
   try{
     const r=await rpc('ev_payroll_statement',{p_token:S.token,p_from:from,p_to:to},20000);
@@ -495,11 +509,15 @@ function payHtml(){
   const pers=payPeriods(today),lastP=pers.length-1;
   const chips=pers.slice().reverse().slice(0,8).map((q,i)=>chip(i===0?'Этот период':i===1?'Прошлый период':ruDate(q[0]).slice(0,5)+' — '+ruDate(q[1]).slice(0,5),q[0],q[1])).join('');
   if(S.pplMode&&uiNew())return pplHtml();
-  let h='<div class="card">'+(uiNew()?'':'<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 10px">← На главную</button>')+'<h2>'+(S.paySafe&&uiNew()?'Сейф':uiNew()?'Зарплата':'Ведомость')+'</h2><div class="chips">'+chips+'<button class="chip'+((mu||S.payDates)?' on':'')+'" data-act="paydates">Даты ▾</button></div>'
+  const pi=pers.findIndex(q=>q[0]===f&&q[1]===t),prev=pi>0?pers[pi-1]:null,next=pi>=0&&pi<lastP?pers[pi+1]:null;
+  const newPayHead=uiNew()&&!S.paySafe&&!mu
+    ?'<h1 class="screen-title">Зарплата за '+perLabel(f,t).replace(/\s+\d{4}$/,'')+'</h1><div class="pay-period-switch"><button class="btn sec small" data-act="payper"'+(prev?' data-from="'+prev[0]+'" data-to="'+prev[1]+'"':' disabled')+'>‹ прошлый</button><span aria-hidden="true">|</span><button class="btn sec small" data-act="payper"'+(next?' data-from="'+next[0]+'" data-to="'+next[1]+'"':' disabled')+'>следующий ›</button></div>'
+    :'';
+  let h=newPayHead+'<div class="card">'+(uiNew()?'':'<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 10px">← На главную</button>')+(newPayHead?'':'<h2>'+(S.paySafe&&uiNew()?'Сейф':uiNew()?'Зарплата':'Ведомость')+'</h2>')+(newPayHead?'':'<div class="chips">'+chips+'</div>')+'<div class="chips"><button class="chip'+((mu||S.payDates)?' on':'')+'" data-act="paydates">Даты ▾</button></div>'
     +(S.payDates?'<div style="display:flex;gap:8px;align-items:flex-end;margin:6px 0"><label class="f" style="flex:1;min-width:0;margin:0"><span>С</span><input id="pdf" type="date" min="'+PAY_START+'" value="'+esc(f)+'"></label><label class="f" style="flex:1;min-width:0;margin:0"><span>По</span><input id="pdt" type="date" min="'+PAY_START+'" value="'+esc(t)+'"></label><button class="btn small" data-act="paydatesgo">Показать</button></div>':'')
     +'<p class="hint" style="margin:6px 0">'+ruDate(f)+' — '+ruDate(t)+(mu?' · несколько периодов, только просмотр: «Рассчитан», выплаты и авансы вносятся по одному периоду':'')+'</p>'+(ps<PAY_START&&pers.length<2?'<p class="hint" style="margin:0">Учёт в приложении идёт с 16.10.2026; прошлый период появится после 1.11.</p>':'')+'</div>';
   if(S.paySafe&&uiNew())return h+safeBody();
-  if(S.payErr)return h+'<div class="card"><p>'+esc(S.payErr)+'</p><button class="btn sec small" data-act="payper" data-from="'+f+'" data-to="'+t+'">Повторить</button></div>';
+  if(S.payErr)return h+'<div class="card"><p>'+esc(S.payErr)+'</p><button class="btn sec small" data-act="'+(S.payPeriodLookupError?'paydefault':'payper')+'"'+(S.payPeriodLookupError?'':' data-from="'+f+'" data-to="'+t+'"')+'>Повторить</button></div>';
   if(!r)return h+'<div class="card"><p class="hint">Загружаю…</p></div>';
   const tt=r.total||{};
   /* 1.63: сводка закрытия периода */

@@ -453,6 +453,7 @@ document.addEventListener('click',async e=>{
     case'mupinhide':if(S.mu){S.mu.pin=null;paint()}break;
     case'mupincopy':{const t=S.mu&&S.mu.pin?S.mu.pin.pin:'';try{await navigator.clipboard.writeText(t);toast('PIN скопирован')}catch(e){toast('Не удалось скопировать')}break}
     case'payper':showPay(d.from,d.to);break;
+    case'paydefault':showPay();break;
     case'paycopy':copyPayroll();break;
     case'mrok':mrDecide(d.id,'confirm');break;
     case'hoaccept':acceptHandover();break;
@@ -534,7 +535,7 @@ document.addEventListener('click',async e=>{
     case'setReason':{const v=(($('#rs-'+d.id)||{}).value||'').trim();if(v.length<3){toast('Напишите причину');break}
       const it=S.queue.find(x=>x.uid===d.id);if(it){it.reason=v;it.status='new'}saveQueue();closeOv();await flush();break}
     case'doUpdate':reloadNew();break;
-    case'go':{closeOv();const v=d.v;if(v==='work')showWork(S.wkFrom,S.wkTo);else if(v==='cc')showCC();else if(v==='sched')showSched();else if(v==='branch'){S.view='branch';render();window.scrollTo(0,0)}else if(v==='ctl')showControl();else if(v==='rev')showRevenue();else if(v==='pay'){S.pplMode=false;S.paySafe=false;showPay(S.payFrom,S.payTo)}else if(v==='safe'){S.pplMode=false;S.paySafe=true;showPay(S.payFrom,S.payTo);loadSafe()}else if(v==='ppl'){S.pplMode=true;S.paySafe=false;S.pplId=null;showPay()}else if(v==='sal')showSalary(S.salFrom,S.salTo);break}
+    case'go':{closeOv();const v=d.v;if(v==='work')showWork(S.wkFrom,S.wkTo);else if(v==='cc')showCC();else if(v==='sched')showSched();else if(v==='branch'){S.view='branch';render();window.scrollTo(0,0)}else if(v==='ctl')showControl();else if(v==='rev')showRevenue();else if(v==='pay'){S.pplMode=false;S.paySafe=false;showPay()}else if(v==='safe'){S.pplMode=false;S.paySafe=true;showPay(S.payFrom,S.payTo);loadSafe()}else if(v==='ppl'){S.pplMode=true;S.paySafe=false;S.pplId=null;showPay()}else if(v==='sal')showSalary(S.salFrom,S.salTo);break}
     case'salcopy':copyPay();break;
     case'salper':showSalary(d.from,d.to);break;
     case'saldates':S.salDates=!S.salDates;paint();break;

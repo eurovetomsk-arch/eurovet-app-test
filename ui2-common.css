@@ -344,6 +344,9 @@ body.ui2 .sumline b{font-size:21px;font-weight:800;color:var(--ev-ink);font-vari
 
 body.ui2 .hello{font-size:16px;font-weight:600;color:rgba(234,246,248,.72);margin:0 0 6px}
 body.ui2 .screen-title{margin:0 0 4px}
+body.ui2 .pay-period-switch{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 16px}
+body.ui2 .pay-period-switch .btn{width:auto;min-width:126px;margin:0}
+body.ui2 .pay-period-switch>span{color:rgba(234,246,248,.55);font-weight:800}
 body.ui2 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 body.ui2 .stat{border-radius:16px;background:#EEF6F8;border:1px solid #DCE9EC;padding:12px 14px}
 body.ui2 .stat b{display:block;font-size:30px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
