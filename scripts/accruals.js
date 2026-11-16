@@ -421,7 +421,7 @@ function safeBody(){
       /* 1.68: крупная цветная строка-вердикт: красная «не хватает», зелёная «хватает» */
       +'<div class="srow" style="margin-top:10px;padding:12px 14px;border-radius:12px;font-size:21px;font-weight:800;background:var(--'+(lack?'badbg':'okbg')+');color:var(--'+(lack?'bad':'ok')+')"><span>'+(lack?'Не хватает кэша':'Кэша хватает')+'</span><b>'+money(Math.abs(short))+'</b></div>'
       +'<p class="hint">'+(prov?'Предварительно: период не закрыт. ':'')+(bal<0?'Минус: взято больше, чем подтверждено инкассаций. ':'')+(N(c.pending)?'Не подтверждено вами: '+money(N(c.pending))+' (не входит). ':'')+'</p>';
-    if(S.myCash)h+='<div class="person"><h3>Мои деньги сегодня</h3><div class="srow"><span>Забрано с филиалов</span><b>'+money(N(S.myCash.collections))+'</b></div><div class="srow"><span>Взято из сейфа</span><b>'+money(N(S.myCash.safe_out))+'</b></div><div class="srow"><span>Выдано из кассы сотрудникам</span><b>−'+money(N(S.myCash.cash_payroll))+'</b></div><div class="srow big"><span>Должно быть на руках</span><b>'+money(N(S.myCash.on_hand))+'</b></div><button class="btn sec small" data-act="transitpickup">Забрал с филиала</button></div>';
+    if(S.myCash)h+='<div class="person"><h3>Мои наличные сегодня</h3><div class="srow"><span>Забрано с филиалов</span><b>'+money(N(S.myCash.collections))+'</b></div><div class="srow"><span>Взято из сейфа</span><b>'+money(N(S.myCash.safe_out))+'</b></div><div class="srow"><span>Выдано из кассы сотрудникам</span><b>−'+money(N(S.myCash.cash_payroll))+'</b></div><div class="srow big"><span>Должно быть на руках</span><b>'+money(N(S.myCash.on_hand))+'</b></div><button class="btn sec small" data-act="transitpickup">Забрал с филиала</button></div>';
     S.safeUid=S.safeUid||uid();
     h+='<h3>Взял из сейфа</h3><label class="f"><span>Сумма, ₽</span><input id="soa" inputmode="decimal"></label>'
       +'<label class="f"><span>Дата</span><input id="sod" type="date" min="2026-10-16" value="'+esc(omskToday())+'"></label>'
@@ -520,7 +520,7 @@ function payHtml(){
   const newPayHead=uiNew()&&!S.paySafe&&!mu
     ?'<h1 class="screen-title">Зарплата за '+perLabel(f,t).replace(/\s+\d{4}$/,'')+'</h1><div class="pay-period-switch"><button class="btn sec small" data-act="payper"'+(prev?' data-from="'+prev[0]+'" data-to="'+prev[1]+'"':' disabled')+'>‹ прошлый</button><span aria-hidden="true">|</span><button class="btn sec small" data-act="payper"'+(next?' data-from="'+next[0]+'" data-to="'+next[1]+'"':' disabled')+'>следующий ›</button></div>'
     :'';
-  let h=newPayHead+'<div class="card">'+(uiNew()?'':'<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 10px">← На главную</button>')+(newPayHead?'':'<h2>'+(S.paySafe&&uiNew()?'Сейф':uiNew()?'Зарплата':'Ведомость')+'</h2>')+(newPayHead?'':'<div class="chips">'+chips+'</div>')+'<div class="chips"><button class="chip'+((mu||S.payDates)?' on':'')+'" data-act="paydates">Даты ▾</button></div>'
+  let h=(isHead()&&uiNew()&&!S.paySafe&&!mu?'<div class="card">'+pplSwitchHtml('pay')+'</div>':'')+newPayHead+'<div class="card">'+(uiNew()?'':'<button class="btn sec small" data-act="go" data-v="branch" style="margin:0 0 10px">← На главную</button>')+(newPayHead?'':'<h2>'+(S.paySafe&&uiNew()?'Сейф':uiNew()?'Зарплата':'Ведомость')+'</h2>')+(newPayHead?'':'<div class="chips">'+chips+'</div>')+'<div class="chips"><button class="chip'+((mu||S.payDates)?' on':'')+'" data-act="paydates">Даты ▾</button></div>'
     +(S.payDates?'<div style="display:flex;gap:8px;align-items:flex-end;margin:6px 0"><label class="f" style="flex:1;min-width:0;margin:0"><span>С</span><input id="pdf" type="date" min="'+PAY_START+'" value="'+esc(f)+'"></label><label class="f" style="flex:1;min-width:0;margin:0"><span>По</span><input id="pdt" type="date" min="'+PAY_START+'" value="'+esc(t)+'"></label><button class="btn small" data-act="paydatesgo">Показать</button></div>':'')
     +'<p class="hint" style="margin:6px 0">'+ruDate(f)+' — '+ruDate(t)+(mu?' · несколько периодов, только просмотр: «Рассчитан», выплаты и авансы вносятся по одному периоду':'')+'</p>'+(ps<PAY_START&&pers.length<2?'<p class="hint" style="margin:0">Учёт в приложении идёт с 16.10.2026; прошлый период появится после 1.11.</p>':'')+'</div>';
   if(S.paySafe&&uiNew())return h+safeBody();
@@ -542,16 +542,23 @@ function payHtml(){
     +'</div>';
   if(!r.multi)h+='<div class="card"><button class="btn" data-act="saladd">+ Такси, доплата или вычет</button></div>';
   (r.warnings||[]).forEach(w=>{h+='<div class="chk warn"><i>!</i><div>'+esc(w)+'</div></div>'});
-  const GRP=[['doctor','Врачи'],['outsource','Аутсорс'],['admin','Администраторы'],['assistant','Ассистенты'],['callcenter','Колл-центр'],['fixed','Оклад']];
+  /* 2.0 §15 «Выплата»: два фильтра вместе — группа (по основной роли, человек в одной группе) и статус (по умолчанию «не выплачено») */
+  const GRP=[['admin','Администраторы'],['doctor','Врачи'],['assistant','Ассистенты'],['callcenter','Колл-центр'],['outsource','Аутсорс']];
   const rows=r.rows||[],doctorRows=payrollDoctorRows(r,rows),allRows=payrollAllRows(rows,doctorRows);
-  const has=g=>g==='doctor'?doctorRows.length:allRows.filter(x=>x.parts&&x.parts[g]!=null&&Number(x.parts[g])).length;
-  let pt=S.payTab||'all';const q=(S.paySearch||'').trim().toLowerCase();if(pt!=='all'&&pt!=='doctor'&&!has(pt))pt='all';
-  const shown=(pt==='all'?allRows:pt==='doctor'?doctorRows:allRows.filter(x=>x.parts&&Number(x.parts[pt]))).filter(x=>!q||String(x.name).toLowerCase().includes(q));
-  h+='<div class="card"><h3 style="margin-top:2px">По сотрудникам</h3><div class="wktabs"><button class="chip'+(pt==='all'?' on':'')+'" data-act="paytab" data-k="all"><span>Все</span> <b>'+allRows.length+'</b></button>'+GRP.filter(g=>g[0]==='doctor'||has(g[0])).map(g=>'<button class="chip'+(pt===g[0]?' on':'')+'" data-act="paytab" data-k="'+g[0]+'"><span>'+g[1]+'</span> <b>'+has(g[0])+'</b></button>').join('')+'</div><input id="paysr" class="srch" placeholder="Найти сотрудника" value="'+esc(S.paySearch||'')+'" autocomplete="off">';
+  const mainOf=new Map(pplRows({rows:allRows,people:r.people||[]}).map(x=>[String(x.id),pplMainGroup(x)]));
+  const grp=x=>mainOf.get(String(x.id))||(x._doctorMissing?'doctor':null);
+  const has=g=>allRows.filter(x=>grp(x)===g).length;
+  let pt=S.payTab||'all';const q=(S.paySearch||'').trim().toLowerCase();if(pt!=='all'&&!has(pt))pt='all';
+  const st=S.payStat||'unpaid',isPaid=x=>!!x.closed||Number(x.to_pay)<=0.005;
+  const shown=allRows.filter(x=>(pt==='all'||grp(x)===pt)&&(!q||String(x.name).toLowerCase().includes(q)));
+  const list=shown.filter(x=>st==='all'||(st==='paid'?isPaid(x):!isPaid(x)));
+  S.payVisible=list.map(x=>x.id);
+  const left=list.filter(x=>!isPaid(x)).reduce((q2,x)=>q2+Math.max(0,Number(x.to_pay)),0);
+  h+='<div class="card"><h3 style="margin-top:2px">По сотрудникам</h3><div class="wktabs"><button class="chip'+(pt==='all'?' on':'')+'" data-act="paytab" data-k="all"><span>Все</span> <b>'+allRows.length+'</b></button>'+GRP.filter(g=>has(g[0])).map(g=>'<button class="chip'+(pt===g[0]?' on':'')+'" data-act="paytab" data-k="'+g[0]+'"><span>'+g[1]+'</span> <b>'+has(g[0])+'</b></button>').join('')+'</div>';
   const sel=S.paySel||(S.paySel={});const canClose=!r.provisional&&!r.multi;
-  const list=shown.filter(x=>!S.payOnly||(!x.closed&&Number(x.to_pay)>0.005));
-  h+='<div class="chips" style="margin:4px 0"><button class="chip'+(S.payOnly?' on':'')+'" data-act="payonly">Только с остатком</button>'
-    +(canClose?'<button class="chip" data-act="payselall">Выбрать всех с остатком</button>':'')+'<button class="chip" data-act="payprint">Печать ведомости</button></div>';
+  h+='<div class="wktabs" style="margin-top:6px">'+[['unpaid','Не выплачено'],['paid','Выплачено'],['all','Все']].map(k=>'<button class="chip'+(st===k[0]?' on':'')+'" data-act="paystat" data-k="'+k[0]+'">'+k[1]+'</button>').join('')+'</div>';
+  h+='<div class="srow big"><span>Осталось выдать</span><b>'+money(left)+'</b></div>';
+  h+='<div class="chips" style="margin:4px 0">'+(canClose?'<button class="chip" data-act="payselall">Выбрать всех с остатком</button>':'')+'<button class="chip" data-act="payprint">Печать ведомости</button></div>';
   list.forEach(x=>{
     const ks=Object.keys(x.parts||{}).filter(k=>Number(x.parts[k])),op=String(S.payOpen)===String(x.id);
     const tp=Number(x.to_pay),tcls=x.over_paid?' over':(tp<=0.005?' zero':''),tlab=x.over_paid?'Переплата (проверить)':(tp<=0.005?'Выплачено полностью ✓':'К выплате сейчас');
@@ -616,13 +623,13 @@ function pplCard(x){
   const ex=(S.pplEx||[]).filter(i=>String(i.person)===String(x.id)),exSum=ex.reduce((q,i)=>q+N(i.amount),0);
   let h='<div class="card"><button class="btn sec small" data-act="pplback" style="margin:0 0 10px">← Люди</button><h2>'+esc(x.name)+(S.person&&String(x.id)===String(S.person.id)?' <span class="chip on" style="padding:1px 8px;font-size:12px">это вы</span>':'')+'</h2><p class="hint" style="margin:0">'+ruDate(r.from)+' — '+ruDate(r.to)+(r.provisional?' · предварительно':'')+'</p></div>';
   if(x.roster_only)return h+'<div class="card"><h3>'+esc(PPL_ROLE_NAME[x.roster_role]||'Сотрудник')+'</h3><p>Начислений и выплат за выбранный период пока нет.</p><p class="hint">'+(PPL_ROLE_PART[x.roster_role]==='assistant'?'Смены и фиксации вносит администратор в отчёт филиала. После сохранения отчёта они попадут в расчёт.':'Начисления появятся после внесения рабочих данных за период.')+'</p></div>';
-  h+='<div class="card"><button class="btn small" data-act="pplsal" data-id="'+x.id+'">+ Доплата или вычет</button></div>';
+  h+='<div class="card"><div class="chips"><button class="btn small" data-act="pplsalk" data-k="manual" data-id="'+x.id+'">+ Доплата</button><button class="btn small sec" data-act="pplsalk" data-k="other" data-id="'+x.id+'">− Вычет</button>'+(r.multi?'':'<button class="btn small sec" data-act="payaddform" data-id="'+x.id+'">Выплатить</button>')+'</div></div>';
   h+='<div class="card pay"><div class="srow big"><span>Начислено</span><b>'+money(N(x.accrued))+'</b></div>'
     +'<div class="srow"><span>− Выплачено</span><span>'+money(N(x.paid))+'</span></div>'
     +'<div class="srow big"><span>= '+(x.over_paid?'Переплата (проверить)':'Остаток к выплате')+'</span><b'+(x.over_paid?' style="color:var(--bad)"':'')+'>'+money(N(x.to_pay))+'</b></div>'
     +(x.closed?'<div class="srow sub"><span>✓ Рассчитан, разница</span><b>'+sgn(N(x.diff))+'</b></div>':'')
     +(N(x.adv_debt)?'<div class="srow sub"><span>долг по авансу</span><b style="color:var(--bad)">'+money(N(x.adv_debt))+'</b></div>':'')+'</div>';
-  h+='<div class="card"><h3 style="margin-top:2px">Из чего состоит</h3>';
+  h+='<div class="card"><h3 style="margin-top:2px">Почему столько</h3>';
   PPL_ORDER.filter(k=>N(parts[k])).forEach(k=>{
     if(k==='extra'&&ex.length){
       ex.forEach(i=>{h+='<div class="srow"><span>Постоянная доплата<br><small style="color:var(--mute)">'+esc(i.label||'')+' · '+ruDate(i.date)+'</small></span><b>'+money(N(i.amount))+'</b></div>'});
@@ -638,6 +645,7 @@ function pplCard(x){
     +'<button class="btn small sec" data-act="paycard" data-id="'+x.id+'">История и выплаты</button>'
     +'</div></div>';
   h+=pplShiftsHtml(x);
+  h+='<details class="card"><summary><b>Доступ и PIN</b></summary><p class="hint">Новый PIN выдаётся в разделе загрузок и доступов. Старый перестанет работать.</p><button class="btn small sec" data-act="pplpin" data-id="'+x.id+'">Выдать новый PIN</button></details>';
   return h;
 }
 /* 2.0 (свод §13): «Смены по дням» в карточке — дата, филиал, роль, ставка, кто внёс (администратор, сдавший отчёт).
@@ -667,6 +675,8 @@ function pplShiftsHtml(x){
     +'<br><small style="color:var(--mute)">'+(z.by?'внёс: '+esc(z.by):'')+(z.fix?' · фиксаций '+z.fix:'')+(z.val!=null?' · вал '+money(Number(z.val)):'')+'</small></span><b>'+(z.rate!=null?money(Number(z.rate)):'')+'</b></div>').join('');
   return h+'<p class="hint" style="margin:6px 0 0">Смен: '+rows.length+'. Ставка — за смену; у врача начисление считает Vetmanager.</p></div>';
 }
+/* 2.0 §15: переключатель «Люди | Выплата» в шапке */
+function pplSwitchHtml(cur){return '<div class="chips" style="margin:8px 0"><button class="chip'+(cur==='ppl'?' on':'')+'" data-act="'+(cur==='ppl'?'noop':'pplpayout')+'">Люди</button><button class="chip'+(cur==='pay'?' on':'')+'" data-act="'+(cur==='pay'?'noop':'pplpayout')+'">Выплата</button></div>'}
 function pplHtml(){
   const today=omskToday(),cs=perStart(today),pe=addDays(cs,-1),ps=perStart(pe),r=S.pay;
   const f=S.payFrom||(ps>=PAY_START?ps:cs),t=S.payTo||(ps>=PAY_START?pe:perEnd(cs));
@@ -675,7 +685,7 @@ function pplHtml(){
   if(S.payErr)return '<div class="card"><h2>Люди</h2><p>'+esc(S.payErr)+'</p><button class="btn sec small" data-act="payper" data-from="'+f+'" data-to="'+t+'">Повторить</button></div>';
   const x0=r&&S.pplId!=null?pplRows(r).find(x=>String(x.id)===String(S.pplId)):null;
   if(x0)return pplCard(x0);
-  let h='<div class="card"><h2>Люди</h2><div class="chips">'+chips+'</div><p class="hint" style="margin:6px 0 0">'+ruDate(f)+' — '+ruDate(t)+'</p></div>';
+  let h='<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="margin:0">Люди</h2><button class="btn small" data-act="saladd" aria-label="Доплата, вычет или такси" style="min-width:48px">+</button></div>'+pplSwitchHtml('ppl')+'<div class="chips">'+chips+'</div><p class="hint" style="margin:6px 0 0">'+ruDate(f)+' — '+ruDate(t)+'</p></div>';
   if(!r)return h+'<div class="card"><p class="hint">Загружаю…</p></div>';
   const rows=pplRows(r),has=g=>rows.some(x=>pplHasGroup(x,g));
   let pt=S.pplTab||'all';if(pt!=='all'&&!has(pt))pt='all';
@@ -890,6 +900,24 @@ async function showRevenue(from,to){
     else{S.rev=rv;S.revSal=(sl&&sl.ok)?sl:null}
   }catch(e){if(S.revFrom!==from||S.revTo!==to)return;S.revErr=e.net?'Нет связи.':'Ошибка сервера.'}
   S.revLoad=false;if(S.view==='rev')paint();
+  loadRevStatus();
+}
+/* 2.0 §15: над выручкой одна строка статуса (бывший «Контроль»): 🟢 всё сходится / 🔴 требует внимания: N */
+async function loadRevStatus(){
+  if(!isHead())return;const to=omskToday(),from=addDays(to,-6);
+  try{const r=await rpc('ev_flags_overview',{p_token:S.token,p_from:from,p_to:to},10000);
+    if(r&&r.ok){S.ctl=r.flags||[];S.ctlCoverage=r.coverage||[];const cv=S.ctlCoverage;
+      S.revStatus={open:(S.ctl||[]).filter(f=>!f.accepted&&f.code!=='vm_not_checked').length,incomplete:cv.filter(x=>!['complete','pending','missing'].includes(x.status)).length}}
+    else S.revStatus={err:true}}catch(e){S.revStatus={err:true}}
+  if(S.view==='rev')paint();
+}
+function revStatusHtml(){
+  const s=S.revStatus;if(!isHead())return '';
+  if(!s)return '<div class="glass ui2-today"><span class="pin">⌛</span><div>Проверяю отчёты и сверку…</div></div>';
+  if(s.err)return '<button class="glass ui2-today calm" data-act="go" data-v="ctl"><span class="pin">○</span><div>Статус дня не загрузился. Открыть «Контроль» ›</div></button>';
+  const n=(s.open||0)+(s.incomplete||0);
+  return n?'<button class="glass ui2-today bad" data-act="go" data-v="ctl"><span class="pin">🔴</span><div><b>Требует внимания: '+n+'</b><br>Открыть разбор ›</div></button>'
+    :'<button class="glass ui2-today" data-act="go" data-v="ctl"><span class="pin">🟢</span><div><b>Всё сходится</b><br>Отчёты и сверка за неделю без расхождений ›</div></button>';
 }
 function staffLine(o,rt){
   const pct=Math.round(Number(rt.admin_pharmacy_pct)*10000)/100;
@@ -929,7 +957,7 @@ function revHtml(){
   const today=omskToday(),cs=perStart(today),pe=addDays(cs,-1),ps=perStart(pe),yest=addDays(today,-1),f=S.revFrom,t=S.revTo;
   const on=(a,b)=>(f===a&&t===b)?' on':'';
   const chip=(l,a,b)=>'<button class="chip'+on(a,b)+'" data-act="revper" data-from="'+a+'" data-to="'+b+'">'+l+'</button>';
-  let h='<div class="card"><h2>Выручка</h2><div class="chips">'+chip('Сегодня',today,today)+chip('Вчера',yest,yest)+chip('Этот период',cs,today)+chip('Прошлый период',ps,pe)+'<button class="chip'+(S.revDates?' on':'')+'" data-act="revdates">Даты ▾</button></div>';
+  let h=revStatusHtml()+'<div class="card"><h2>Выручка</h2><div class="chips">'+chip('Сегодня',today,today)+chip('Вчера',yest,yest)+chip('Этот период',cs,today)+chip('Прошлый период',ps,pe)+'<button class="chip'+(S.revDates?' on':'')+'" data-act="revdates">Даты ▾</button></div>';
   if(S.revDates)h+='<div style="display:flex;gap:8px;align-items:flex-end;margin:6px 0"><label class="f" style="flex:1;min-width:0;margin:0"><span>С</span><input id="revf" type="date" value="'+esc(f)+'"></label><label class="f" style="flex:1;min-width:0;margin:0"><span>По</span><input id="revt" type="date" value="'+esc(t)+'"></label><button class="btn small" data-act="revgo">Показать</button></div>';
   h+='<p class="hint" style="margin:6px 0">'+(f===t?ruDate(f):ruDate(f)+' — '+ruDate(t))+'</p>';
   h+='<div class="chips">'+[['all','Все']].concat(BRANCHES.filter(b=>!b.testOnly).map(b=>[b.id,brTitle(b.id)])).map(x=>'<button class="chip'+(S.revBranch===x[0]?' on':'')+'" data-act="revbr" data-b="'+esc(x[0])+'">'+esc(x[1])+'</button>').join('')+'</div></div>';
@@ -1119,6 +1147,7 @@ function salAddForm(){
     +'<label class="f"><span>Комментарий (для доплаты и вычета обязателен)</span><input id="sac" maxlength="300"></label>'
     +'<button class="btn" data-act="saladdgo" style="margin-top:8px">Добавить</button><button class="btn sec" style="margin-top:8px" data-act="salback">Назад</button>');
   if(S.salPre!=null){const el=$('#saw');if(el)el.value=String(S.salPre);S.salPre=null}
+  if(S.salKind){const k=$('#sak');if(k)k.value=S.salKind;document.querySelectorAll('#sakc .chip').forEach(c=>c.classList.toggle('on',c.dataset.k===S.salKind));S.salKind=null}
 }
 async function doSalAdd(){
   if(S.salBusy)return;
@@ -1294,7 +1323,7 @@ async function muSha(buf){
 }
 async function showMU(){
   if(!isHead())return;
-  closeOv();S.view='mu';S.mu={files:[],bank:null,people:[],idx:{},batches:null,pin:null,pinPerson:'',busy:false,msg:null,err:null};
+  closeOv();S.view='mu';S.mu={files:[],bank:null,people:[],idx:{},batches:null,pin:null,pinPerson:S.muPre!=null?String(S.muPre):'',busy:false,msg:null,err:null};S.muPre=null;
   paint();window.scrollTo(0,0);
   try{
     const [p,b,hl]=await Promise.all([rpc('ev_mu_people',{p_token:S.token},15000),rpc('ev_mu_batches',{p_token:S.token},15000),rpc('ev_mu_health',{p_token:S.token},15000).catch(()=>null)]);

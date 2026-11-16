@@ -35,7 +35,11 @@ async function render(page,person){
   await page.goto(appUrl,{waitUntil:'domcontentloaded'});
   await page.locator('[data-act="loginstart"]').click();
   for(const n of '123123456')await page.locator(`[data-act="logindigit"][data-n="${n}"]`).click();
+  await page.waitForFunction(()=>typeof S!=='undefined'&&!!S.token);
+  /* 2.0 §15: руководитель начинает с «Выручки»; плитки — «Меню → Модули клиники» */
+  if(await page.evaluate(()=>typeof isHead==='function'&&isHead()&&S.view!=='branch')){await page.locator('.ui2-bottom-nav [data-act="menu"]').click();await page.locator('[data-act="go"][data-v="branch"]').first().click()}
   await page.locator('.ui2-home-screen').waitFor();
+  await page.waitForFunction(()=>!document.body.innerText.includes('Загружаю статус отчётов'),null,{timeout:5000}).catch(()=>{});
   await page.waitForFunction(()=>!document.body.innerText.includes('Загружаю сегодняшнюю смену'));
 }
 

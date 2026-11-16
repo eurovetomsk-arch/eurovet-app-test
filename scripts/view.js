@@ -226,18 +226,22 @@ const NAV_ICON={
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7"/><path d="M6 9.5V20h12V9.5"/></svg>',
   schedule:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   accruals:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20V4h5.5a4 4 0 010 8H6M6 16h8"/></svg>',
-  menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>'
+  menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  rev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>',
+  safe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="12" cy="12" r="3"/><path d="M12 9v1M15 12h-1"/></svg>',
+  ppl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3.2 3-5 5.5-5s4.7 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14c2.4 0 4 1.6 4.6 4"/></svg>'
 };
 function bottomNavItems(){
-  const keys=(UI2.navByRole||{})[isCourier()?'courier':'default']||['home','schedule','accruals','menu'];
+  /* 2.0 §15: у руководителя 5 вкладок — Выручка, График, Сейф, Люди, Меню (config.js navByRole.head) */
+  const keys=(UI2.navByRole||{})[isHead()?'head':isCourier()?'courier':'default']||['home','schedule','accruals','menu'];
   return keys.map(k=>({
     key:k,
-    label:{home:'Главная',schedule:'График',accruals:'Начисления',menu:'Меню'}[k],
-    view:k==='home'?'branch':k==='schedule'?'sched':k==='accruals'?(isHead()?'pay':'work'):'menu'
+    label:{home:'Главная',schedule:'График',accruals:'Начисления',menu:'Меню',rev:'Выручка',safe:'Сейф',ppl:'Люди'}[k],
+    view:k==='home'?'branch':k==='schedule'?'sched':k==='accruals'?(isHead()?'pay':'work'):k==='rev'?'rev':k==='safe'?'safe':k==='ppl'?'ppl':'menu'
   }));
 }
 function navHtml(){
-  const cur=S.view==='branch'?'home':S.view==='sched'?'schedule':(S.view==='work'||S.view==='pay'||S.view==='sal')?'accruals':'';
+  const cur=S.view==='branch'?'home':S.view==='sched'?'schedule':(S.view==='rev'||S.view==='ctl')&&isHead()?'rev':S.view==='pay'&&isHead()&&S.paySafe?'safe':S.view==='pay'&&isHead()?'ppl':(S.view==='work'||S.view==='pay'||S.view==='sal')?'accruals':'';
   return '<nav class="nv ui2-bottom-nav">'+bottomNavItems().map(n=>'<button '+(n.key==='menu'?'data-act="menu"':'data-act="go" data-v="'+n.view+'"')+' class="'+(cur===n.key?'on':'')+'"><i>'+NAV_ICON[n.key]+'</i>'+n.label+'</button>').join('')+'</nav>';
 }
 async function showControl(){
@@ -350,7 +354,7 @@ async function doAccept(ds,note){
 function overlay(html){S.ctlOpen=false;$('#ovwrap').innerHTML='<div class="ov" data-act="ovclose"><div class="card" data-stop="1">'+html+'</div></div>'}
 function closeOv(){S.ctlOpen=false;$('#ovwrap').innerHTML=''}
 function showMenu(){
-  overlay('<h2>Меню</h2>'+(isHead()?'<button class="btn sec" style="margin:6px 0" data-act="workopen">Мои начисления</button><button class="btn sec" style="margin:6px 0" data-act="schedopen">График смен</button><button class="btn sec" style="margin:6px 0" data-act="cchead">Колл-центр: смены и оплата</button><button class="btn sec" style="margin:6px 0" data-act="muopen">Ручная загрузка (начисления, банк, PIN)</button><button class="btn sec" style="margin:6px 0" data-act="testbr">Тестовый филиал (для проверок)</button>':'')+(isCC()&&!isHead()&&S.view!=='cc'?'<button class="btn sec" style="margin:6px 0" data-act="ccopen">Колл-центр: мои смены</button>':'')+(canReport()&&S.view==='cc'&&!isHead()?'<button class="btn sec" style="margin:6px 0" data-act="back">Отчёт филиала</button>':'')+(canReport()?'<button class="btn sec" style="margin:6px 0" data-act="help">Как заполнять отчёт</button>':'')+(isCC()&&!isHead()?'<a class="btn sec" style="margin:6px 0" href="help/instruktsiya_callcenter.pdf" target="_blank" rel="noopener">Инструкция оператора (PDF)</a>':'')+'<button class="btn sec" style="margin:6px 0" data-act="chpin">Сменить PIN</button><button class="btn sec" style="margin:6px 0" data-act="logout">Выйти</button><button class="btn sec" style="margin:6px 0" data-act="ovclose">Закрыть</button><p class="hint">Версия '+CFG.appVer+'</p>');
+  overlay('<h2>Меню</h2>'+(isHead()?'<button class="btn sec" style="margin:6px 0" data-act="go" data-v="branch">Модули клиники (вакцины, препараты, доступы)</button><button class="btn sec" style="margin:6px 0" data-act="go" data-v="ctl">Контроль: что требует внимания</button>'+'<button class="btn sec" style="margin:6px 0" data-act="workopen">Мои начисления</button><button class="btn sec" style="margin:6px 0" data-act="schedopen">График смен</button><button class="btn sec" style="margin:6px 0" data-act="cchead">Колл-центр: смены и оплата</button><button class="btn sec" style="margin:6px 0" data-act="muopen">Ручная загрузка (начисления, банк, PIN)</button><button class="btn sec" style="margin:6px 0" data-act="testbr">Тестовый филиал (для проверок)</button>':'')+(isCC()&&!isHead()&&S.view!=='cc'?'<button class="btn sec" style="margin:6px 0" data-act="ccopen">Колл-центр: мои смены</button>':'')+(canReport()&&S.view==='cc'&&!isHead()?'<button class="btn sec" style="margin:6px 0" data-act="back">Отчёт филиала</button>':'')+(canReport()?'<button class="btn sec" style="margin:6px 0" data-act="help">Как заполнять отчёт</button>':'')+(isCC()&&!isHead()?'<a class="btn sec" style="margin:6px 0" href="help/instruktsiya_callcenter.pdf" target="_blank" rel="noopener">Инструкция оператора (PDF)</a>':'')+'<button class="btn sec" style="margin:6px 0" data-act="chpin">Сменить PIN</button><button class="btn sec" style="margin:6px 0" data-act="logout">Выйти</button><button class="btn sec" style="margin:6px 0" data-act="ovclose">Закрыть</button><p class="hint">Версия '+CFG.appVer+'</p>');
 }
 function showQueue(){
   let h='<h2>Отправка данных</h2><p class="hint">'+(S.online?'Связь есть.':'Связи нет — записи ждут на устройстве.')+'</p>';
@@ -445,8 +449,12 @@ document.addEventListener('click',async e=>{
     case'sakind':{const k=document.getElementById('sak');if(k)k.value=d.k;document.querySelectorAll('#sakc .chip').forEach(c=>c.classList.toggle('on',c.dataset.k===d.k));break}
     case'paytab':S.payTab=d.k;paint();break;
     case'paysel':{const m=S.paySel||(S.paySel={});m[d.id]=b.checked;paint();break}
+    case'paystat':S.payStat=d.k;paint();break;
+    case'pplpayout':S.pplMode=!S.pplMode;S.pplId=null;paint();window.scrollTo(0,0);break;
+    case'pplsalk':S.salPre=d.id;S.salKind=d.k;salAddForm();break;
+    case'pplpin':S.muPre=d.id;showMU();break;
     case'payonly':S.payOnly=!S.payOnly;paint();break;
-    case'payselall':{const m=S.paySel=S.paySel||{};((S.pay&&S.pay.rows)||[]).forEach(x=>{if(!x.closed&&Number(x.to_pay)>0.005)m[x.id]=true});paint();break}
+    case'payselall':{const m=S.paySel=S.paySel||{};const vis=new Set((S.payVisible||[]).map(String));((S.pay&&S.pay.rows)||[]).forEach(x=>{if(vis.has(String(x.id))&&!x.closed&&Number(x.to_pay)>0.005)m[x.id]=true});paint();break}
     case'payclose1':payCloseForm([d.id]);break;
     case'payclosesel':payCloseForm(Object.keys(S.paySel||{}).filter(k=>S.paySel[k]));break;
     case'payclosego':doPayClose();break;

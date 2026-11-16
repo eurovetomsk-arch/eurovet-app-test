@@ -64,6 +64,7 @@ window.EVROVET_UI2_CONFIG=Object.freeze({
   cashExcludePersonIds:Object.freeze([1,6,17]),
   navByRole:Object.freeze({
     default:Object.freeze(['home','schedule','accruals','menu']),
-    courier:Object.freeze(['home','accruals','menu'])
+    courier:Object.freeze(['home','accruals','menu']),
+    head:Object.freeze(['rev','schedule','safe','ppl','menu'])
   })
 });

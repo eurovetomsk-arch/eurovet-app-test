@@ -43,7 +43,11 @@ async function login(page,person){
   await page.goto(appUrl,{waitUntil:'domcontentloaded'});
   await page.locator('[data-act="loginstart"]').click();
   for(const n of '123123456')await page.locator(`[data-act="logindigit"][data-n="${n}"]`).click();
+  await page.waitForFunction(()=>typeof S!=='undefined'&&!!S.token);
+  /* 2.0 §15: руководитель начинает с «Выручки»; плитки — «Меню → Модули клиники» */
+  if(await page.evaluate(()=>typeof isHead==='function'&&isHead()&&S.view!=='branch')){await page.locator('.ui2-bottom-nav [data-act="menu"]').click();await page.locator('[data-act="go"][data-v="branch"]').first().click()}
   await page.locator('.ui2-home-screen').waitFor();
+  await page.waitForFunction(()=>!document.body.innerText.includes('Загружаю статус отчётов'),null,{timeout:5000}).catch(()=>{});
   await page.waitForFunction(()=>!document.body.innerText.includes('Загружаю сегодняшнюю смену'));
 }
 
@@ -62,7 +66,7 @@ async function inspect(engineName,engine){
         if(role==='head'){assert.match(body,/Отчёты сегодня: 2 из 3/);assert.match(body,/Ждём: Перелёта/)}
         else{assert.match(body,/Сегодня вы на Маркса/);assert.match(body,/С вами: Иванова О\. В\., Петров Д\. А\./)}
         const nav=await page.locator('.ui2-bottom-nav button').allTextContents();
-        assert.deepEqual(nav,role==='courier'?['Главная','Начисления','Меню']:['Главная','График','Начисления','Меню']);
+        assert.deepEqual(nav,role==='courier'?['Главная','Начисления','Меню']:role==='head'?['Выручка','График','Сейф','Люди','Меню']:['Главная','График','Начисления','Меню']);
         if(role==='admin'){for(const t of ['Вечерний отчёт','Приём кассы','Вакцины','Препараты и расходники'])assert.match(body,new RegExp(t))}
         if(role==='doctor')for(const t of ['Мои записи','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
         if(role==='assistant')for(const t of ['Мои начисления','Где я работаю','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
