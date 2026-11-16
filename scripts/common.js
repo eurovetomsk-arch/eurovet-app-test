@@ -4,7 +4,7 @@ const CFG={
   url:'https://txcibtcfuzqhhebeguby.supabase.co',
   key:window.STAGE1?.key||'',
   tol:10,                // допустимая погрешность включительно, ₽
-  appVer:'2.0-test-3225'
+  appVer:'2.0-test-3234'
 };
 const BRANCHES=[
   {id:'marksa',title:'Маркса, 45'},
@@ -98,7 +98,8 @@ const S={
   branch:null,date:omskToday(),dateManual:false,ctx:null,ctxOffline:false,
   form:null,loginList:[],pick:null,shared:false,
   queue:LS.get('ev_queue',[]),handoverQueue:LS.get('ev_handover_queue',[]),handover:null,
-  online:navigator.onLine,done:null,busy:false
+  online:navigator.onLine,done:null,busy:false,
+  ccVal:null,ccValRange:null,ccValLoad:false,ccValErr:null,ccValUid:null
 };
 const saveQueue=()=>LS.set('ev_queue',S.queue);
 const saveHandoverQueue=()=>LS.set('ev_handover_queue',S.handoverQueue);

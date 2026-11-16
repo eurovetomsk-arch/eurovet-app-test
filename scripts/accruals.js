@@ -66,7 +66,56 @@ async function showSalary(from,to){
     if(!r||!r.ok)S.salErr=SAL_ERR[r&&r.error]||'Не удалось посчитать';else S.sal=r;
   }catch(e){if(S.salFrom!==from||S.salTo!==to)return;S.salErr=e.net?'Нет связи.':'Ошибка сервера.'}
   S.salLoad=false;if(S.view==='sal')paint();
-  if(S.sal&&!S.salErr)loadSalPay(from,to);
+  if(S.sal&&!S.salErr){loadSalPay(from,to);loadCCVal(from,to)}
+}
+
+function ccValPeriod(f,t){
+  if(!f||!t)return null;
+  const a=perStart(f),b=perEnd(a);
+  return perStart(t)===a&&t>=a&&f<=b?[a,b]:null;
+}
+const ccManualPool=(amount,pct)=>Math.round(Number(amount)*Number(pct)*100)/100;
+async function loadCCVal(f,t){
+  const rg=ccValPeriod(f,t);S.ccVal=null;S.ccValRange=rg;S.ccValErr=null;
+  if(!rg)return;
+  const key=rg.join('|');S.ccValLoad=true;
+  try{
+    const r=await rpc('ev_cc_val_state',{p_token:S.token,p_from:rg[0],p_to:rg[1]},10000);
+    if(!S.ccValRange||S.ccValRange.join('|')!==key)return;
+    if(r&&r.ok)S.ccVal=r;else S.ccValErr='Не удалось получить источник вала';
+  }catch(e){if(!S.ccValRange||S.ccValRange.join('|')!==key)return;S.ccValErr=e.net?'Нет связи: источник вала не проверен.':'Ошибка сервера.'}
+  S.ccValLoad=false;if(S.view==='sal'&&S.salTab==='cc')paint();
+}
+function ccValTime(v){
+  if(!v)return'';
+  try{return new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Omsk',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(v))}catch(e){return String(v)}
+}
+function ccValEditor(){
+  const rg=S.ccValRange,st=S.ccVal||{},manual=st.manual===true;
+  if(!rg)return '<div class="card"><h3 style="margin-top:2px">Вал за период</h3><p class="hint">Выберите даты внутри одного периода: 1–15 или 16–последний день месяца.</p></div>';
+  let h='<div class="card"><h3 style="margin:2px 0">Вал за период, ₽</h3><p class="hint" style="margin:4px 0 12px">'+ruDate(rg[0])+' — '+ruDate(rg[1])+'</p>';
+  if(S.ccValLoad)h+='<p class="hint">Проверяю источник…</p>';
+  else if(S.ccValErr)h+='<div class="chk warn"><i>!</i><div>'+esc(S.ccValErr)+'</div></div>';
+  else if(manual)h+='<div class="chk good"><i>✓</i><div><b>Введено вручную</b><br><small>'+esc(st.created_by_name||'руководитель')+' · '+esc(ccValTime(st.created_at))+'</small></div></div>';
+  else h+='<div class="chk"><i>↻</i><div><b>Сейчас берётся из отчётов</b><br><small>Пустое поле оставляет действующий автоматический расчёт.</small></div></div>';
+  h+='<label class="f"><span>Сумма за весь период</span><input id="ccval" inputmode="decimal" placeholder="например 1 000 000" value="'+(manual?esc(fmtNum(st.amount)):'')+'"></label>';
+  if(st.closed)h+='<p class="hint">Период закрыт: изменить источник вала уже нельзя.</p>';
+  else h+='<button class="btn" data-act="ccvalsave">Сохранить новый вал</button>'+(manual?'<button class="btn sec" style="margin-top:8px" data-act="ccvalcancel">Отменить ручной вал</button>':'');
+  return h+'<p class="hint" style="margin:10px 0 0">Каждое сохранение добавляет новую запись. Предыдущие значения не удаляются.</p></div>';
+}
+async function doCCVal(cancel){
+  if(S.salBusy||!S.ccValRange)return;
+  const rg=S.ccValRange,raw=(($('#ccval')||{}).value||''),v=cancel?null:num(raw);
+  if(!cancel&&(v==null||isNaN(v)||v<0)){toast('Введите вал за весь период');return}
+  if(S.ccVal&&S.ccVal.closed){toast('Период закрыт, изменить вал нельзя',6000);return}
+  S.salBusy=true;S.ccValUid=S.ccValUid||uid();
+  try{
+    const r=await rpc('ev_mu_cc_val',{p_token:S.token,p_from:rg[0],p_to:rg[1],p_amount:v,p_uid:S.ccValUid,p_cancel:!!cancel},12000);
+    if(!r||!r.ok){const m={closed:'Период уже закрыт',period:'Допустим только период 1–15 или 16–конец месяца',amount:'Проверьте сумму',not_manual:'Ручного значения уже нет',session:'Сессия закончилась, войдите заново',forbidden:'Нет доступа'};toast(m[r&&r.error]||'Не удалось сохранить',6000);return}
+    S.ccValUid=null;toast(cancel?'Снова считаем по отчётам':'Вал сохранён для этого периода');
+    await showSalary(S.salFrom,S.salTo);
+  }catch(e){toast(e.net?'Нет связи, ничего не сохранено':'Ошибка сервера',6000)}
+  finally{S.salBusy=false}
 }
 /* 1.48: врачи, оклады и постоянные доплаты в «Зарплата»: берутся из ведомости за период целиком (ev_payroll_statement) */
 function salPayRange(f,t){
@@ -950,7 +999,7 @@ async function doCCMark(){
 function ccSalHtml(r){
   const list=r.callcenter||[],days=(r.cc_days||[]),rt=r.cc_rates||{};
   const sum=list.reduce((s,a)=>s+Number(a.total||0),0);
-  let h='<div class="card"><div class="srow big"><span>Колл-центр</span><b>'+money(sum)+'</b></div>';
+  let h=ccValEditor()+'<div class="card"><div class="srow big"><span>Колл-центр</span><b>'+money(sum)+'</b></div>';
   if(!list.length)h+='<p class="hint">Операторов в этом периоде нет.</p>';
   list.forEach(a=>{
     h+='<div class="person"><div class="srow big"><span>'+esc(a.name)+'</span><b>'+money(Number(a.total))+'</b></div><small style="color:var(--mute)">Выходов: '+a.shifts+'</small>'

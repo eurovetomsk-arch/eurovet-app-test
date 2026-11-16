@@ -540,6 +540,8 @@ document.addEventListener('click',async e=>{
     case'saldates':S.salDates=!S.salDates;paint();break;
     case'saltab':S.salTab=d.t;paint();window.scrollTo(0,0);break;
     case'cchead':closeOv();S.salTab='cc';showSalary(S.salFrom,S.salTo);break;
+    case'ccvalsave':doCCVal(false);break;
+    case'ccvalcancel':if(confirm('Вернуть расчёт вала колл-центра по отчётам? Старые записи сохранятся.'))doCCVal(true);break;
     case'salgo':{const f=($('#salf')||{}).value,t=($('#salt')||{}).value;if(!f||!t||t<f){toast('Проверьте даты периода');break}showSalary(f,t);break}
     case'saladd':salAddForm();break;
     case'saladdgo':doSalAdd();break;

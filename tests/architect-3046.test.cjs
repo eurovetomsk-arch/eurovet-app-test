@@ -6,7 +6,7 @@ const appSource=require('./app-source.cjs');
 const root=path.resolve(__dirname,'..'),index=fs.readFileSync(path.join(root,'index.html'),'utf8'),source=appSource(root);
 const scripts=['common','login','home','report','schedule','accruals','view'];
 for(const name of scripts)assert.match(index,new RegExp(`scripts/${name}\\.js`),`missing ${name} split`);
-assert.match(index,/name="evrovet-version" content="2\.0-test-3225"/);
+assert.match(index,/name="evrovet-version" content="2\.0-test-3234"/);
 assert.match(source,/name="evrovet-version"\\s\+content/,'split update checker must read the version from index');
 
 const icons=fs.readdirSync(path.join(root,'icons')).filter(x=>/^\d{2}-.+\.png$/.test(x)).sort();
