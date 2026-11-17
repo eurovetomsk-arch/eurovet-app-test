@@ -35,7 +35,7 @@ function render(){
   else if(S.view==='done')app.innerHTML=viewDone();
   else if(S.view==='help')app.innerHTML=viewHelp();
   else if(S.view==='ctl')app.innerHTML=ctlHtml();
-  else if(S.view==='rev')app.innerHTML=revHtml();
+  else if(S.view==='rev')app.innerHTML=revHtml()+revDoctorsHtml();
   else if(S.view==='sal')app.innerHTML=salHtml();
   else if(S.view==='cc')app.innerHTML=ccHtml();
   else if(S.view==='work')app.innerHTML=workHtml();

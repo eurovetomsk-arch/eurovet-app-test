@@ -935,7 +935,32 @@ async function showRevenue(from,to){
     else{S.rev=rv;S.revSal=(sl&&sl.ok)?sl:null}
   }catch(e){if(S.revFrom!==from||S.revTo!==to)return;S.revErr=e.net?'Нет связи.':'Ошибка сервера.'}
   S.revLoad=false;if(S.view==='rev')paint();
-  loadRevStatus();
+  loadRevStatus();loadRevDoctors(from,to);
+}
+/* 2.0: «Врачи» за выбранный день по филиалам — из последней сверки Vetmanager (ev_vm_runs.metrics.doctors, функция ev_vm_doctors).
+   Деньги не считает: только показывает. Нет данных — спокойная строка. Сумма врачей ≠ invoice_amount филиала — 🔴. */
+async function loadRevDoctors(from,to){
+  S.revDoc=null;if(!isHead()||from!==to)return;const key=from;S.revDocKey=key;
+  try{const r=await rpc('ev_vm_doctors',{p_token:S.token,p_date:from},10000);if(S.revDocKey!==key)return;S.revDoc=(r&&r.ok)?r:{none:true}}
+  catch(e){if(S.revDocKey!==key)return;S.revDoc={none:true}}
+  if(S.view==='rev')paint();
+}
+function revDoctorsHtml(){
+  if(!isHead()||S.revFrom!==S.revTo)return '';
+  const d=S.revDoc,N=v=>Number(v||0);
+  let h='<div class="card"><h2>Врачи · '+ruDate(S.revFrom)+'</h2>';
+  if(!d)return h+'<p class="hint">Загружаю…</p></div>';
+  const brs=(d.branches||[]).filter(b=>Array.isArray(b.doctors)&&b.doctors.length&&(S.revBranch==='all'||!S.revBranch||b.branch===S.revBranch));
+  if(d.none||!brs.length)return h+'<p class="hint">Врачи появятся после вечерней сверки с Vetmanager.</p></div>';
+  brs.forEach(b=>{
+    const rows=b.doctors.map(x=>{const amt=N(x.amount??x.revenue??x.sum??x.invoice_amount),cnt=N(x.invoices??x.count??x.invoice_count);return{name:x.name||x.doctor||x.short_name||'—',amt,cnt,chk:N(x.check??x.avg_check)||(cnt?amt/cnt:0)}}).sort((a,c)=>c.amt-a.amt);
+    const sum=Math.round(rows.reduce((q,x)=>q+x.amt,0)*100)/100,inv=b.invoice_amount==null?null:N(b.invoice_amount),bad=inv!=null&&Math.abs(sum-inv)>0.5;
+    h+='<h3 style="margin:12px 0 4px">'+esc(brTitle(b.branch))+'</h3>'
+      +rows.map(x=>'<div class="srow"><span>'+esc(x.name)+'<br><small style="color:var(--mute)">счетов '+x.cnt+' · чек '+money(Math.round(x.chk))+'</small></span><b>'+money(x.amt)+'</b></div>').join('')
+      +(bad?'<div class="chk bad"><i>!</i><div><b>🔴 Врачи не сходятся с выручкой</b><br><small>врачи '+money(sum)+', счета Vetmanager '+money(inv)+'</small></div></div>'
+           :'<div class="srow sub"><span>Итого врачи'+(inv!=null?' = счета Vetmanager':'')+'</span><b>'+money(sum)+'</b></div>');
+  });
+  return h+'<p class="hint" style="margin-top:8px">По данным сверки Vetmanager. Начисления врачей считает Vetmanager — здесь только выручка.</p></div>';
 }
 /* 2.0 §15: над выручкой одна строка статуса (бывший «Контроль»): 🟢 всё сходится / 🔴 требует внимания: N */
 async function loadRevStatus(){
