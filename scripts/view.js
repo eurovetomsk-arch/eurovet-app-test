@@ -431,6 +431,8 @@ document.addEventListener('pointerdown',e=>{const a=document.activeElement;if(is
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='shared-device'){S.loginShared=!!t.checked;return}
+  if(t.classList&&t.classList.contains('schfile')){schPickFile(t);return}
+  if(t.classList&&t.classList.contains('schmap')){if(S.mu&&S.mu.sch)S.mu.sch.map[t.dataset.n]=t.value;return}
   if(t.classList&&t.classList.contains('mufile')){if(t.dataset.k==='bank')muPickBank(t);else muPickVM(t);return}
   if(t.classList&&t.classList.contains('mubr')&&S.mu){const f=S.mu.files[Number(t.dataset.i)];if(f){f.branch=t.value;paint()}return}
   if(t.id==='mubper'&&S.mu&&S.mu.bank){S.mu.bank.period=t.value.split('|');paint();return}
@@ -455,6 +457,9 @@ document.addEventListener('click',async e=>{
     case'paytab':S.payTab=d.k;paint();break;
     case'paysel':{const m=S.paySel||(S.paySel={});m[d.id]=b.checked;paint();break}
     case'payxlsx':payXlsx();break;
+    case'schtemplate':schTemplateDownload();break;
+    case'schimport':schImport();break;
+    case'schpublish':schPublish();break;
     case'mupinopen':showMU();setTimeout(()=>{const e=document.getElementById('mupinp');if(e)e.scrollIntoView({behavior:'smooth',block:'center'})},600);break;
     case'paystat':S.payStat=d.k;paint();break;
     case'pplpayout':S.pplMode=!S.pplMode;S.pplId=null;paint();window.scrollTo(0,0);break;

@@ -1500,6 +1500,114 @@ async function muIssuePin(){
   }catch(e){m.msg=e.net?'Нет связи. PIN не менялся.':'Ошибка сервера.'}
   m.busy=false;paint();
 }
+
+/* ====== 2.0 · Ручная загрузка графика из Excel по шаблону (без ИИ) ======
+   Шаблон: одна таблица «Дата | Филиал | Роль | Сотрудник». Сервер — существующие функции графика (те же, что у Штаба):
+   ev_sched_import (черновик версии) -> ev_sched_map_name (сопоставление имён) -> ev_sched_publish (публикация).
+   Роль -> тип графика: администратор=admin, врач/ассистент=clinical, колл-центр=callcenter. */
+const SCH_ROLE_MAP=[[/админ/i,'admin','admin'],[/врач/i,'clinical','doctor'],[/ассист/i,'clinical','assistant'],[/колл/i,'callcenter','callcenter']];
+const SCH_BR_MAP=[[/маркс|marksa/i,'marksa'],[/70|октябр|70let/i,'70let'],[/перел|pereleta/i,'pereleta']];
+const SCH_KIND_NAME={admin:'Администраторы',clinical:'Врачи и ассистенты',callcenter:'Колл-центр'};
+const schNorm=s=>String(s||'').toLowerCase().replace(/ё/g,'е').replace(/[^a-zа-я0-9]/g,'');
+function schTemplateDownload(){
+  muLoadX().then(()=>{
+    const m=S.mu||{},ppl=(m.people||[]).filter(p=>p.short_name).map(p=>[p.short_name]);
+    const next=addDays(omskToday().slice(0,7)+'-01',32).slice(0,7);
+    const rows=[['Дата','Филиал','Роль','Сотрудник'],[next+'-01','Маркса','Администратор','Фамилия И.О.'],[next+'-01','70 лет','Врач','Фамилия И.О.'],[next+'-01','Перелёта','Ассистент','Фамилия И.О.'],[next+'-01','','Колл-центр','Фамилия И.О.']];
+    const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:12},{wch:14},{wch:16},{wch:24}];
+    const ws2=XLSX.utils.aoa_to_sheet([['Как заполнять'],['Одна строка = одна смена одного человека.'],['Дата: ГГГГ-ММ-ДД или ДД.ММ.ГГГГ. Все даты одного месяца (можно несколько месяцев — загрузятся отдельно).'],['Филиал: Маркса / 70 лет / Перелёта. Для колл-центра филиал пустой.'],['Роль: Администратор / Врач / Ассистент / Колл-центр.'],['Сотрудник: Фамилия И.О., как в списке на листе «Люди». Если имени нет в списке — приложение предложит выбрать человека.'],['Пример-строки удалите перед загрузкой.']]);
+    ws2['!cols']=[{wch:110}];
+    const ws3=XLSX.utils.aoa_to_sheet([['Люди (Фамилия И.О.)'],...ppl]);ws3['!cols']=[{wch:28}];
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'График');XLSX.utils.book_append_sheet(wb,ws2,'Как заполнять');XLSX.utils.book_append_sheet(wb,ws3,'Люди');
+    XLSX.writeFile(wb,'Шаблон_графика.xlsx');
+  }).catch(()=>toast('Не загрузился модуль Excel',5000));
+}
+function schCellDate(v){
+  const s=String(v==null?'':v).trim();let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+'-'+m[2]+'-'+m[3];
+  m=s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})$/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  return null;
+}
+async function schPickFile(inp){
+  const f=inp.files&&inp.files[0];if(!f||!S.mu)return;const m=S.mu;m.err=null;m.msg=null;m.sch=null;
+  try{
+    await muLoadX();const buf=await f.arrayBuffer(),sha=await muSha(buf);
+    const wb=XLSX.read(buf,{type:'array',cellDates:false,raw:false,dateNF:'yyyy-mm-dd'});
+    const ws=wb.Sheets[wb.SheetNames.find(n=>/график/i.test(n))||wb.SheetNames[0]];
+    const arr=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd',defval:''});
+    const head=(arr[0]||[]).map(schNorm),ix={d:head.findIndex(x=>x.startsWith('дата')),b:head.findIndex(x=>x.startsWith('филиал')),r:head.findIndex(x=>x.startsWith('роль')),n:head.findIndex(x=>x.startsWith('сотрудник')||x.startsWith('фио'))};
+    if(ix.d<0||ix.r<0||ix.n<0){m.err='Не тот файл: в первой строке нужны колонки «Дата», «Филиал», «Роль», «Сотрудник». Скачайте шаблон.';paint();return}
+    const rows=[],bad=[];
+    arr.slice(1).forEach((r,i)=>{
+      if(r.every(c=>String(c).trim()===''))return;const line=i+2;
+      const date=schCellDate(r[ix.d]),role=SCH_ROLE_MAP.find(x=>x[0].test(String(r[ix.r]))),name=String(r[ix.n]).trim();
+      const br=ix.b>=0&&String(r[ix.b]).trim()?(SCH_BR_MAP.find(x=>x[0].test(String(r[ix.b])))||[])[1]:null;
+      if(!date)return bad.push('строка '+line+': не понял дату «'+r[ix.d]+'»');
+      if(!role)return bad.push('строка '+line+': не понял роль «'+r[ix.r]+'»');
+      if(!name)return bad.push('строка '+line+': пустой сотрудник');
+      if(role[1]==='callcenter'&&ix.b>=0&&String(r[ix.b]).trim()&&br)return bad.push('строка '+line+': у колл-центра филиал должен быть пустым');
+      if(role[1]!=='callcenter'&&!br)return bad.push('строка '+line+': не понял филиал «'+(ix.b>=0?r[ix.b]:'')+'»');
+      rows.push({date,kind:role[1],slot:role[2],branch:role[1]==='callcenter'?'':br,name,src:'График!R'+line});
+    });
+    if(!rows.length){m.err='В файле нет ни одной смены.'+(bad.length?' '+bad.slice(0,3).join('; '):'');paint();return}
+    const dup=new Set(),seen=new Set();rows.forEach(r=>{const k=[r.date,r.branch,r.slot,schNorm(r.name)].join('|');if(seen.has(k))dup.add(k);seen.add(k)});
+    /* автосопоставление имён: Фамилия И.О. по справочнику людей (без регистра, ё/е, точек) */
+    const byShort=new Map();(m.people||[]).forEach(p=>{byShort.set(schNorm(p.short_name),p);byShort.set(schNorm(p.full_name),p)});
+    const names=[...new Set(rows.map(r=>r.name))],map={},unknown=[];
+    names.forEach(n=>{const p=byShort.get(schNorm(n));if(p)map[n]=p.id;else unknown.push(n)});
+    const months=[...new Set(rows.map(r=>r.date.slice(0,7)))].sort();
+    m.sch={file:f.name,sha,rows,bad,dup:[...dup].length,months,map,unknown,stage:'preview',res:[]};paint();
+  }catch(e){m.err='Не удалось прочитать файл: '+(e&&e.message||'ошибка');paint()}
+}
+async function schImport(){
+  const m=S.mu,sc=m&&m.sch;if(!sc||m.busy)return;
+  if(sc.unknown.some(n=>!sc.map[n])){toast('Выберите сотрудника для каждого незнакомого имени');return}
+  m.busy=true;m.err=null;m.msg=null;paint();sc.res=[];
+  try{
+    /* 1) сопоставление имён (запоминается на сервере: следующий месяц сопоставится само) — по видам графика, где имя встречается */
+    const needMap=new Set();sc.rows.forEach(r=>needMap.add(r.kind+'|'+r.name));
+    for(const k of needMap){const[kind,name]=[k.slice(0,k.indexOf('|')),k.slice(k.indexOf('|')+1)];const pid=sc.map[name];if(!pid)continue;
+      const r=await rpc('ev_sched_map_name',{p_token:S.token,p_kind:kind,p_name:name,p_person:pid},15000);if(!r||!r.ok)throw new Error('map '+(r&&r.error||''))}
+    /* 2) черновики версий по месяцу и виду */
+    for(const month of sc.months)for(const kind of ['admin','clinical','callcenter']){
+      const rs=sc.rows.filter(r=>r.date.slice(0,7)===month&&r.kind===kind);if(!rs.length)continue;
+      const r=await rpc('ev_sched_import',{p_token:S.token,p_month:month+'-01',p_kind:kind,p_file:sc.file,p_sha:sc.sha,p_rows:rs.map(x=>({date:x.date,branch:x.branch,slot:x.slot,name:x.name,src:x.src})),p_note:'ручная загрузка руководителя из приложения'},30000);
+      if(!r||!r.ok)throw new Error((r&&r.error)+(r&&r.detail?': '+r.detail:''));
+      sc.res.push({month,kind,version_id:r.version_id,version:r.version,rows:r.rows,unmatched:r.unmatched||[]});
+    }
+    sc.stage='draft';m.msg='Черновик графика загружен. Проверьте и опубликуйте.';
+  }catch(e){m.err='Не получилось загрузить график: '+(e&&e.message||'ошибка')+'. Ничего не опубликовано.'}
+  m.busy=false;paint();
+}
+async function schPublish(){
+  const m=S.mu,sc=m&&m.sch;if(!sc||m.busy||sc.stage!=='draft')return;
+  if(sc.res.some(x=>x.unmatched.length)){toast('Есть несопоставленные имена — публикация закрыта');return}
+  if(!confirm('Опубликовать график? Он заменит опубликованный график этого месяца и сразу станет виден сотрудникам.'))return;
+  m.busy=true;m.err=null;paint();
+  try{for(const x of sc.res){const r=await rpc('ev_sched_publish',{p_token:S.token,p_version:x.version_id},15000);if(!r||!r.ok)throw new Error(r&&r.error||'publish')}
+    sc.stage='done';m.msg='График опубликован: '+sc.res.map(x=>SCH_KIND_NAME[x.kind]+' '+x.month+' (версия '+x.version+')').join(', ');S.sch=null;
+  }catch(e){m.err='Публикация не удалась: '+(e&&e.message||'ошибка')+'. Черновик сохранён, можно повторить.'}
+  m.busy=false;paint();
+}
+function schUploadHtml(){
+  const m=S.mu||{},sc=m.sch;
+  let h='<div class="card"><h2>5. График (Excel по шаблону)</h2><p class="hint">Врачи, ассистенты, администраторы и колл-центр — одним файлом, без ИИ. Шаблон: колонки «Дата», «Филиал», «Роль», «Сотрудник».</p>'
+    +'<button class="btn sec small" data-act="schtemplate">Скачать шаблон</button>'
+    +'<label class="btn sec" style="display:block;text-align:center;margin:8px 0">Выбрать файл с графиком<input type="file" class="schfile" accept=".xlsx,.xls" style="display:none"></label>';
+  if(!sc)return h+'</div>';
+  h+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0"><b>'+esc(sc.file)+'</b><br><small style="color:var(--mute)">месяц: '+sc.months.join(', ')+' · смен: '+sc.rows.length+'</small>'
+    +['admin','clinical','callcenter'].map(k=>{const n=sc.rows.filter(r=>r.kind===k).length;return n?'<div class="srow sub"><span>'+SCH_KIND_NAME[k]+'</span><b>'+n+'</b></div>':''}).join('');
+  if(sc.bad.length)h+='<div class="chk bad"><i>!</i><div><b>Строки не поняты: '+sc.bad.length+'</b><br><small>'+sc.bad.slice(0,5).map(esc).join('<br>')+(sc.bad.length>5?'<br>…':'')+'</small></div></div>';
+  if(sc.dup)h+='<div class="chk warn"><i>!</i><div><b>Повторы: '+sc.dup+'</b><br><small>Одна и та же смена записана дважды.</small></div></div>';
+  if(sc.stage==='preview'){
+    if(sc.unknown.length){h+='<p class="hint" style="margin:8px 0 4px">Этих имён нет в списке сотрудников — выберите человека:</p>'
+      +sc.unknown.map((n,i)=>'<label class="f"><span>'+esc(n)+'</span><select class="schmap" data-n="'+esc(n)+'"><option value="">— выберите —</option>'+(m.people||[]).map(p=>'<option value="'+p.id+'"'+(String(sc.map[n])===String(p.id)?' selected':'')+'>'+esc(p.short_name)+'</option>').join('')+'</select></label>').join('')}
+    h+=sc.bad.length?'<p class="hint">Исправьте файл и загрузите снова: пока есть непонятые строки, загрузка закрыта.</p>':'<button class="btn" data-act="schimport"'+(m.busy?' disabled':'')+'>Загрузить как черновик</button><p class="hint">Ничего не опубликуется, пока вы не нажмёте «Опубликовать».</p>';
+  }else{
+    h+=sc.res.map(x=>'<div class="srow"><span>'+SCH_KIND_NAME[x.kind]+' · '+x.month+'<br><small style="color:var(--mute)">версия '+x.version+', смен '+x.rows+(x.unmatched.length?' · не сопоставлено: '+x.unmatched.map(u=>esc(u.name)).join(', '):'')+'</small></span><b>'+(sc.stage==='done'?'опубликовано':'черновик')+'</b></div>').join('');
+    if(sc.stage==='draft')h+='<button class="btn" data-act="schpublish"'+(m.busy||sc.res.some(x=>x.unmatched.length)?' disabled':'')+'>Опубликовать</button>';
+  }
+  return h+'</div></div>';
+}
 function muHtml(){
   const m=S.mu||{};let h='<div class="card"><button class="btn sec small" data-act="muback" style="margin:0 0 10px">← Назад</button><h2>Ручная загрузка</h2><p class="hint">Раздел только для руководителя. Сюда загружаются файлы Vetmanager (начисления врачей), выплаты из банка и выдаются PIN. Файлы разбираются на вашем устройстве, в базу уходят только ФИО-сопоставленные суммы. Номера карт и счетов не сохраняются.</p>';
   if(m.err)h+='<div class="note bad" style="color:var(--bad)">'+esc(m.err)+'</div>';
@@ -1566,6 +1674,7 @@ function muHtml(){
   }
   h+='</div>';
   /* D. PIN */
+  h+=schUploadHtml();
   h+='<div class="card"><h2>4. Выдать PIN сотруднику</h2><p class="hint">PIN из 6 цифр создаётся случайно и показывается один раз. Старый PIN перестаёт работать, блокировка входа снимается.</p>'
     +'<label class="f"><span>Сотрудник</span><select id="mupinp"><option value="">— выберите —</option>'+(m.people||[]).map(p=>'<option value="'+p.id+'"'+(String(m.pinPerson)===String(p.id)?' selected':'')+'>'+esc(p.short_name)+(p.has_pin?'':' (PIN не выдан)')+'</option>').join('')+'</select></label>'
     +'<button class="btn" style="margin-top:8px" data-act="mupin"'+(m.busy?' disabled':'')+'>Выдать новый PIN</button>';
