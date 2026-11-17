@@ -578,7 +578,11 @@ document.addEventListener('click',async e=>{
     case'schtab':schEnsure().tab=d.t;paint();break;
     case'schday':{const s=schEnsure();s.day=d.d;const mm=d.d.slice(0,7);if(mm!==s.m&&!s.demo){s.m=mm;s.apptDay=null;if(s.data[mm])paint();else loadSched(mm)}else paint();break}
     case'schcal':{const s=schEnsure();s.calOpen=!s.calOpen;paint();break}
-    case'schp':{const r=(schEnsure().pp||[])[Number(d.i)];if(!r||!r.full)break;const f=String(r.full||r.name||'').trim(),sp=f.indexOf(' '),sn=sp>0?f.slice(0,sp):f,rest=sp>0?f.slice(sp+1):'';overlay('<div class="sch-pc"><div class="pcard"><span class="av" style="background:'+schRoleColor(r.slot)+'">'+esc(schInitials(f))+'</span><div><h3>'+esc(sn)+'</h3>'+(rest?'<p>'+esc(rest)+'</p>':'')+'</div></div><p class="shint"><span class="role-pill" style="background:'+schRoleColor(r.slot)+'">'+esc(schRole(r))+'</span><br><br>К сотруднику можно обращаться по имени и отчеству.</p><button class="btn sec" data-act="ovclose">Закрыть</button></div>');break}
+    case'schp':{const r=(schEnsure().pp||[])[Number(d.i)];if(!r||!r.full)break;const f=String(r.full||r.name||'').trim();
+      /* 2.0, п.14: «Фамилия Имя Отчество» крупно, роль, где сегодня; без денег, телефона, PIN, доступов */
+      const sc=schEnsure(),today=omskToday(),all=Object.values(sc.data||{}).flat(),nm=String(r.name||'').trim();
+      const wh=[...new Set(all.filter(x=>x.date===today&&String(x.name||'').trim()===nm).map(x=>(schBk(x)==='cc'?'колл-центр':(SCH_B[schBk(x)]||[schBk(x)])[0])))];
+      overlay('<div class="sch-pc"><h3 class="pcname">'+esc(f)+'</h3><p class="pcrole"><i class="rdot" style="background:'+schRoleColor(r.slot)+'"></i>'+esc(schRole(r))+'</p><p class="pcwhere">'+(wh.length?'Сегодня работает: '+esc(wh.join(', ')):'Сегодня в графике не отмечен(а)')+'</p><button class="btn sec" style="margin-top:14px" data-act="ovclose">Закрыть</button></div>');break}
     case'schflt':schEnsure().flt=d.f;paint();break;
     case'schretry':loadSched(schEnsure().m);break;
     case'schdemo':{const s=schEnsure();if(isHead()){s.demo=!s.demo;paint()}break}

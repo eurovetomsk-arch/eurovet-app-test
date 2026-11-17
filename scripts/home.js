@@ -32,12 +32,31 @@ function homeBranchTitle(id){
   const b=BRANCHES.find(x=>String(x.id)===String(id));
   return b?b.title.replace(/,\s*\d+$/,''):String(id||'филиале');
 }
+/* 2.0, п.15: у колл-центра две разные вещи — ГРАФИК (плановые дни) и ОТМЕТКА ВЫХОДА (от неё начисляется зарплата) */
+const CC_TODAY={key:'',loading:false,r:null,err:null};
+async function loadCCToday(force){
+  const key=String(S.token||'')+'|'+omskToday();
+  if(!S.token||CC_TODAY.loading||(!force&&CC_TODAY.key===key&&(CC_TODAY.r||CC_TODAY.err)))return;
+  CC_TODAY.key=key;CC_TODAY.loading=true;CC_TODAY.err=null;
+  try{const r=await rpc('ev_cc_today',{p_token:S.token},8000);if(r&&r.ok)CC_TODAY.r=r;else CC_TODAY.err='Не удалось загрузить отметку.'}
+  catch(e){CC_TODAY.err=e.net?'Нет связи: отметка пока не загрузилась.':'Не удалось загрузить отметку.'}
+  CC_TODAY.loading=false;if(S.view==='branch')paint();
+}
+function ccMarkHtml(){
+  const c=CC_TODAY,tm=t=>{try{return new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Omsk',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t))}catch(e){return ''}};
+  if(c.loading&&!c.r)return '<div class="glass ui2-today"><span class="pin">⌛</span><div>Загружаю отметку…</div></div>';
+  if(!c.r)return '<div class="glass ui2-today calm"><span class="pin">○</span><div>'+esc(c.err||'Отметка пока недоступна.')+'</div></div>';
+  if(c.r.me)return '<div class="glass ui2-markdone"><span class="pin">✓</span><div><b>Отмечено сегодня в '+esc(tm(c.r.marked_at))+' ✓</b><br><small>От отметки начисляется зарплата за день.</small></div><button class="btn sec small" data-act="ccmark" data-dt="'+omskToday()+'" data-on="0">Снять</button></div>';
+  if(Number(c.r.ops||0)>=2)return '<div class="chk warn"><i>!</i><div>На сегодня уже отмечены два оператора: '+esc((c.r.others||[]).join(', '))+'</div></div>';
+  return '<button class="btn big ui2-markbtn" data-act="ccmark" data-dt="'+omskToday()+'" data-on="1">Отметить: я сегодня работаю</button><p class="hint" style="margin:6px 4px 0">Отметка — не то же самое, что график: от неё начисляется зарплата.</p>';
+}
 function homeTodayHtml(){
   const rows=HOME_WHO.rows;
   if(HOME_WHO.loading||(!rows&&!HOME_WHO.error))return '<div class="glass ui2-today"><span class="pin">⌛</span><div>Загружаю сегодняшнюю смену…</div></div>';
   if(HOME_WHO.error)return '<div class="glass ui2-today calm"><span class="pin">○</span><div>'+esc(HOME_WHO.error)+'</div></div>';
   const pid=String(S.person?.id??S.person?.person_id??'');
   const mine=(rows||[]).find(r=>r&&((r.mine===true)||String(r.person_id??r.id??'')===pid));
+  if(isCC()&&!isHead()){return '<div class="glass ui2-today"><span class="pin">📅</span><div><b>По графику сегодня:</b> '+(mine?'вы в колл-центре':'вас в графике нет')+'</div></div>'+ccMarkHtml()}
   if(!mine)return '<div class="glass ui2-today"><span class="pin">📍</span><div>На сегодня ваша смена в графике не отмечена.</div></div>';
   const branch=mine.branch||mine.branch_id||mine.clinic||mine.clinic_id;
   const start=mine.start||mine.time_from||mine.from||'',end=mine.end||mine.time_to||mine.to||'';
@@ -70,7 +89,7 @@ function repStatusOverlay(){
   overlay('<h2>Отчёты сегодня</h2><p class="hint">Нажмите на филиал — откроется его отчёт.</p>'+rows+'<button class="btn sec" style="margin-top:10px" data-act="ovclose">Закрыть</button>');
 }
 function homeIcon(name){
-  const files={evening_report:'icons/01-evening-report.png',cash_acceptance:'icons/03-cash-acceptance.png',appointments:'icons/10-my-appointments.png',callcenter_shift:'icons/08-my-schedule.png',where_i_work:'icons/07-who-is-where.png',my_accruals:'icons/09-my-accruals.png',vaccines:'icons/05-vaccines.png',vaccines_all_branches:'icons/05-vaccines.png',dose_calculator:'icons/20-dose-calc.png',supplies:'icons/21-order.png',supplies_all_requests:'icons/06-drug-request.png',supply_order:'icons/21-order.png',head_money:'icons/14-revenue-director-only.png',head_reports:'icons/04-audit.png',head_cash_safe:'icons/19-safe.png',head_payroll:'icons/09-my-accruals.png',people_roles:'icons/15-access-permissions.png',head_collections:'icons/02-cash-register.png',head_schedule:'icons/08-my-schedule.png',birthdays:'icons/23-greetings.png'};
+  const files={evening_report:'icons/01-evening-report.png',cash_acceptance:'icons/03-cash-acceptance.png',appointments:'icons/10-my-appointments.png',callcenter_shift:'icons/08-my-schedule.png',where_i_work:'icons/07-who-is-where.png',my_accruals:'icons/09-my-accruals.png',my_schedule:'icons/08-my-schedule.png',vaccines:'icons/05-vaccines.png',vaccines_all_branches:'icons/05-vaccines.png',dose_calculator:'icons/20-dose-calc.png',supplies:'icons/21-order.png',supplies_all_requests:'icons/06-drug-request.png',supply_order:'icons/21-order.png',head_money:'icons/14-revenue-director-only.png',head_reports:'icons/04-audit.png',head_cash_safe:'icons/19-safe.png',head_payroll:'icons/09-my-accruals.png',people_roles:'icons/15-access-permissions.png',head_collections:'icons/02-cash-register.png',head_schedule:'icons/08-my-schedule.png',birthdays:'icons/23-greetings.png'};
   if(files[name])return '<img src="'+files[name]+'" alt="">';
   return '';
 }
@@ -78,13 +97,14 @@ const HOME_TILE_META={
   evening_report:{section:'finance',size:'main',title:'Вечерний отчёт',sub:'Закройте день — это пара минут',act:'homebranches'},
   cash_acceptance:{section:'finance',size:'wide',title:'Приём кассы',sub:'Утром: пересчитать и подтвердить',act:'homebranches'},
   appointments:{section:'clinic',size:'main',title:'Мои записи',sub:'Ближайшие приёмы и пациенты',view:'sched'},
-  callcenter_shift:{section:'clinic',size:'main',title:'Мои смены',sub:'Отметки и итог колл-центра',view:'cc'},
+  callcenter_shift:{section:'finance',size:'wide',title:'Мои выходы',sub:'Отметки по дням и итог',view:'cc'},
+  my_schedule:{section:'work',size:'sm',title:'Мой график',sub:'Когда мне выходить',view:'sched'},
   my_accruals:{section:'finance',size:'main',title:'Мои начисления',sub:'Начислено за текущий период',view:'work'},
   where_i_work:{section:'work',size:'wide',title:'Где я работаю',sub:'Мои смены и кто где сегодня',view:'sched'},
   vaccines:{section:'preparations',size:'sm',title:'Вакцины',sub:'Остатки и движение',prepare:'Здесь будут остатки вакцин и их движение по филиалам.'},
   vaccines_all_branches:{section:'preparations',size:'sm',title:'Вакцины по филиалам',sub:'Остатки во всех клиниках',prepare:'Здесь будут остатки вакцин по всем филиалам.'},
   dose_calculator:{section:'preparations',size:'sm',title:'Расчёт дозы',sub:'Быстрый расчёт препарата',prepare:'Здесь будет безопасный расчёт дозы препарата.'},
-  supplies:{section:'preparations',size:'sm',title:'Препараты и расходники',sub:'Остатки и заявки',prepare:'Здесь будут остатки препаратов и заявки на расходники.'},
+  supplies:{section:'preparations',size:'wide',title:'Препараты и расходники',sub:'Заявка и остатки',prepare:'Скоро: заявка препаратов и расходников — здесь же будут остатки.'},
   supplies_all_requests:{section:'preparations',size:'sm',title:'Заявки филиалов',sub:'Все заявки на снабжение',prepare:'Здесь будут заявки филиалов на препараты и расходники.'},
   supply_order:{section:'preparations',size:'sm',title:'Заказ снабжения',sub:'Собрать и отметить заказ',prepare:'Здесь можно будет собрать и отметить заказ снабжения.'},
   head_money:{section:'finance',size:'main',title:'Выручка',sub:'Выручка и врачи по дням',view:'rev'},
@@ -115,6 +135,7 @@ function showHomeBranches(){
   overlay('<h2>Выберите филиал</h2><p class="hint">Откроется сегодняшний отчёт. Утром сначала показывается приём кассы.</p>'+buttons+'<button class="btn sec small" data-act="ovclose">Отмена</button>');
 }
 function viewBranch(){
+  if(isCC()&&!isHead())loadCCToday();
   if(isHead()){loadDayStatus();if(S.mr==null&&S.lv==null)loadMr();if(!S.revStatus||Date.now()-(S.revStatusAt||0)>60000)loadRevStatus()}else loadHomeWho();
   let h='<section class="ui2-home-screen"><div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div>'+(isHead()?headDayLineHtml()+headTodayHtml():homeTodayHtml())+homeSectionsHtml();
   if(isHead())h+='<div class="mrbox">'+mrHtml0()+lvHtml()+'</div>'; /* ждущие подтверждения инкассации и отпуска — только если есть */

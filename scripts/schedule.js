@@ -12,7 +12,7 @@ const schShort=v=>{const a=String(v||'').trim().split(/\s+/).filter(Boolean);if(
 const schInitials=v=>{const a=String(v||'').trim().split(/\s+/).filter(Boolean),tail=a.slice(1).map(x=>(x.replace(/[^А-ЯЁA-Z]/gi,'')[0]||'').toUpperCase()).filter(Boolean);return ((tail[0]||a[0]?.[0]||'')+(tail[1]||a[0]?.[1]||'')).slice(0,2)};
 const schPill=r=>'<span class="role-pill" style="background:'+schRoleColor(r.slot)+'">'+esc(schRole(r))+'</span>';
 function schCcToday(rows){const t=omskToday(),n=rows.filter(r=>r.date===t&&schBk(r)==='cc').map(r=>r.name);
-  return '<section class="card quiet"><div class="cc"><span class="av" style="background:'+schRoleColor('callcenter')+'">КЦ</span><span>Колл-центр сегодня: <b>'+(n.length?esc(n.map(schShort).join(', ')):'в графике никого нет')+'</b></span></div></section>'}
+  return '<section class="card quiet"><div class="cc"><span><i class="rdot" style="background:'+schRoleColor('callcenter')+'"></i> Колл-центр сегодня: <b>'+(n.length?esc(n.map(schShort).join(', ')):'в графике никого нет')+'</b></span></div></section>'}
 const SCH_MN=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const SCH_DW=['пн','вт','ср','чт','пт','сб','вс'];
 const schBk=r=>r.branch||'cc';
@@ -56,12 +56,13 @@ function schHead(s){
    +'<div class="dseg"><button class="'+(s.tab==='my'?'on':'')+'" data-act="schtab" data-t="my">Мои смены</button><button class="'+(s.tab==='all'?'on':'')+'" data-act="schtab" data-t="all">Кто где</button></div>'}
 /* 2.0: «Мой день» — смена, филиал, с кем работаю; записи пациентов — для врачей (окно 7 дней, снимок Vetmanager) */
 function schMyDayHtml(s,rows,mine,dt){
+  s.pp=[];
   const SLOT={admin:'администратор',doctor:'врач',assistant:'ассистент',callcenter:'колл-центр'};
   let h='<div style="margin:12px 0 4px;padding-top:10px;border-top:1px solid var(--line)"><h3 style="margin:0">Мой день · '+ruDate(dt)+'</h3>';
   [...new Set(mine.map(r=>r.branch||'cc'))].forEach(k=>{
     const my=mine.filter(r=>(r.branch||'cc')===k),peers=rows.filter(r=>r.date===dt&&(r.branch||'cc')===k&&!r.mine);
     h+='<div class="person"><div class="srow"><span><b>'+esc(k==='cc'?'Колл-центр':SCH_B[k]?SCH_B[k][0]:k)+'</b><br><small>'+esc(my.map(r=>SLOT[r.slot]||r.slot).join(', '))+'</small></span></div>'
-      +(peers.length?'<p class="hint" style="margin:4px 0 0">С вами: '+peers.map(r=>esc(r.name)).join(', ')+'</p>':'<p class="hint" style="margin:4px 0 0">В графике на этот день больше никого.</p>')+'</div>';
+      +(peers.length?'<p class="hint" style="margin:6px 0 2px">С вами:</p>'+peers.map(r=>'<'+(r.full?'button':'div')+' class="whorow"'+(r.full?' data-act="schp" data-i="'+(s.pp.push(r)-1)+'"':'')+'><i class="rdot" style="background:'+schRoleColor(r.slot)+'"></i><span class="wn"><b>'+esc(schNameOne(r.full||r.name))+'</b><small>'+esc(schRole(r))+'</small></span></'+(r.full?'button':'div')+'>').join(''):'<p class="hint" style="margin:4px 0 0">В графике на этот день больше никого.</p>')+'</div>';
   });
   return h+'<p class="hint">Записи пациентов на день показываются врачам в ближайшие 7 дней.</p></div>';
 }
@@ -122,7 +123,7 @@ function schAll(s,rows){
       const gr=rr.filter(r=>r.slot===g[0]).sort((a,b)=>(a.name<b.name?-1:1));
       if(k==='cc'&&g[0]!=='callcenter')return;if(k!=='cc'&&g[0]==='callcenter')return;
       if(!gr.length){if(g[0]==='doctor'&&k!=='cc'&&rr.length)h+='<div class="whogrp">'+g[1]+'</div><div class="empty calm">'+(k==='70let'||true?'Врача сегодня нет':'')+'</div>';return}
-      h+='<div class="whogrp">'+g[1]+'</div>'+gr.map(r=>'<'+(r.full?'button':'div')+' class="whorow'+(r.mine?' me':'')+'"'+(r.full?' data-act="schp" data-i="'+(s.pp.push(r)-1)+'"':'')+'><span class="av" style="background:'+schRoleColor(r.slot)+'">'+esc(schInitials(r.full||r.name))+'</span><span class="wn"><b>'+esc(schNameOne(r.full||r.name))+'</b><small>'+esc(schRole(r))+(r.mine?' · это вы':'')+'</small></span></'+(r.full?'button':'div')+'>').join('');
+      h+='<div class="whogrp">'+g[1]+'</div>'+gr.map(r=>'<'+(r.full?'button':'div')+' class="whorow'+(r.mine?' me':'')+'"'+(r.full?' data-act="schp" data-i="'+(s.pp.push(r)-1)+'"':'')+'><i class="rdot" style="background:'+schRoleColor(r.slot)+'"></i><span class="wn"><b>'+esc(schNameOne(r.full||r.name))+'</b><small>'+esc(schRole(r))+(r.mine?' · это вы':'')+'</small></span></'+(r.full?'button':'div')+'>').join('');
     });
     h+='</section>';
   });

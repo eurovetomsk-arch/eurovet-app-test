@@ -26,17 +26,17 @@
   --ev-ok-bg:#E3F4EC;
   --ev-bad:#B24A36;
   --ev-bad-bg:#F8DFD8;
-  --ev-warn:#C98A2E;
-  --ev-warn-bg:#FBF1E1;
+  --ev-warn:#4F6B73;
+  --ev-warn-bg:#E8F0F2;
   --ev-wait:#647C83;
   --ev-wait-bg:#E7EFF1;
   --ev-marksa:#E0457F;
   --ev-70let:#2FBF8F;
   --ev-pereleta:#4F7BFF;
-  --ev-role-admin:#D9952B;
-  --ev-role-doctor:#7B5CD6;
-  --ev-role-assistant:#1E9BB5;
-  --ev-role-callcenter:#7C8F95;
+  --ev-role-admin:#5E7A8C;
+  --ev-role-doctor:#0F5F6E;
+  --ev-role-assistant:#4FB3C6;
+  --ev-role-callcenter:#8A9BA1;
   --ev-radius:20px;
   --ev-radius-small:14px;
   --ev-shadow:0 16px 36px rgba(3,22,28,.28),0 2px 8px rgba(3,22,28,.14),inset 0 1px 0 rgba(255,255,255,.92);
@@ -92,7 +92,7 @@ body.ui2 .card{
   border:1px solid rgba(255,255,255,.92);border-radius:var(--ev-radius);box-shadow:var(--ev-shadow);
 }
 body.ui2 .card h2,body.ui2 .card h3{display:flex;align-items:center;gap:8px}
-body.ui2 .card.quiet{background:linear-gradient(180deg,#F7F3EA,#F2EADB)}
+body.ui2 .card.quiet{background:linear-gradient(180deg,#F3F9FA,#E8F2F4)}
 body.ui2 .card.pay,body.ui2 .ui2-hero{background:linear-gradient(160deg,#FFFFFF,#E7F3F5);border-color:#D7EBEF}
 body.ui2 .ui2-hero::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;border-radius:20px 0 0 20px;background:linear-gradient(var(--ev-accent-light),var(--ev-accent))}
 body.ui2 .ui2-hero .srow.big b{font-size:28px}
@@ -366,7 +366,7 @@ body.ui2 .cal .d.today{outline:2px solid var(--ev-accent);outline-offset:1px}
 body.ui2 .cal .d.sel{background:#DDF0F4;border-color:var(--ev-accent)}
 body.ui2 .cal .dots{display:flex;gap:2px;height:auto;align-items:center;justify-content:center;margin-top:4px}
 body.ui2 .cal .dots i{width:7px;height:7px;border-radius:50%;display:block}
-body.ui2 .cal .star{position:absolute;top:2px;right:4px;font-size:9px;color:var(--ev-warn)}
+body.ui2 .cal .star{position:absolute;top:2px;right:4px;font-size:9px;color:#2A7D90}
 body.ui2 .srow.schedule{align-items:center;padding:12px 0}
 body.ui2 .srow.schedule .sbar{width:5px;align-self:stretch;border-radius:3px;flex:none}
 body.ui2 .srow.schedule .t{flex:1;min-width:0}
@@ -539,3 +539,19 @@ body.ui2 .whorow.me{background:linear-gradient(90deg,rgba(42,125,144,.12),transp
 body.ui2 .empty.calm{color:#8DA2A8;font-weight:600;padding:8px 6px}
 body.ui2 .dayhead h2{color:#fff}
 body.ui2 .dayhead .tag{background:rgba(255,255,255,.16);color:#EAF6F8}
+
+/* ===== 2.0 · п.13 (Михаил 17.11): без оранжевого и без кружков с инициалами; роль — маленькая точка цвета роли (оттенки бирюзы/сине-серого) ===== */
+body.ui2 .rdot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none;margin:0 2px}
+body.ui2 .whorow .av,body.ui2 .av{display:none!important}
+body.ui2 .whorow{gap:12px}
+body.ui2 .role-pill{color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.22)}
+body.ui2 .pcname{margin:0;font-size:22px;font-weight:800;line-height:1.2;color:var(--ev-ink)}
+body.ui2 .pcrole{display:flex;align-items:center;gap:8px;margin:8px 0 0;font-size:15px;font-weight:700;color:#33606B}
+body.ui2 .pcwhere{margin:6px 0 0;font-size:14px;font-weight:600;color:var(--ev-soft)}
+
+/* п.15: отметка выхода колл-центра на главной */
+body.ui2 .ui2-markbtn{width:100%;min-height:64px;font-size:18px;margin:10px 0 0;border-radius:20px}
+body.ui2 .ui2-markdone{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px;margin:10px 0 0;border-radius:20px;background:rgba(80,200,150,.14);border:1px solid rgba(120,230,180,.45);color:#EAF6F8}
+body.ui2 .ui2-markdone .pin{display:grid;place-items:center;width:40px;height:40px;border-radius:14px;background:rgba(120,230,180,.28);font-size:20px}
+body.ui2 .ui2-markdone small{color:rgba(234,246,248,.75)}
+body.ui2 .ui2-markbtn{text-align:center;display:flex;align-items:center;justify-content:center}

@@ -1,5 +1,5 @@
-:root{--bg:#f1f7f9;--card:#fff;--ink:#1d2b30;--mute:#587078;--line:#d3e2e7;--acc:#2A7D90;--acc-ink:#fff;--ok:#15803d;--okbg:#e7f5ec;--bad:#b91c1c;--badbg:#fdecec;--warn:#b45309;--warnbg:#fff4e0;--tile:#e6f0f3;--brand:#4AA0B4;--coral:#E55661}
-@media (prefers-color-scheme:dark){:root{--bg:#0e1a1e;--card:#15252a;--ink:#e6f1f4;--mute:#9db8c0;--line:#2a424a;--acc:#5DBBD0;--acc-ink:#06262d;--ok:#4ade80;--okbg:#12301e;--bad:#f87171;--badbg:#3a1717;--warn:#fbbf24;--warnbg:#3a2c10;--tile:#1d3036}}
+:root{--bg:#f1f7f9;--card:#fff;--ink:#1d2b30;--mute:#587078;--line:#d3e2e7;--acc:#2A7D90;--acc-ink:#fff;--ok:#15803d;--okbg:#e7f5ec;--bad:#b91c1c;--badbg:#fdecec;--warn:#4F6B73;--warnbg:#E8F0F2;--tile:#e6f0f3;--brand:#4AA0B4;--coral:#E55661}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1a1e;--card:#15252a;--ink:#e6f1f4;--mute:#9db8c0;--line:#2a424a;--acc:#5DBBD0;--acc-ink:#06262d;--ok:#4ade80;--okbg:#12301e;--bad:#f87171;--badbg:#3a1717;--warn:#B5CBD1;--warnbg:#1F3238;--tile:#1d3036}}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:112px}
@@ -73,7 +73,7 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
 .net.off{background:#f87171}
 pre{white-space:pre-wrap;background:var(--tile);padding:10px;border-radius:10px;font-size:13px}
 /* цвет блоков: спокойная полоса слева, маленький маркер у заголовка, лёгкий оттенок фона */
-.k-staff{--k0:#64788a}.k-docs{--k0:#2A7D90}.k-clinic{--k0:#2f6fa3}.k-pharm{--k0:#7b5ea7}.k-adv{--k0:#b7791f}.k-comp{--k0:#a4524b}.k-debt{--k0:#b5543a}.k-cash{--k0:#3f7d4e}.k-assist{--k0:#8a6d4b}.k-misc{--k0:#64788a}.k-check{--k0:#4b5d6b}
+.k-staff{--k0:#64788a}.k-docs{--k0:#2A7D90}.k-clinic{--k0:#2f6fa3}.k-pharm{--k0:#7b5ea7}.k-adv{--k0:#5E7A8C}.k-comp{--k0:#a4524b}.k-debt{--k0:#b5543a}.k-cash{--k0:#3f7d4e}.k-assist{--k0:#8a6d4b}.k-misc{--k0:#64788a}.k-check{--k0:#4b5d6b}
 .card[class*=" k-"]{--k:var(--k0);border-left:5px solid var(--k);background:color-mix(in srgb,var(--k) 5%,var(--card))}
 @media (prefers-color-scheme:dark){.card[class*=" k-"]{--k:color-mix(in srgb,var(--k0) 60%,#fff)}}
 .card[class*=" k-"] h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--k);flex:none}

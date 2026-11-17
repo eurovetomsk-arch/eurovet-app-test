@@ -621,10 +621,14 @@ async function loadExtras(from,to){
   }catch(e){if(S.pplExKey!==key)return;S.pplEx=[]}
   if(S.view==='pay'&&S.pplMode)paint();
 }
+/* 2.0, п.14: полное «Фамилия Имя Отчество» руководителю — из графика (там оно уже есть); график подгружаем тихо */
+function schFullByShort(name){const s=S.sch;if(!s)return '';const all=Object.values(s.data||{}).flat();const k=String(name||'').trim();const r=all.find(z=>String(z.name||'').trim()===k&&z.full);return r?r.full:''}
+function schWarmFull(){const s=schEnsure();const m=omskToday().slice(0,7);if(!s.data[m]&&!s.load&&!s.err)loadSched(m).then(()=>{if(S.view==='pay')paint()})}
 function pplCard(x){
+  schWarmFull();
   const r=S.pay,N=v=>Number(v||0),parts=x.parts||{};
   const ex=(S.pplEx||[]).filter(i=>String(i.person)===String(x.id)),exSum=ex.reduce((q,i)=>q+N(i.amount),0);
-  let h='<div class="card"><button class="btn sec small" data-act="pplback" style="margin:0 0 10px">← Люди</button><h2>'+esc(x.name)+(S.person&&String(x.id)===String(S.person.id)?' <span class="chip on" style="padding:1px 8px;font-size:12px">это вы</span>':'')+'</h2><p class="hint" style="margin:0">'+ruDate(r.from)+' — '+ruDate(r.to)+(r.provisional?' · предварительно':'')+'</p></div>';
+  let h='<div class="card"><button class="btn sec small" data-act="pplback" style="margin:0 0 10px">← Люди</button><h2>'+esc(x.name)+(S.person&&String(x.id)===String(S.person.id)?' <span class="chip on" style="padding:1px 8px;font-size:12px">это вы</span>':'')+'</h2>'+(schFullByShort(x.name)?'<p class="hint" style="margin:2px 0 0;font-weight:700">'+esc(schFullByShort(x.name))+'</p>':'')+'<p class="hint" style="margin:0">'+ruDate(r.from)+' — '+ruDate(r.to)+(r.provisional?' · предварительно':'')+'</p></div>';
   if(x.roster_only)return h+'<div class="card"><h3>'+esc(PPL_ROLE_NAME[x.roster_role]||'Сотрудник')+'</h3><p>Начислений и выплат за выбранный период пока нет.</p><p class="hint">'+(PPL_ROLE_PART[x.roster_role]==='assistant'?'Смены и фиксации вносит администратор в отчёт филиала. После сохранения отчёта они попадут в расчёт.':'Начисления появятся после внесения рабочих данных за период.')+'</p></div>';
   h+='<div class="card"><div class="chips"><button class="btn small" data-act="pplsalk" data-k="manual" data-id="'+x.id+'">+ Доплата</button><button class="btn small sec" data-act="pplsalk" data-k="other" data-id="'+x.id+'">− Вычет</button>'+(r.multi?'':'<button class="btn small sec" data-act="payaddform" data-id="'+x.id+'">Выплатить</button>')+'</div></div>';
   h+='<div class="card pay"><div class="srow big"><span>Начислено</span><b>'+money(N(x.accrued))+'</b></div>'
@@ -1151,7 +1155,7 @@ async function doCCMark(){
     const r=await rpc('ev_cc_mark',{p_token:S.token,p_date:m.dt,p_on:m.on,p_uid:m.uid,p_person:null,p_comment:cm},10000);
     if(!r||!r.ok){toast(CC_ERR[r&&r.error]||'Не удалось: '+(r&&r.error),6000);return}
     S.ccMark=null;closeOv();toast(m.on?'Смена '+ruDate(m.dt)+' отмечена':'Отметка снята');
-    await showCC(S.ccFrom,S.ccTo);
+    if(S.view==='branch'){loadCCToday(true)}else await showCC(S.ccFrom,S.ccTo);
   }catch(e){toast(e.net?'Нет связи, ничего не сохранено. Нажмите ещё раз':'Ошибка сервера',6000)}
   finally{S.ccBusy=false}
 }
