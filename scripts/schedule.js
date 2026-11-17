@@ -54,6 +54,17 @@ function schCal(m,cell){
 function schHead(s){
   return '<div class="period"><button class="pn" data-act="schmon" data-n="-1" aria-label="Предыдущий месяц">‹</button><div class="pc"><b>'+schTitle(s.m)+'</b><small>график опубликован</small></div><button class="pn" data-act="schmon" data-n="1" aria-label="Следующий месяц">›</button></div>'
    +'<div class="dseg"><button class="'+(s.tab==='my'?'on':'')+'" data-act="schtab" data-t="my">Мои смены</button><button class="'+(s.tab==='all'?'on':'')+'" data-act="schtab" data-t="all">Кто где</button></div>'}
+/* 2.0: «Мой день» — смена, филиал, с кем работаю; записи пациентов — для врачей (окно 7 дней, снимок Vetmanager) */
+function schMyDayHtml(s,rows,mine,dt){
+  const SLOT={admin:'администратор',doctor:'врач',assistant:'ассистент',callcenter:'колл-центр'};
+  let h='<div style="margin:12px 0 4px;padding-top:10px;border-top:1px solid var(--line)"><h3 style="margin:0">Мой день · '+ruDate(dt)+'</h3>';
+  [...new Set(mine.map(r=>r.branch||'cc'))].forEach(k=>{
+    const my=mine.filter(r=>(r.branch||'cc')===k),peers=rows.filter(r=>r.date===dt&&(r.branch||'cc')===k&&!r.mine);
+    h+='<div class="person"><div class="srow"><span><b>'+esc(k==='cc'?'Колл-центр':SCH_B[k]?SCH_B[k][0]:k)+'</b><br><small>'+esc(my.map(r=>SLOT[r.slot]||r.slot).join(', '))+'</small></span></div>'
+      +(peers.length?'<p class="hint" style="margin:4px 0 0">С вами: '+peers.map(r=>esc(r.name)).join(', ')+'</p>':'<p class="hint" style="margin:4px 0 0">В графике на этот день больше никого.</p>')+'</div>';
+  });
+  return h+'<p class="hint">Записи пациентов на день показываются врачам в ближайшие 7 дней.</p></div>';
+}
 function schMy(s,rows){
   const today=omskToday(),mine=rows.filter(r=>r.mine);
   const cnt={};mine.forEach(r=>{const k=schBk(r);cnt[k]=(cnt[k]||0)+1});
@@ -64,11 +75,14 @@ function schMy(s,rows){
   h+=schCal(s.m,(dt,d,t)=>{const l=by[dt];const cl='d'+(dt===t?' today':'')+(s.apptDay===dt?' sel':'');
     if(!l)return '<div class="'+cl+'">'+d+'</div>';
     const ks=[...new Set(l.map(schBk))];
-    const tap=apptAllowed()&&apptInWindow(dt),tag=tap?'button':'div',act=tap?' data-act="schappt" data-d="'+dt+'" aria-label="Показать записи за '+ruDate(dt)+'"':'';
+    const tap=true,tag='button',act=' data-act="schappt" data-d="'+dt+'" aria-label="Мой день '+ruDate(dt)+'"'; /* 2.0: нажатие на свой день работает у всех ролей */
     if(ks.length===1)return '<'+tag+' class="'+cl+' f" style="background:'+schBranchColor(ks[0])+'"'+act+'>'+d+'<small>'+esc(SCH_B[ks[0]][2])+'</small></'+tag+'>';
     return '<'+tag+' class="'+cl+'"'+act+'>'+d+'<span class="dots">'+ks.map(k=>'<i style="background:'+schBranchColor(k)+'"></i>').join('')+'</span></'+tag+'>'});
-  h+='<p class="hint" style="margin:12px 0 0">Нажмите на свою смену, чтобы увидеть записи пациентов на этот день.</p>';
-  if(s.apptDay&&by[s.apptDay]&&apptAllowed()&&apptInWindow(s.apptDay))h+=appointmentsHtml(s.apptDay);
+  h+='<p class="hint" style="margin:12px 0 0">Нажмите на свою смену — откроется ваш день: филиал, с кем работаете, у врачей — записи пациентов.</p>';
+  if(s.apptDay&&by[s.apptDay]){
+    if(apptAllowed()&&apptInWindow(s.apptDay))h+=appointmentsHtml(s.apptDay);
+    else h+=schMyDayHtml(s,rows,by[s.apptDay],s.apptDay);
+  }
   h+='</section>';
   const up=mine.filter(r=>r.date>=today).sort((a,b)=>a.date<b.date?-1:1);
   if(up.length)h+='<section class="card"><div class="chead"><h2>Ближайшие смены</h2></div>'+up.map(r=>{const k=schBk(r),dw=SCH_DW[schDow(r.date)];return '<div class="srow schedule"><span class="sbar" style="background:'+schBranchColor(k)+'"></span><span class="t"><b>'+(r.date===today?'Сегодня, ':'')+dw+', '+ruDate(r.date)+'</b><small>'+esc(SCH_B[k][0])+'</small></span>'+schPill(r)+'</div>'}).join('')+'</section>';

@@ -10,7 +10,7 @@ async function doLogin(pin){
     const r=await rpc('ev_login_number',{p_number:number,p_pin:pin,p_device:DEV,p_shared:shared});
     // 2.0 deliberately opens the role-aware home for every authenticated role.
     // The former showCC/showWork redirects hid the new main screen from those roles.
-    if(r.ok){S.token=r.token;S.person=r.person;S.shared=shared;touchAct();S.busy=false;if(isHead()&&uiNew()){showRevenue();flush();return}/* 2.0 §15: руководитель начинает с «Выручки» */S.view='branch';render();flush();return}
+    if(r.ok){S.token=r.token;S.person=r.person;S.shared=shared;touchAct();S.busy=false;S.view='branch';render();flush();return}
     const m={bad_pin:'Неверный PIN'+(r.attempts_left!=null?'. Осталось попыток: '+r.attempts_left:''),locked:'Слишком много ошибок. Вход закрыт на 15 минут.',expired:'Срок PIN истёк — обратитесь к руководителю.',no_access:'Нет доступа. Обратитесь к руководителю.'};
     toast(m[r.error]||'Ошибка входа',6000);
   }catch(e){toast(e.net?'Нет связи с сервером. Проверьте интернет.':'Ошибка сервера ('+e.http+')',6000)}

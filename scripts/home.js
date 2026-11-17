@@ -56,7 +56,7 @@ function headTodayHtml(){
   return '<div class="glass ui2-today'+(late?' bad':'')+'"><span class="pin">'+(late?'!':'✓')+'</span><div><b>Отчёты сегодня: '+done+' из '+list.length+'.</b>'+(waiting.length?'<br>'+(late?'Не сдан к 22:00: ':'Ждём: ')+waiting.map(esc).join(', '):'<br>Все филиалы сдали отчёты')+'</div></div>';
 }
 function homeIcon(name){
-  const files={evening_report:'icons/01-evening-report.png',cash_acceptance:'icons/03-cash-acceptance.png',appointments:'icons/10-my-appointments.png',callcenter_shift:'icons/08-my-schedule.png',where_i_work:'icons/07-who-is-where.png',my_accruals:'icons/09-my-accruals.png',vaccines:'icons/05-vaccines.png',vaccines_all_branches:'icons/05-vaccines.png',dose_calculator:'icons/20-dose-calc.png',supplies:'icons/21-order.png',supplies_all_requests:'icons/06-drug-request.png',supply_order:'icons/21-order.png',head_money:'icons/14-revenue-director-only.png',head_reports:'icons/04-audit.png',head_cash_safe:'icons/19-safe.png',head_payroll:'icons/09-my-accruals.png',people_roles:'icons/12-employees.png'};
+  const files={evening_report:'icons/01-evening-report.png',cash_acceptance:'icons/03-cash-acceptance.png',appointments:'icons/10-my-appointments.png',callcenter_shift:'icons/08-my-schedule.png',where_i_work:'icons/07-who-is-where.png',my_accruals:'icons/09-my-accruals.png',vaccines:'icons/05-vaccines.png',vaccines_all_branches:'icons/05-vaccines.png',dose_calculator:'icons/20-dose-calc.png',supplies:'icons/21-order.png',supplies_all_requests:'icons/06-drug-request.png',supply_order:'icons/21-order.png',head_money:'icons/14-revenue-director-only.png',head_reports:'icons/04-audit.png',head_cash_safe:'icons/19-safe.png',head_payroll:'icons/09-my-accruals.png',people_roles:'icons/15-access-permissions.png',head_collections:'icons/02-cash-register.png',head_schedule:'icons/08-my-schedule.png',birthdays:'icons/23-greetings.png'};
   if(files[name])return '<img src="'+files[name]+'" alt="">';
   return '';
 }
@@ -73,15 +73,19 @@ const HOME_TILE_META={
   supplies:{section:'preparations',size:'sm',title:'Препараты и расходники',sub:'Остатки и заявки',prepare:'Здесь будут остатки препаратов и заявки на расходники.'},
   supplies_all_requests:{section:'preparations',size:'sm',title:'Заявки филиалов',sub:'Все заявки на снабжение',prepare:'Здесь будут заявки филиалов на препараты и расходники.'},
   supply_order:{section:'preparations',size:'sm',title:'Заказ снабжения',sub:'Собрать и отметить заказ',prepare:'Здесь можно будет собрать и отметить заказ снабжения.'},
-  head_money:{section:'finance',size:'main',title:'Деньги',sub:'Выручка, касса и сейфы всех филиалов',view:'rev'},
-  head_reports:{section:'finance',size:'sm',title:'Отчёты',sub:'Контроль филиалов',view:'ctl'},
-  head_cash_safe:{section:'finance',size:'sm',title:'Касса и сейф',sub:'Инкассации и выемки',view:'safe'},
-  head_payroll:{section:'finance',size:'wide',title:'Зарплаты',sub:'Начисления и выплаты',view:'pay'},
-  people_roles:{section:'clinic',size:'wide',title:'Люди и доступы',sub:'Сотрудники, роли и доступы',view:'ppl'}
+  head_money:{section:'finance',size:'main',title:'Выручка',sub:'Выручка и врачи по дням',view:'rev'},
+  head_cash_safe:{section:'finance',size:'sm',title:'Сейф и наличные',sub:'Остаток, выемки, мои наличные',view:'safe'},
+  head_payroll:{section:'finance',size:'sm',title:'Зарплата',sub:'Начисления и выплаты',view:'ppl'},
+  head_reports:{section:'finance',size:'sm',title:'Отчёты филиалов',sub:'Что требует внимания',view:'ctl'},
+  head_collections:{section:'finance',size:'sm',title:'Касса и инкассации',sub:'Забрал с филиала — в пути',act:'transitpickup'},
+  head_schedule:{section:'clinic',size:'sm',title:'График',sub:'Смены и кто где',view:'sched'},
+  people_roles:{section:'clinic',size:'sm',title:'Люди и доступы',sub:'Сотрудники, PIN, доступы',act:'mupinopen'},
+  birthdays:{section:'clinic',size:'wide',title:'Поздравления',sub:'С днём рождения сотрудников',prepare:'Здесь будут поздравления сотрудников с днём рождения — от вашего имени, по-доброму.'}
 };
 function homeTileKeys(){
   const map=UI2.roleTiles||{},seen=new Set(),out=[];
-  personRoles().forEach(role=>(map[role]||[]).forEach(k=>{if(!seen.has(k)&&HOME_TILE_META[k]){seen.add(k);out.push(k)}}));
+  /* 2.0: у руководителя главная — только плитки руководителя (даже если он ещё и врач) */
+  (isHead()?['head']:personRoles()).forEach(role=>(map[role]||[]).forEach(k=>{if(!seen.has(k)&&HOME_TILE_META[k]){seen.add(k);out.push(k)}}));
   return out;
 }
 function homeTileHtml(k){
@@ -97,13 +101,14 @@ function showHomeBranches(){
   overlay('<h2>Выберите филиал</h2><p class="hint">Откроется сегодняшний отчёт. Утром сначала показывается приём кассы.</p>'+buttons+'<button class="btn sec small" data-act="ovclose">Отмена</button>');
 }
 function viewBranch(){
-  if(isHead()){loadDayStatus();if(S.mr==null&&S.cash==null&&S.lv==null)loadMr()}else loadHomeWho();
-  let h='<section class="ui2-home-screen"><div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div>'+(isHead()?headTodayHtml():homeTodayHtml())+homeSectionsHtml();
-  if(isHead())h+='<div class="glass"><h2>Деньги в моменте</h2><div class="chips"><button class="btn small" data-act="transitpickup">Забрал с филиала</button><button class="btn sec small" data-act="go" data-v="safe">Взял из сейфа</button></div></div>';
-  if(isHead())h+='<div class="mrbox">'+mrHtml()+'</div>'+dayStatusHtml()+headReportHtml();
+  if(isHead()){loadDayStatus();if(S.mr==null&&S.lv==null)loadMr();if(!S.revStatus||Date.now()-(S.revStatusAt||0)>60000)loadRevStatus()}else loadHomeWho();
+  let h='<section class="ui2-home-screen"><div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div>'+(isHead()?headDayLineHtml()+headTodayHtml():homeTodayHtml())+homeSectionsHtml();
+  if(isHead())h+='<div class="mrbox">'+mrHtml0()+lvHtml()+'</div>'; /* ждущие подтверждения инкассации и отпуска — только если есть */
   if(S.queue.length)h+='<div class="card quiet"><p class="hint">Не отправлено отчётов: '+S.queue.length+'. Нажмите «'+(S.online?'онлайн':'нет связи')+'» вверху.</p></div>';
   return h+'</section>';
 }
+/* строка дня на главной руководителя: 🟢 всё сходится / 🔴 требует внимания (бывший «Контроль») */
+function headDayLineHtml(){return revStatusHtml()}
 function headReportHtml(){
   return '<div class="card"><h2>Отчёт филиала</h2><label class="f"><span>Дата</span><input id="dt" type="date" value="'+esc(S.date)+'"></label>'+BRANCHES.filter(b=>!b.testOnly).map(b=>'<button class="ui2-branch branch-'+b.id+'" data-act="branch" data-id="'+b.id+'"><span>'+esc(b.title)+'</span><small>Открыть отчёт</small></button>').join('')+'</div>';
 }

@@ -23,6 +23,8 @@ window.EVROVET_UI2_CONFIG=Object.freeze({
     head_cash_safe:true,
     head_payroll:true,
     people_roles:true,
+    head_collections:true,
+    head_schedule:true,
     vaccines:false,
     vaccines_all_branches:false,
     vaccines_input:false,
@@ -34,7 +36,8 @@ window.EVROVET_UI2_CONFIG=Object.freeze({
     birthdays:false
   }),
   roleTiles:Object.freeze({
-    head:Object.freeze(['head_money','head_reports','head_cash_safe','head_payroll','supplies_all_requests','vaccines_all_branches','dose_calculator','people_roles']),
+    /* 2.0, решение Михаила 17.11: главная руководителя на плитках — Финансы / Препараты / Клиника */
+    head:Object.freeze(['head_money','head_cash_safe','head_payroll','head_reports','head_collections','evening_report','vaccines_all_branches','supplies','dose_calculator','head_schedule','people_roles','birthdays']),
     admin:Object.freeze(['evening_report','cash_acceptance','vaccines','supplies']),
     doctor:Object.freeze(['appointments','vaccines','dose_calculator','supplies']),
     assistant_clinical:Object.freeze(['my_accruals','where_i_work','vaccines','dose_calculator','supplies']),
@@ -65,6 +68,6 @@ window.EVROVET_UI2_CONFIG=Object.freeze({
   navByRole:Object.freeze({
     default:Object.freeze(['home','schedule','accruals','menu']),
     courier:Object.freeze(['home','accruals','menu']),
-    head:Object.freeze(['rev','schedule','safe','ppl','menu'])
+    head:Object.freeze(['home','schedule','accruals','menu'])
   })
 });

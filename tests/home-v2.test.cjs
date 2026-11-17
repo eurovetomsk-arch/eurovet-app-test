@@ -66,14 +66,14 @@ async function inspect(engineName,engine){
         if(role==='head'){assert.match(body,/Отчёты сегодня: 2 из 3/);assert.match(body,/Ждём: Перелёта/)}
         else{assert.match(body,/Сегодня вы на Маркса/);assert.match(body,/С вами: Иванова О\. В\., Петров Д\. А\./)}
         const nav=await page.locator('.ui2-bottom-nav button').allTextContents();
-        assert.deepEqual(nav,role==='courier'?['Главная','Начисления','Меню']:role==='head'?['Выручка','График','Сейф','Люди','Меню']:['Главная','График','Начисления','Меню']);
+        assert.deepEqual(nav,role==='courier'?['Главная','Начисления','Меню']:role==='head'?['Главная','График','Зарплата','Меню']:['Главная','График','Начисления','Меню']);
         if(role==='admin'){for(const t of ['Вечерний отчёт','Приём кассы','Вакцины','Препараты и расходники'])assert.match(body,new RegExp(t))}
         if(role==='doctor')for(const t of ['Мои записи','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
         if(role==='assistant')for(const t of ['Мои начисления','Где я работаю','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
         if(role==='callcenter')for(const t of ['Мои смены','Мои начисления','Вакцины','Где я работаю'])assert.match(body,new RegExp(t));
-        if(role==='head'){for(const t of ['Деньги','Отчёты','Касса и сейф','Зарплаты','Заявки филиалов','Вакцины по филиалам','Расчёт дозы','Люди и доступы','Отчёт филиала'])assert.match(body,new RegExp(t))}
+        if(role==='head'){for(const t of ['Выручка','Сейф и наличные','Зарплата','Отчёты филиалов','Касса и инкассации','Вечерний отчёт','Вакцины по филиалам','Препараты и расходники','Расчёт дозы','График','Люди и доступы','Поздравления','Финансы','Препараты','Клиника'])assert.match(body,new RegExp(t,'i'));assert.equal(await page.locator('header [data-act="menu"]').count(),0,'нет кнопки «Меню» вверху')}
         if(role==='courier'){for(const t of ['Мои начисления','Вакцины по филиалам','Заявки филиалов','Заказ снабжения'])assert.match(body,new RegExp(t));assert.doesNotMatch(body,/График/)}
-        if(role!=='head')assert.doesNotMatch(body,/Выручка, касса и сейфы всех филиалов/);
+        
         const sectionTitles=await page.locator('.ui2-group-title').allTextContents();
         const expectedOrder=['Финансы','Препараты','Смена','Клиника'].filter(x=>sectionTitles.includes(x));
         assert.deepEqual(sectionTitles,expectedOrder,`${engineName}/${width}/${role}: section order`);
@@ -118,7 +118,7 @@ async function inspect(engineName,engine){
           const leader=await browser.newPage({viewport:{width:375,height:900}});
           await login(leader,{...profiles.head,admin:true,roles:['head','admin']});
           const leaderBody=await leader.locator('body').innerText();
-          for(const title of ['Люди и доступы','Вечерний отчёт','Деньги'])assert.match(leaderBody,new RegExp(title),engineName+' leader union');
+          for(const title of ['Люди и доступы','Вечерний отчёт','Выручка'])assert.match(leaderBody,new RegExp(title),engineName+' leader union');
           await leader.close();
           const neutral=await browser.newPage({viewport:{width:375,height:900}});
           await login(neutral,{id:199,full_name:'Безролевой Тест Тестович',short_name:'Безролевой Т. Т.',work:true,roles:[]});

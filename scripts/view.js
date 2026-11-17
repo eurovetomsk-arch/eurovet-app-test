@@ -7,7 +7,7 @@ function setHeader(){
   h.className=S.view==='form'?'form-head':'';
   if(S.view==='help'&&!S.person){h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt=""><div><b>Мой ЕВРОВЕТ</b><small>Всё о вашей работе — в одном месте</small></div></div>'+netBadge();return}
   h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt=""><div><b>'+esc(S.person?(S.person.short_name||S.person.name):'')+'</b><small>'+esc(stageRole(S.person))+'</small></div></div><div class="hb">'+netBadge()+
-    (S.view==='form'?'<button class="pill" data-act="back">Филиал</button>':'')+(S.view==='cc'&&canReport()&&!isHead()?'<button class="pill" data-act="back">Отчёт</button>':'')+'<button class="pill" data-act="menu">Меню</button></div>';
+    (S.view==='form'?'<button class="pill" data-act="back">Филиал</button>':'')+(S.view==='cc'&&canReport()&&!isHead()?'<button class="pill" data-act="back">Отчёт</button>':'')+'</div>'; /* 2.0: «Меню» только внизу */
 }
 function netBadge(){
   const q=S.queue.length+S.handoverQueue.length;
@@ -134,7 +134,7 @@ function mrHtml0(){
     +(x.status==='confirmed'?'подтверждено '+money(Number(x.declared)):'заявлено '+money(Number(x.declared))+', фактически '+money(Number(x.actual)))+'</div></div>').join('');
   return h+'</div>';
 }
-function paintMr(){document.querySelectorAll('.mrbox').forEach(el=>{el.innerHTML=mrHtml()})}
+function paintMr(){document.querySelectorAll('.mrbox').forEach(el=>{el.innerHTML=S.view==='branch'?mrHtml0()+lvHtml():mrHtml()})} /* 2.0: на главной руководителя — только то, что ждёт подтверждения */
 async function loadMr(){
   if(!S.token||!isHead())return;
   try{const r=await rpc('ev_mr_list',{p_token:S.token},8000);if(r&&r.ok){S.mr=r.items||[];paintMr()}}catch(e){}
@@ -236,12 +236,12 @@ function bottomNavItems(){
   const keys=(UI2.navByRole||{})[isHead()?'head':isCourier()?'courier':'default']||['home','schedule','accruals','menu'];
   return keys.map(k=>({
     key:k,
-    label:{home:'Главная',schedule:'График',accruals:'Начисления',menu:'Меню',rev:'Выручка',safe:'Сейф',ppl:'Люди'}[k],
-    view:k==='home'?'branch':k==='schedule'?'sched':k==='accruals'?(isHead()?'pay':'work'):k==='rev'?'rev':k==='safe'?'safe':k==='ppl'?'ppl':'menu'
+    label:{home:'Главная',schedule:'График',accruals:isHead()?'Зарплата':'Начисления',menu:'Меню',rev:'Выручка',safe:'Сейф',ppl:'Люди'}[k],
+    view:k==='home'?'branch':k==='schedule'?'sched':k==='accruals'?(isHead()?'ppl':'work'):k==='rev'?'rev':k==='safe'?'safe':k==='ppl'?'ppl':'menu'
   }));
 }
 function navHtml(){
-  const cur=S.view==='branch'?'home':S.view==='sched'?'schedule':(S.view==='rev'||S.view==='ctl')&&isHead()?'rev':S.view==='pay'&&isHead()&&S.paySafe?'safe':S.view==='pay'&&isHead()?'ppl':(S.view==='work'||S.view==='pay'||S.view==='sal')?'accruals':'';
+  const cur=S.view==='branch'?'home':S.view==='sched'?'schedule':S.view==='pay'&&isHead()&&S.paySafe?'':(S.view==='work'||S.view==='pay'||S.view==='sal')?'accruals':'';
   return '<nav class="nv ui2-bottom-nav">'+bottomNavItems().map(n=>'<button '+(n.key==='menu'?'data-act="menu"':'data-act="go" data-v="'+n.view+'"')+' class="'+(cur===n.key?'on':'')+'"><i>'+NAV_ICON[n.key]+'</i>'+n.label+'</button>').join('')+'</nav>';
 }
 async function showControl(){
@@ -354,6 +354,11 @@ async function doAccept(ds,note){
 function overlay(html){S.ctlOpen=false;$('#ovwrap').innerHTML='<div class="ov" data-act="ovclose"><div class="card" data-stop="1">'+html+'</div></div>'}
 function closeOv(){S.ctlOpen=false;$('#ovwrap').innerHTML=''}
 function showMenu(){
+  if(isHead()){
+    /* 2.0, решение Михаила 17.11: меню руководителя — только редкое */
+    overlay('<h2>Меню</h2><button class="btn sec" style="margin:6px 0" data-act="muopen">Ручная загрузка (врачи, банк, графики)</button><button class="btn sec" style="margin:6px 0" data-act="mupinopen">Доступы и PIN</button><button class="btn sec" style="margin:14px 0 6px" data-act="logout">Выйти</button><button class="btn sec" style="margin:6px 0" data-act="ovclose">Закрыть</button>');
+    return;
+  }
   overlay('<h2>Меню</h2>'+(isHead()?'<button class="btn sec" style="margin:6px 0" data-act="go" data-v="branch">Модули клиники (вакцины, препараты, доступы)</button><button class="btn sec" style="margin:6px 0" data-act="go" data-v="ctl">Контроль: что требует внимания</button>'+'<button class="btn sec" style="margin:6px 0" data-act="workopen">Мои начисления</button><button class="btn sec" style="margin:6px 0" data-act="schedopen">График смен</button><button class="btn sec" style="margin:6px 0" data-act="cchead">Колл-центр: смены и оплата</button><button class="btn sec" style="margin:6px 0" data-act="muopen">Ручная загрузка (начисления, банк, PIN)</button><button class="btn sec" style="margin:6px 0" data-act="testbr">Тестовый филиал (для проверок)</button>':'')+(isCC()&&!isHead()&&S.view!=='cc'?'<button class="btn sec" style="margin:6px 0" data-act="ccopen">Колл-центр: мои смены</button>':'')+(canReport()&&S.view==='cc'&&!isHead()?'<button class="btn sec" style="margin:6px 0" data-act="back">Отчёт филиала</button>':'')+(canReport()?'<button class="btn sec" style="margin:6px 0" data-act="help">Как заполнять отчёт</button>':'')+(isCC()&&!isHead()?'<a class="btn sec" style="margin:6px 0" href="help/instruktsiya_callcenter.pdf" target="_blank" rel="noopener">Инструкция оператора (PDF)</a>':'')+'<button class="btn sec" style="margin:6px 0" data-act="chpin">Сменить PIN</button><button class="btn sec" style="margin:6px 0" data-act="logout">Выйти</button><button class="btn sec" style="margin:6px 0" data-act="ovclose">Закрыть</button><p class="hint">Версия '+CFG.appVer+'</p>');
 }
 function showQueue(){
@@ -450,6 +455,7 @@ document.addEventListener('click',async e=>{
     case'paytab':S.payTab=d.k;paint();break;
     case'paysel':{const m=S.paySel||(S.paySel={});m[d.id]=b.checked;paint();break}
     case'payxlsx':payXlsx();break;
+    case'mupinopen':showMU();setTimeout(()=>{const e=document.getElementById('mupinp');if(e)e.scrollIntoView({behavior:'smooth',block:'center'})},600);break;
     case'paystat':S.payStat=d.k;paint();break;
     case'pplpayout':S.pplMode=!S.pplMode;S.pplId=null;paint();window.scrollTo(0,0);break;
     case'pplsalk':S.salPre=d.id;S.salKind=d.k;salAddForm();break;
@@ -562,7 +568,7 @@ document.addEventListener('click',async e=>{
     case'drophq':{const it=S.handoverQueue.find(x=>x.uid===d.id);if(!it)break;if(!confirm('Убрать неотправленную приёмку кассы из очереди?'))break;S.handoverQueue=S.handoverQueue.filter(x=>x.uid!==d.id);saveHandoverQueue();showQueue();render();break}
     case'newrep':S.done=null;S.form=null;S.view='branch';S.date=omskToday();S.dateManual=false;if(!isHead()&&!S.queue.length&&!S.handoverQueue.length){logout();break}render();break; // 1.65: после сданного отчёта админ выходит сам
     case'menu':showMenu();break;
-    case'schappt':{const s=schEnsure();s.apptDay=d.d;if(APPT.status==='idle')loadAppointments();else paint();break}
+    case'schappt':{const s=schEnsure();s.apptDay=d.d;if(apptAllowed()&&apptInWindow(d.d)&&APPT.status==='idle')loadAppointments();else paint();break}
     case'schedopen':showSched();break;
     case'schtab':schEnsure().tab=d.t;paint();break;
     case'schday':schEnsure().day=d.d;paint();break;

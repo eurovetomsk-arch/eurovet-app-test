@@ -421,9 +421,10 @@ function safeBody(){
       /* 1.68: крупная цветная строка-вердикт: красная «не хватает», зелёная «хватает» */
       +'<div class="srow" style="margin-top:10px;padding:12px 14px;border-radius:12px;font-size:21px;font-weight:800;background:var(--'+(lack?'badbg':'okbg')+');color:var(--'+(lack?'bad':'ok')+')"><span>'+(lack?'Не хватает кэша':'Кэша хватает')+'</span><b>'+money(Math.abs(short))+'</b></div>'
       +'<p class="hint">'+(prov?'Предварительно: период не закрыт. ':'')+(bal<0?'Минус: взято больше, чем подтверждено инкассаций. ':'')+(N(c.pending)?'Не подтверждено вами: '+money(N(c.pending))+' (не входит). ':'')+'</p>';
-    if(S.myCash)h+='<div class="person"><h3>Мои наличные сегодня</h3><div class="srow"><span>Забрано с филиалов</span><b>'+money(N(S.myCash.collections))+'</b></div><div class="srow"><span>Взято из сейфа</span><b>'+money(N(S.myCash.safe_out))+'</b></div><div class="srow"><span>Выдано из кассы сотрудникам</span><b>−'+money(N(S.myCash.cash_payroll))+'</b></div><div class="srow big"><span>Должно быть на руках</span><b>'+money(N(S.myCash.on_hand))+'</b></div><button class="btn sec small" data-act="transitpickup">Забрал с филиала</button></div>';
+    if(S.myCash)h+='<div class="person"><h3>Мои наличные сегодня</h3><div class="srow"><span>Забрано с филиалов</span><b>'+money(N(S.myCash.collections))+'</b></div><div class="srow"><span>Взято из сейфа</span><b>'+money(N(S.myCash.safe_out))+'</b></div><div class="srow"><span>Выдано из кассы сотрудникам</span><b>−'+money(N(S.myCash.cash_payroll))+'</b></div><div class="srow big"><span>Должно быть на руках</span><b>'+money(N(S.myCash.on_hand))+'</b></div></div>';
     S.safeUid=S.safeUid||uid();
-    h+='<h3>Взял из сейфа</h3><label class="f"><span>Сумма, ₽</span><input id="soa" inputmode="decimal"></label>'
+    h+='<h3>Деньги в моменте</h3><div class="chips" style="margin-bottom:8px"><button class="btn" data-act="transitpickup">Забрал с филиала</button></div><p class="hint" style="margin:0 0 10px">Филиал и сумма — запись сразу «в пути». Когда администратор сдаст вечерний отчёт, суммы сверятся.</p>'
+    +'<h3>Взял из сейфа</h3><label class="f"><span>Сумма, ₽</span><input id="soa" inputmode="decimal"></label>'
       +'<label class="f"><span>Дата</span><input id="sod" type="date" min="2026-10-16" value="'+esc(omskToday())+'"></label>'
       +'<label class="f"><span>Назначение</span><select id="sop"><option value="salary">Зарплата</option><option value="other">Другое</option></select></label>'
       +'<label class="f"><span>Комментарий</span><input id="son" maxlength="300" placeholder="например, выплата админам"></label>'
@@ -975,7 +976,7 @@ async function loadRevStatus(){
     if(r&&r.ok){S.ctl=r.flags||[];S.ctlCoverage=r.coverage||[];const cv=S.ctlCoverage;
       S.revStatus={open:(S.ctl||[]).filter(f=>!f.accepted&&f.code!=='vm_not_checked').length,incomplete:cv.filter(x=>!['complete','pending','missing'].includes(x.status)).length}}
     else S.revStatus={err:true}}catch(e){S.revStatus={err:true}}
-  if(S.view==='rev')paint();
+  S.revStatusAt=Date.now();if(S.view==='rev'||S.view==='branch')paint();
 }
 function revStatusHtml(){
   const s=S.revStatus;if(!isHead())return '';

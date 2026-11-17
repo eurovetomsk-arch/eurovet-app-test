@@ -491,3 +491,27 @@ body.ui2 .ui2-prepare .ic img,body.ui2 .ui2-prepare .ic svg{width:76px;height:76
 body.ui2 .ui2-prepare h2{color:#fff}
 body.ui2 .ui2-prepare p{margin:10px 0 22px;color:rgba(234,246,248,.78)}
 @media(max-height:700px){body.ui2 .ui2-login-shell{padding-top:24px}.ui2-halo{width:136px!important;height:136px!important}.ui2-halo .evro-mark{width:88px!important;height:88px!important}.ui2-login-entry{min-height:126px!important}.ui2-pad button{height:50px!important}}
+
+/* ===== 2.0 · Safari iPhone: нижняя панель не прыгает (замечание Михаила 17.11) =====
+   Причины прыжков на iOS: background-attachment:fixed у body; fixed-панель с transform:translateX(-50%) + backdrop-filter;
+   высота 100dvh, меняющаяся при сворачивании адресной строки. Исправление: фон — отдельный фиксированный слой;
+   панель центрируется полями, без сдвига transform; высота страницы по большому окну (100lvh), без dvh; нет «резинки» у края. */
+html{overscroll-behavior-y:none;background:var(--ev-frame-bottom)}
+body.ui2{background:transparent!important;background-attachment:scroll!important;min-height:100vh;min-height:100lvh;overscroll-behavior-y:none}
+body.ui2::before{content:"";position:fixed;left:0;right:0;top:0;bottom:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(420px 280px at 92% -4%,rgba(74,160,180,.24),transparent 72%),
+    radial-gradient(380px 300px at 0% 105%,rgba(42,125,144,.28),transparent 72%),
+    linear-gradient(165deg,var(--ev-frame-top),#114A58 48%,var(--ev-frame-bottom));
+  -webkit-transform:translateZ(0);transform:translateZ(0)}
+body.ui2 .bar,body.ui2 .nv{left:0;right:0;margin-left:auto;margin-right:auto;width:min(100%,480px);transform:translateZ(0);-webkit-transform:translateZ(0);
+  padding-bottom:calc(env(safe-area-inset-bottom) + 0px);will-change:transform}
+body.ui2 .nv{bottom:0;-webkit-tap-highlight-color:transparent}
+@supports (padding:max(0px)){body.ui2{padding-bottom:calc(120px + max(env(safe-area-inset-bottom),0px))}}
+
+body.ui2 button.ui2-today{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+
+/* длинные суммы не вылезают за карточку */
+body.ui2 .srow{gap:10px}
+body.ui2 .srow>span{min-width:0;flex:1 1 auto}
+body.ui2 .srow>b{flex:none;white-space:nowrap}
