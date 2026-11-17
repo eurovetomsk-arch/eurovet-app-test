@@ -94,12 +94,12 @@ function homeIcon(name){
   return '';
 }
 const HOME_TILE_META={
-  evening_report:{section:'finance',size:'main',title:'Вечерний отчёт',sub:'Закройте день — это пара минут',act:'homebranches'},
+  evening_report:{section:'finance',size:'wide',title:'Вечерний отчёт',sub:'Закройте день — это пара минут',act:'homebranches'},
   cash_acceptance:{section:'finance',size:'wide',title:'Приём кассы',sub:'Утром: пересчитать и подтвердить',act:'homebranches'},
   appointments:{section:'clinic',size:'main',title:'Мои записи',sub:'Ближайшие приёмы и пациенты',view:'sched'},
-  callcenter_shift:{section:'finance',size:'wide',title:'Мои выходы',sub:'Отметки по дням и итог',view:'cc'},
-  my_schedule:{section:'work',size:'sm',title:'Мой график',sub:'Когда мне выходить',view:'sched'},
-  my_accruals:{section:'finance',size:'main',title:'Мои начисления',sub:'Начислено за текущий период',view:'work'},
+  callcenter_shift:{section:'clinic',size:'wide',title:'Мои выходы',sub:'Отметки по дням и итог',view:'cc'},
+  my_schedule:{section:'clinic',size:'sm',title:'График',sub:'Мои смены и кто где',view:'sched'},
+  my_accruals:{section:'clinic',size:'sm',title:'Мои начисления',sub:'Начислено за период',view:'work'},
   where_i_work:{section:'work',size:'wide',title:'Где я работаю',sub:'Мои смены и кто где сегодня',view:'sched'},
   vaccines:{section:'preparations',size:'sm',title:'Вакцины',sub:'Остатки и движение',prepare:'Здесь будут остатки вакцин и их движение по филиалам.'},
   vaccines_all_branches:{section:'preparations',size:'sm',title:'Вакцины по филиалам',sub:'Остатки во всех клиниках',prepare:'Здесь будут остатки вакцин по всем филиалам.'},
@@ -126,9 +126,12 @@ function homeTileHtml(k){
   const m=HOME_TILE_META[k],built=(UI2.moduleBuilt||{})[k]===true,attrs=built?(m.act?' data-act="'+m.act+'"':' data-act="go" data-v="'+m.view+'"'):' data-act="prepare" data-k="'+k+'"';
   return '<button class="glass ui2-role-tile '+m.size+'"'+attrs+'><span class="ic">'+homeIcon(k)+'</span><span><span class="t">'+esc(m.title)+'</span><span class="sub">'+esc(m.sub)+'</span></span></button>';
 }
+/* свод §17: у не-руководителей разделы — Работа → Препараты → Клиника; у руководителя — Финансы → Препараты → Клиника (§15/«главная на плитках») */
+const HOME_NH_SECTION={cash_acceptance:'work',evening_report:'work',appointments:'work',where_i_work:'clinic'};
+function homeTileSection(k){return isHead()?HOME_TILE_META[k].section:(HOME_NH_SECTION[k]||HOME_TILE_META[k].section)}
 function homeSectionsHtml(){
-  const names={finance:'Финансы',work:'Смена',preparations:'Препараты',clinic:'Клиника'},keys=homeTileKeys();
-  return ['finance','preparations','work','clinic'].map(sec=>{const a=keys.filter(k=>HOME_TILE_META[k].section===sec);return a.length?'<div class="ui2-group-title">'+names[sec]+'</div><div class="ui2-role-tiles'+(a.length===1?' single':'')+'">'+a.map(homeTileHtml).join('')+'</div>':''}).join('');
+  const names={finance:'Финансы',work:'Работа',preparations:'Препараты',clinic:'Клиника'},keys=homeTileKeys();
+  return (isHead()?['finance','preparations','clinic']:['work','preparations','clinic','finance']).map(sec=>{const a=keys.filter(k=>homeTileSection(k)===sec);return a.length?'<div class="ui2-group-title">'+names[sec]+'</div><div class="ui2-role-tiles'+(a.length===1?' single':'')+'">'+a.map(homeTileHtml).join('')+'</div>':''}).join('');
 }
 function showHomeBranches(){
   const buttons=BRANCHES.filter(b=>!b.testOnly).map(b=>'<button class="ui2-branch branch-'+b.id+'" data-act="branch" data-id="'+b.id+'"'+(S.busy?' disabled':'')+'><span>'+esc(b.title)+'</span><small>Открыть отчёт и приём кассы</small></button>').join('');

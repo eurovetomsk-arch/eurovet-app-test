@@ -39,13 +39,14 @@ window.EVROVET_UI2_CONFIG=Object.freeze({
   roleTiles:Object.freeze({
     /* 2.0, решение Михаила 17.11: главная руководителя на плитках — Финансы / Препараты / Клиника */
     head:Object.freeze(['head_money','head_cash_safe','head_payroll','head_reports','head_collections','evening_report','vaccines_all_branches','supplies','dose_calculator','head_schedule','people_roles','birthdays']),
-    /* 2.0, п.16: «Препараты и расходники» — первая и крупная в разделе «Препараты» у ассистента и администратора; у врача первой «Расчёт дозы» */
-    admin:Object.freeze(['evening_report','cash_acceptance','supplies','vaccines']),
-    doctor:Object.freeze(['appointments','dose_calculator','vaccines','supplies']),
-    assistant_clinical:Object.freeze(['my_accruals','where_i_work','supplies','vaccines','dose_calculator']),
-    assistant_tech:Object.freeze(['my_accruals','where_i_work','supplies','vaccines','dose_calculator']),
+    /* 2.0, свод §17 (слово Михаила 17.11): у всех, кроме руководителя, главная сверху вниз — РАБОТА → ПРЕПАРАТЫ → КЛИНИКА (График, затем Мои начисления).
+       Раздел плитки определяется функцией homeTileSection (home.js); порядок плиток внутри раздела = порядок в этом списке. */
+    admin:Object.freeze(['cash_acceptance','evening_report','vaccines','supplies','my_schedule','my_accruals']),
+    doctor:Object.freeze(['appointments','vaccines','dose_calculator','supplies','my_schedule','my_accruals']),
+    assistant_clinical:Object.freeze(['vaccines','dose_calculator','supplies','my_schedule','my_accruals']),
+    assistant_tech:Object.freeze(['vaccines','dose_calculator','supplies','my_schedule','my_accruals']),
     /* 2.0, п.15: график (плановые дни) и отметка выхода — разные вещи; отметка — большая кнопка на главной */
-    callcenter:Object.freeze(['my_accruals','callcenter_shift','my_schedule','vaccines']),
+    callcenter:Object.freeze(['vaccines','my_schedule','my_accruals','callcenter_shift']),
     courier:Object.freeze(['my_accruals','vaccines_all_branches','supplies_all_requests','supply_order'])
   }),
   slogans:Object.freeze([

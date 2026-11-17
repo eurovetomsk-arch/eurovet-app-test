@@ -555,3 +555,5 @@ body.ui2 .ui2-markdone{display:grid;grid-template-columns:44px minmax(0,1fr) aut
 body.ui2 .ui2-markdone .pin{display:grid;place-items:center;width:40px;height:40px;border-radius:14px;background:rgba(120,230,180,.28);font-size:20px}
 body.ui2 .ui2-markdone small{color:rgba(234,246,248,.75)}
 body.ui2 .ui2-markbtn{text-align:center;display:flex;align-items:center;justify-content:center}
+/* одинокая маленькая плитка в нечётном ряду — на всю ширину, как «широкая» */
+body.ui2 .ui2-role-tiles>.ui2-role-tile.sm:last-child:nth-child(odd){grid-column:1/-1;min-height:108px;display:grid;grid-template-columns:58px minmax(0,1fr);align-items:center;justify-content:start}

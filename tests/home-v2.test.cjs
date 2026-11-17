@@ -64,21 +64,24 @@ async function inspect(engineName,engine){
         assert.ok(overflow<=1,`${engineName}/${width}/${role}: horizontal overflow ${overflow}`);
         assert.equal(errors.length,0,`${engineName}/${width}/${role}: ${errors.join('; ')}`);
         if(role==='head'){assert.match(body,/Отчёты сегодня: 2 из 3/);assert.match(body,/Ещё идёт день|Ждём: Перелёта/);assert.equal(await page.locator('[data-act="repstatus"]').count(),1,'строка отчётов кликабельна')}
-        else if(role==='callcenter'){assert.match(body,/По графику сегодня: вы в колл-центре/);assert.match(body,/Отметить: я сегодня работаю/);assert.match(body,/Мой график/)}
+        else if(role==='callcenter'){assert.match(body,/По графику сегодня: вы в колл-центре/);assert.match(body,/Отметить: я сегодня работаю/);assert.match(body,/График/)}
         else{assert.match(body,/Сегодня вы на Маркса/);assert.match(body,/С вами: Иванова О\. В\., Петров Д\. А\./)}
         const nav=await page.locator('.ui2-bottom-nav button').allTextContents();
         assert.deepEqual(nav,role==='courier'?['Главная','Начисления','Меню']:role==='head'?['Главная','График','Зарплата','Меню']:['Главная','График','Начисления','Меню']);
         if(role==='admin'){for(const t of ['Вечерний отчёт','Приём кассы','Вакцины','Препараты и расходники'])assert.match(body,new RegExp(t))}
         if(role==='doctor')for(const t of ['Мои записи','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
-        if(role==='assistant')for(const t of ['Мои начисления','Где я работаю','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
-        if(role==='callcenter')for(const t of ['Мои выходы','Мои начисления','Вакцины','Мой график'])assert.match(body,new RegExp(t));
-        if(role==='assistant'||role==='admin'){const tiles=await page.locator('.ui2-role-tile .t').allTextContents();assert.ok(tiles.indexOf('Препараты и расходники')<tiles.indexOf('Вакцины'),'п.16: Препараты и расходники раньше Вакцин')}
+        if(role==='assistant')for(const t of ['Мои начисления','График','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
+        if(role==='callcenter')for(const t of ['Мои выходы','Мои начисления','Вакцины','График'])assert.match(body,new RegExp(t));
+        {const tiles=await page.locator('.ui2-role-tile .t').allTextContents(),ix=t=>tiles.indexOf(t);
+          if(role==='admin')assert.ok(ix('Приём кассы')<ix('Вечерний отчёт')&&ix('Вечерний отчёт')<ix('Вакцины')&&ix('Вакцины')<ix('Препараты и расходники')&&ix('Препараты и расходники')<ix('График')&&ix('График')<ix('Мои начисления'),'§17 админ: '+tiles.join('|'));
+          if(role==='doctor'||role==='assistant')assert.ok(ix('Вакцины')<ix('Расчёт дозы')&&ix('Расчёт дозы')<ix('Препараты и расходники')&&ix('Препараты и расходники')<ix('График')&&ix('График')<ix('Мои начисления'),'§17 врач/ассистент: '+tiles.join('|'));
+          if(role==='callcenter')assert.ok(ix('Вакцины')<ix('График')&&ix('График')<ix('Мои начисления'),'§17 колл-центр: '+tiles.join('|'))}
         assert.equal(await page.locator('.av').evaluateAll(a=>a.filter(e=>getComputedStyle(e).display!=='none').length),0,'нет кружков с инициалами');
         if(role==='head'){for(const t of ['Выручка','Сейф и наличные','Зарплата','Отчёты филиалов','Касса и инкассации','Вечерний отчёт','Вакцины по филиалам','Препараты и расходники','Расчёт дозы','График','Люди и доступы','Поздравления','Финансы','Препараты','Клиника'])assert.match(body,new RegExp(t,'i'));assert.equal(await page.locator('header [data-act="menu"]').count(),0,'нет кнопки «Меню» вверху')}
         if(role==='courier'){for(const t of ['Мои начисления','Вакцины по филиалам','Заявки филиалов','Заказ снабжения'])assert.match(body,new RegExp(t));assert.doesNotMatch(body,/График/)}
         
         const sectionTitles=await page.locator('.ui2-group-title').allTextContents();
-        const expectedOrder=['Финансы','Препараты','Смена','Клиника'].filter(x=>sectionTitles.includes(x));
+        const expectedOrder=role==='head'?['Финансы','Препараты','Клиника']:['Работа','Препараты','Клиника','Финансы'].filter(x=>sectionTitles.includes(x));
         assert.deepEqual(sectionTitles,expectedOrder,`${engineName}/${width}/${role}: section order`);
         if(['doctor','assistant','head'].includes(role))assert.equal(await page.locator('.ui2-role-tile img[src="icons/20-dose-calc.png"]').count(),1,`${engineName}/${width}/${role}: dose icon`);
         if(role==='assistant'){
