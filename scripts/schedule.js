@@ -87,29 +87,46 @@ function schMy(s,rows){
   const up=mine.filter(r=>r.date>=today).sort((a,b)=>a.date<b.date?-1:1);
   if(up.length)h+='<section class="card"><div class="chead"><h2>Ближайшие смены</h2></div>'+up.map(r=>{const k=schBk(r),dw=SCH_DW[schDow(r.date)];return '<div class="srow schedule"><span class="sbar" style="background:'+schBranchColor(k)+'"></span><span class="t"><b>'+(r.date===today?'Сегодня, ':'')+dw+', '+ruDate(r.date)+'</b><small>'+esc(SCH_B[k][0])+'</small></span>'+schPill(r)+'</div>'}).join('')+'</section>';
   return h+schCcToday(rows)}
+/* 2.0 · «Кто где» (замечание Михаила 17.11, п.11): день сверху (Сегодня / Завтра / Выбрать день), карточка на филиал с цветом филиала,
+   внутри Врачи / Ассистенты / Администраторы; строка: круглый аватар 40 px цвета роли, «Фамилия И.О.» в одну строку, роль мелко. */
+const schNbsp=' ';
+const schNameOne=v=>{const a=String(v||'').trim().split(/\s+/).filter(Boolean);if(a.length<2)return String(v||'');const ini=a.slice(1).map(x=>(x.replace(/[^А-ЯЁA-Z]/gi,'')[0]||'').toUpperCase()).filter(Boolean).slice(0,2);return a[0]+(ini.length?schNbsp+ini.map(x=>x+'.').join(''):'')};
+const SCH_GRP=[['doctor','Врачи'],['assistant','Ассистенты'],['admin','Администраторы'],['callcenter','Сотрудники колл-центра']];
 function schAll(s,rows){
-  const today=omskToday(),f=s.flt;const vis=rows.filter(r=>!f||schBk(r)===f);
-  const by={};vis.forEach(r=>{(by[r.date]=by[r.date]||[]).push(r)});
-  const mineD={};rows.forEach(r=>{if(r.mine)mineD[r.date]=1});
-  let h='<div class="fchips">'+[['','Все'],['marksa','Маркса'],['70let','70 лет'],['pereleta','Перелёта'],['cc','Колл-центр']].map(x=>'<button class="pchip'+(f===x[0]?' on':'')+'" data-act="schflt" data-f="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>';
-  h+='<section class="card"><div class="chead"><h2>Кто где</h2><span class="tag">'+esc(SCH_MN[Number(s.m.slice(5))-1])+'</span></div><div class="leg" style="margin-bottom:12px">'+SCH_BO.map(k=>'<span><i style="background:'+schBranchColor(k)+'"></i>'+esc(SCH_B[k][1])+'</span>').join('')+'<span style="color:var(--ev-warn)">★ ваша смена</span></div>';
-  h+=schCal(s.m,(dt,d,t)=>{const l=by[dt]||[];const c={};l.forEach(r=>{const k=schBk(r);c[k]=(c[k]||0)+1});
-    const dots=SCH_BO.filter(k=>c[k]&&(k!=='cc'||f==='cc')).map(k=>'<i style="background:'+schBranchColor(k)+'"></i>').join('');
-    return '<button class="d'+(dt===t?' today':'')+(dt===s.day?' sel':'')+'" data-act="schday" data-d="'+dt+'" aria-label="'+ruDate(dt)+'">'+d+(mineD[dt]?'<span class="star">★</span>':'')+'<span class="dots">'+dots+'</span></button>'});
-  h+='<p class="hint" style="margin:12px 0 0">Точка — на филиале есть смена. Нажмите на день, чтобы увидеть, кто работает.</p></section>';
+  const today=omskToday(),tomorrow=addDays(today,1),f=s.flt;
+  let h='<div class="dayseg" role="group" aria-label="День">'
+    +[[today,'Сегодня'],[tomorrow,'Завтра']].map(x=>'<button class="'+(s.day===x[0]?'on':'')+'" data-act="schday" data-d="'+x[0]+'">'+x[1]+'</button>').join('')
+    +'<button class="'+(s.day!==today&&s.day!==tomorrow?'on':'')+'" data-act="schcal">Выбрать день '+(s.calOpen?'▴':'▾')+'</button></div>';
+  if(s.calOpen){
+    const vis=rows.filter(r=>!f||schBk(r)===f),by={};vis.forEach(r=>{(by[r.date]=by[r.date]||[]).push(r)});
+    h+='<section class="card"><div class="chead"><h2>'+esc(SCH_MN[Number(s.m.slice(5))-1])+'</h2></div>'
+      +schCal(s.m,(dt,d,t)=>{const l=by[dt]||[];const c={};l.forEach(r=>{const k=schBk(r);c[k]=(c[k]||0)+1});
+        const dots=SCH_BO.filter(k=>c[k]&&(k!=='cc'||f==='cc')).map(k=>'<i style="background:'+schBranchColor(k)+'"></i>').join('');
+        return '<button class="d'+(dt===t?' today':'')+(dt===s.day?' sel':'')+'" data-act="schday" data-d="'+dt+'" aria-label="'+ruDate(dt)+'">'+d+'<span class="dots">'+dots+'</span></button>'})+'</section>';
+  }
+  h+='<div class="fchips">'+[['','Все'],['marksa','Маркса'],['70let','70 лет'],['pereleta','Перелёта'],['cc','Колл-центр']].map(x=>'<button class="pchip'+(f===x[0]?' on':'')+'" data-act="schflt" data-f="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>';
   s.pp=[];
-  const dl=rows.filter(r=>r.date===s.day);
-  if(s.day.slice(0,7)===s.m){
-    const dw=SCH_DW[schDow(s.day)];
-    h+='<section class="card"><div class="chead"><h2>'+ruDate(s.day)+', '+dw+(s.day===today?'<small>сегодня</small>':'')+'</h2></div>';
-    SCH_BO.filter(k=>!f||k===f).forEach(k=>{
-      const rr=dl.filter(r=>schBk(r)===k).sort((a,b)=>(SCH_RO[a.slot]-SCH_RO[b.slot])||(a.name<b.name?-1:1));
-      if(k==='cc'&&!rr.length)return;
-      h+='<div class="grp"><i style="background:'+schBranchColor(k)+'"></i>'+esc(SCH_B[k][0])+'</div>';
-      if(k==='70let'&&dl.length&&!rr.some(r=>r.slot==='doctor'))h+='<div class="empty">Врача сегодня нет</div>';
-      if(!rr.length&&k!=='70let')h+='<div class="empty">Никого в графике</div>';
-      h+=rr.map(r=>'<div class="srow schedule'+(r.mine?' me':'')+'"'+(r.full?' data-act="schp" data-i="'+(s.pp.push(r)-1)+'"':'')+'><span class="av" style="background:'+schRoleColor(r.slot)+'">'+esc(schInitials(r.full||r.name))+'</span><span class="t"><b>'+esc(schShort(r.full||r.name))+'</b><small>'+esc(schRole(r))+(r.mine?' · это вы':'')+'</small></span>'+(r.full?'<span class="chev">›</span>':'')+'</div>').join('')});
-    h+='</section>'}
+  const dayRows=(s.data[s.day.slice(0,7)]||(s.demo?schDemo(s.day.slice(0,7)):null));
+  const dl=(dayRows||[]).filter(r=>r.date===s.day);
+  const dw=SCH_DW[schDow(s.day)];
+  const DWL=['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'],MG=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],dp=s.day.split('-').map(Number);
+  h+='<div class="dayhead"><h2>'+DWL[schDow(s.day)]+', '+dp[2]+' '+MG[dp[1]-1]+'</h2>'+(s.day===today?'<span class="tag">сегодня</span>':s.day===tomorrow?'<span class="tag">завтра</span>':'')+'</div>';
+  if(!dayRows)return h+'<section class="card"><p class="hint">Загружаем график этого месяца…</p></section>';
+  SCH_BO.filter(k=>!f||k===f).forEach(k=>{
+    const rr=dl.filter(r=>schBk(r)===k);
+    if(k==='cc'&&!rr.length)return;
+    const col=schBranchColor(k);
+    h+='<section class="card whocard" style="border-top:5px solid '+col+'"><div class="whohead"><i style="background:'+col+'"></i><h3>'+esc(SCH_B[k][0])+'</h3></div>';
+    if(!rr.length)h+='<div class="empty">В этот день в графике никого нет</div>';
+    SCH_GRP.forEach(g=>{
+      const gr=rr.filter(r=>r.slot===g[0]).sort((a,b)=>(a.name<b.name?-1:1));
+      if(k==='cc'&&g[0]!=='callcenter')return;if(k!=='cc'&&g[0]==='callcenter')return;
+      if(!gr.length){if(g[0]==='doctor'&&k!=='cc'&&rr.length)h+='<div class="whogrp">'+g[1]+'</div><div class="empty calm">'+(k==='70let'||true?'Врача сегодня нет':'')+'</div>';return}
+      h+='<div class="whogrp">'+g[1]+'</div>'+gr.map(r=>'<'+(r.full?'button':'div')+' class="whorow'+(r.mine?' me':'')+'"'+(r.full?' data-act="schp" data-i="'+(s.pp.push(r)-1)+'"':'')+'><span class="av" style="background:'+schRoleColor(r.slot)+'">'+esc(schInitials(r.full||r.name))+'</span><span class="wn"><b>'+esc(schNameOne(r.full||r.name))+'</b><small>'+esc(schRole(r))+(r.mine?' · это вы':'')+'</small></span></'+(r.full?'button':'div')+'>').join('');
+    });
+    h+='</section>';
+  });
+  if(!dl.length)h+='<section class="card"><p class="hint">На этот день график не опубликован или в нём никого нет.</p></section>';
   return h}
 function schedHtml(){
   const s=schEnsure(),rows=schRows(s.m);

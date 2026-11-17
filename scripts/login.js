@@ -2,7 +2,7 @@
 /* ====== Вход / контекст ====== */
 async function loadLoginList(){}
 async function doLogin(pin){
-  const number=S.loginNumber||'';const shared=!!S.loginShared;
+  const number=S.loginNumber||'';const shared=false; /* 2.0: галочки «общее устройство» нет — автовыход у всех, кроме руководителя */
   if(!/^\d{3}$/.test(number)){toast('Личный номер — 3 цифры');return}
   if(!/^\d{6}$/.test(pin)){toast('PIN — 6 цифр');return}
   S.busy=true;render();
@@ -179,7 +179,7 @@ function loginSlogan(d=new Date()){
 function loginBoxes(){
   if(S.loginStep==='number')return '<div class="ui2-field-label">Личный номер — 3 цифры</div><div class="ui2-digits" aria-label="Введено цифр: '+S.loginNumber.length+'">'+[0,1,2].map(i=>'<span class="'+(i===S.loginNumber.length?'cur':'')+'">'+esc(S.loginNumber[i]||'')+'</span>').join('')+'</div>';
   return '<div class="ui2-field-label">PIN — 6 цифр</div><div class="ui2-dots" aria-label="Введено цифр PIN: '+S.loginPin.length+'">'+[0,1,2,3,4,5].map(i=>'<i class="'+(i<S.loginPin.length?'on':'')+'"></i>').join('')+'</div><div class="ui2-numrow">номер <b>'+esc(S.loginNumber)+'</b> <button data-act="loginchange">изменить</button></div>'
-    +'<label class="ui2-shared"><input id="shared-device" type="checkbox"'+(S.loginShared?' checked':'')+'><span>Это общее устройство<br><small>Автоматический выход через 15 минут бездействия.</small></span></label>';
+    +'<div class="ui2-field-label" style="margin-top:10px;opacity:.7;font-weight:600">Автоматический выход через 30 минут без действий (кроме руководителя).</div>';
 }
 function loginPad(){return '<div class="ui2-pad">'+['1','2','3','4','5','6','7','8','9'].map(n=>'<button data-act="logindigit" data-n="'+n+'">'+n+'</button>').join('')+'<button class="blank" tabindex="-1" aria-hidden="true"></button><button data-act="logindigit" data-n="0">0</button><button class="del" data-act="logindel" aria-label="Стереть">⌫</button></div>'}
 function viewLogin(){

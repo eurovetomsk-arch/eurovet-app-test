@@ -51,9 +51,23 @@ function headTodayHtml(){
   const d=S.day;
   if(!d||d.date!==omskToday())return '<div class="glass ui2-today"><span class="pin">⌛</span><div>Загружаю статус отчётов…</div></div>';
   const list=Array.isArray(d.list)?d.list:[],done=list.filter(x=>x.submitted).length,waiting=list.filter(x=>!x.submitted).map(x=>brTitle(x.branch));
-  /* 2.0, ловушка 8 (свод §14): к 22:00 не сдан — красным руководителю (напоминание в Telegram — расписание Штаба/Mac) */
-  const hm=new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Omsk',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date()),late=hm>='22:00'&&waiting.length;
-  return '<div class="glass ui2-today'+(late?' bad':'')+'"><span class="pin">'+(late?'!':'✓')+'</span><div><b>Отчёты сегодня: '+done+' из '+list.length+'.</b>'+(waiting.length?'<br>'+(late?'Не сдан к 22:00: ':'Ждём: ')+waiting.map(esc).join(', '):'<br>Все филиалы сдали отчёты')+'</div></div>';
+  /* 2.0, п.10: строка кликабельна → три филиала со статусом → нажал на филиал → отчёт. До 20:00 «0 из 3» не тревожит. */
+  const hm=new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Omsk',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date()),late=hm>='22:00'&&waiting.length,early=hm<'20:00'&&waiting.length;
+  const txt=early?'<b>Отчёты сегодня: '+done+' из '+list.length+'</b><br>Ещё идёт день — отчёты сдают вечером':'<b>Отчёты сегодня: '+done+' из '+list.length+'.</b><br>'+(waiting.length?(late?'Не сдан к 22:00: ':'Ждём: ')+waiting.map(esc).join(', '):'Все филиалы сдали отчёты');
+  return '<button class="glass ui2-today'+(late?' bad':'')+'" data-act="repstatus"><span class="pin">'+(late?'!':early?'☀':'✓')+'</span><div>'+txt+' ›</div></button>';
+}
+function repStatusOverlay(){
+  const d=S.day,today=omskToday();if(!d||d.date!==today){toast('Статус отчётов ещё загружается');return}
+  const flags=(S.ctl||[]).filter(f=>String(f.date||'')===today&&!f.accepted&&f.code!=='vm_not_checked');
+  const tm=t=>{try{return new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Omsk',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t))}catch(e){return ''}};
+  const rows=(d.list||[]).map(x=>{
+    const bf=flags.filter(f=>String(f.branch||'')===String(x.branch)),n=Math.max(Number(x.open_flags||0),bf.length);
+    let st,cls;
+    if(!x.submitted){st='не сдан';cls='wait'}
+    else if(n){st='сдан в '+tm(x.submitted_at)+' — есть замечания: '+n+(bf.length?'<br><small>'+bf.slice(0,3).map(f=>esc(f.title||f.code)).join('; ')+(bf.length>3?'…':'')+'</small>':'');cls='bad'}
+    else{st='сдан в '+tm(x.submitted_at)+' — всё сходится';cls='ok'}
+    return '<button class="chk '+cls+' repbr" style="width:100%;text-align:left;font:inherit;margin:6px 0" data-act="branch" data-id="'+esc(x.branch)+'"><i>'+(cls==='ok'?'✓':cls==='bad'?'!':'…')+'</i><div><b>'+esc(brTitle(x.branch))+'</b><br>'+st+'</div></button>'}).join('');
+  overlay('<h2>Отчёты сегодня</h2><p class="hint">Нажмите на филиал — откроется его отчёт.</p>'+rows+'<button class="btn sec" style="margin-top:10px" data-act="ovclose">Закрыть</button>');
 }
 function homeIcon(name){
   const files={evening_report:'icons/01-evening-report.png',cash_acceptance:'icons/03-cash-acceptance.png',appointments:'icons/10-my-appointments.png',callcenter_shift:'icons/08-my-schedule.png',where_i_work:'icons/07-who-is-where.png',my_accruals:'icons/09-my-accruals.png',vaccines:'icons/05-vaccines.png',vaccines_all_branches:'icons/05-vaccines.png',dose_calculator:'icons/20-dose-calc.png',supplies:'icons/21-order.png',supplies_all_requests:'icons/06-drug-request.png',supply_order:'icons/21-order.png',head_money:'icons/14-revenue-director-only.png',head_reports:'icons/04-audit.png',head_cash_safe:'icons/19-safe.png',head_payroll:'icons/09-my-accruals.png',people_roles:'icons/15-access-permissions.png',head_collections:'icons/02-cash-register.png',head_schedule:'icons/08-my-schedule.png',birthdays:'icons/23-greetings.png'};

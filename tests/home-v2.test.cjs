@@ -63,7 +63,7 @@ async function inspect(engineName,engine){
         const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
         assert.ok(overflow<=1,`${engineName}/${width}/${role}: horizontal overflow ${overflow}`);
         assert.equal(errors.length,0,`${engineName}/${width}/${role}: ${errors.join('; ')}`);
-        if(role==='head'){assert.match(body,/Отчёты сегодня: 2 из 3/);assert.match(body,/Ждём: Перелёта/)}
+        if(role==='head'){assert.match(body,/Отчёты сегодня: 2 из 3/);assert.match(body,/Ещё идёт день|Ждём: Перелёта/);assert.equal(await page.locator('[data-act="repstatus"]').count(),1,'строка отчётов кликабельна')}
         else{assert.match(body,/Сегодня вы на Маркса/);assert.match(body,/С вами: Иванова О\. В\., Петров Д\. А\./)}
         const nav=await page.locator('.ui2-bottom-nav button').allTextContents();
         assert.deepEqual(nav,role==='courier'?['Главная','Начисления','Меню']:role==='head'?['Главная','График','Зарплата','Меню']:['Главная','График','Начисления','Меню']);

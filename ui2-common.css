@@ -513,5 +513,29 @@ body.ui2 button.ui2-today{width:100%;text-align:left;font:inherit;color:inherit;
 
 /* длинные суммы не вылезают за карточку */
 body.ui2 .srow{gap:10px}
-body.ui2 .srow>span{min-width:0;flex:1 1 auto}
+body.ui2 .srow>span:not(.av):not(.sbar):not(.chev){min-width:0;flex:1 1 auto}
+body.ui2 .srow>.av{flex:none}
 body.ui2 .srow>b{flex:none;white-space:nowrap}
+
+/* ===== 2.0 · «График → Кто где» (замечание Михаила 17.11, п.11) ===== */
+body.ui2 .dayseg{display:flex;gap:8px;margin:0 0 12px}
+body.ui2 .dayseg button{flex:1;min-height:48px;padding:0 10px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#EAF6F8;font:700 15px/1 inherit;white-space:nowrap}
+body.ui2 .dayseg button.on{background:linear-gradient(180deg,#3A93A8,#2A7D90);border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(42,125,144,.35)}
+body.ui2 .dayhead{display:flex;align-items:center;gap:10px;margin:6px 2px 10px;color:#fff}
+body.ui2 .dayhead h2{margin:0;font-size:20px;font-weight:800}
+body.ui2 .whocard{padding-top:14px}
+body.ui2 .whohead{display:flex;align-items:center;gap:10px;margin:0 0 4px}
+body.ui2 .whohead i{width:12px;height:12px;border-radius:50%;flex:none}
+body.ui2 .whohead h3{margin:0;font-size:18px;font-weight:800;color:var(--ev-ink)}
+body.ui2 .whogrp{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#33606B;margin:14px 0 2px}
+body.ui2 .whorow{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 6px;margin:0;border:0;border-bottom:1px solid #E1ECEE;background:transparent;text-align:left;color:var(--ev-ink);font:inherit}
+body.ui2 .whorow:last-child{border-bottom:0}
+body.ui2 button.whorow{cursor:pointer}
+body.ui2 .whorow .av{width:40px;height:40px;border-radius:50%;flex:none;font-size:14px}
+body.ui2 .whorow .wn{display:flex;flex-direction:column;min-width:0;flex:1}
+body.ui2 .whorow .wn b{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ui2 .whorow .wn small{font-size:12.5px;font-weight:600;color:var(--ev-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ui2 .whorow.me{background:linear-gradient(90deg,rgba(42,125,144,.12),transparent);border-radius:12px}
+body.ui2 .empty.calm{color:#8DA2A8;font-weight:600;padding:8px 6px}
+body.ui2 .dayhead h2{color:#fff}
+body.ui2 .dayhead .tag{background:rgba(255,255,255,.16);color:#EAF6F8}

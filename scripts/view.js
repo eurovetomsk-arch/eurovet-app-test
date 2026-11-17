@@ -430,7 +430,6 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('pointerdown',e=>{const a=document.activeElement;if(isField(a)&&!e.target.closest('input,textarea,select,label,button'))a.blur()});
 document.addEventListener('change',e=>{
   const t=e.target;
-  if(t.id==='shared-device'){S.loginShared=!!t.checked;return}
   if(t.classList&&t.classList.contains('schfile')){schPickFile(t);return}
   if(t.classList&&t.classList.contains('schmap')){if(S.mu&&S.mu.sch)S.mu.sch.map[t.dataset.n]=t.value;return}
   if(t.classList&&t.classList.contains('mufile')){if(t.dataset.k==='bank')muPickBank(t);else muPickVM(t);return}
@@ -457,6 +456,7 @@ document.addEventListener('click',async e=>{
     case'paytab':S.payTab=d.k;paint();break;
     case'paysel':{const m=S.paySel||(S.paySel={});m[d.id]=b.checked;paint();break}
     case'payxlsx':payXlsx();break;
+    case'repstatus':repStatusOverlay();break;
     case'schtemplate':schTemplateDownload();break;
     case'schimport':schImport();break;
     case'schpublish':schPublish();break;
@@ -576,7 +576,8 @@ document.addEventListener('click',async e=>{
     case'schappt':{const s=schEnsure();s.apptDay=d.d;if(apptAllowed()&&apptInWindow(d.d)&&APPT.status==='idle')loadAppointments();else paint();break}
     case'schedopen':showSched();break;
     case'schtab':schEnsure().tab=d.t;paint();break;
-    case'schday':schEnsure().day=d.d;paint();break;
+    case'schday':{const s=schEnsure();s.day=d.d;const mm=d.d.slice(0,7);if(mm!==s.m&&!s.demo){s.m=mm;s.apptDay=null;if(s.data[mm])paint();else loadSched(mm)}else paint();break}
+    case'schcal':{const s=schEnsure();s.calOpen=!s.calOpen;paint();break}
     case'schp':{const r=(schEnsure().pp||[])[Number(d.i)];if(!r||!r.full)break;const f=String(r.full||r.name||'').trim(),sp=f.indexOf(' '),sn=sp>0?f.slice(0,sp):f,rest=sp>0?f.slice(sp+1):'';overlay('<div class="sch-pc"><div class="pcard"><span class="av" style="background:'+schRoleColor(r.slot)+'">'+esc(schInitials(f))+'</span><div><h3>'+esc(sn)+'</h3>'+(rest?'<p>'+esc(rest)+'</p>':'')+'</div></div><p class="shint"><span class="role-pill" style="background:'+schRoleColor(r.slot)+'">'+esc(schRole(r))+'</span><br><br>К сотруднику можно обращаться по имени и отчеству.</p><button class="btn sec" data-act="ovclose">Закрыть</button></div>');break}
     case'schflt':schEnsure().flt=d.f;paint();break;
     case'schretry':loadSched(schEnsure().m);break;
@@ -672,10 +673,11 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 setInterval(()=>{if(document.visibilityState==='visible')checkUpdate()},300000);
 
 /* ====== 1.65: автовыход по простою (не руководитель): следующий человек на этом устройстве увидит только вход по PIN ====== */
-const IDLE_MS=15*60*1000;
+const IDLE_MS=30*60*1000; /* 2.0 (слово Михаила 17.11): автовыход через 30 минут бездействия у ВСЕХ ролей, кроме руководителя */
 let accessLastAct=Date.now(),accessLastTouch=0;
 function touchAct(){accessLastAct=Date.now();if(S.token&&Date.now()-accessLastTouch>30000){accessLastTouch=Date.now();rpc('ev_session_touch',{p_token:S.token}).then(r=>{if(!r.ok){logout();toast('Сессия закончилась. Возможно, выполнен вход с другого устройства.');}}).catch(()=>{});}}
-function idleCheck(){if(S.token&&S.shared&&Date.now()-accessLastAct>IDLE_MS){closeOv();logout();}}
+function idleCheck(){if(S.token&&!isHead()&&Date.now()-accessLastAct>IDLE_MS){try{if(S.view==='form'&&S.form)saveDraftNow()}catch(e){}closeOv();logout();toast('Вы вышли: 30 минут без действий. Черновик отчёта сохранён.',6000)}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)idleCheck()});
 ['click','keydown','touchstart','input'].forEach(ev=>document.addEventListener(ev,()=>{if(S.token)touchAct()},{passive:true,capture:true}));
 setInterval(idleCheck,10000);
 window.addEventListener('pagehide',()=>{if(S.token){const token=S.token;S.token=null;S.person=null;fetch(CFG.url+'/rest/v1/rpc/ev_logout',{method:'POST',headers:{apikey:CFG.key,Authorization:'Bearer '+CFG.key,'Content-Type':'application/json'},body:JSON.stringify({p_token:token}),keepalive:true}).catch(()=>{});}});
