@@ -104,7 +104,7 @@ const HOME_TILE_META={
   vaccines:{section:'preparations',size:'sm',title:'Вакцины',sub:'Остатки и движение',prepare:'Здесь будут остатки вакцин и их движение по филиалам.'},
   vaccines_all_branches:{section:'preparations',size:'sm',title:'Вакцины по филиалам',sub:'Остатки во всех клиниках',prepare:'Здесь будут остатки вакцин по всем филиалам.'},
   dose_calculator:{section:'preparations',size:'sm',title:'Расчёт дозы',sub:'Быстрый расчёт препарата',prepare:'Здесь будет безопасный расчёт дозы препарата.'},
-  supplies:{section:'preparations',size:'wide',title:'Препараты и расходники',sub:'Заявка и остатки',prepare:'Скоро: заявка препаратов и расходников — здесь же будут остатки.'},
+  supplies:{section:'preparations',size:'sm',title:'Препараты и расходники',sub:'Заявка и остатки',prepare:'Скоро: заявка препаратов и расходников — здесь же будут остатки.'},
   supplies_all_requests:{section:'preparations',size:'sm',title:'Заявки филиалов',sub:'Все заявки на снабжение',prepare:'Здесь будут заявки филиалов на препараты и расходники.'},
   supply_order:{section:'preparations',size:'sm',title:'Заказ снабжения',sub:'Собрать и отметить заказ',prepare:'Здесь можно будет собрать и отметить заказ снабжения.'},
   head_money:{section:'finance',size:'main',title:'Выручка',sub:'Выручка и врачи по дням',view:'rev'},
