@@ -265,13 +265,16 @@ function updateTransitCheck(){
 }
 
 function viewForm(){
+  if(S.nosub)return nosubHtml();
   if(handoverGate())return handoverHtml()||'<div class="card"><h2>Приёмка кассы</h2><p class="hint">Проверяем принятую сумму…</p></div>';
   const f=S.form,c=S.ctx;let h='';
+  if(S.subAdmin&&isHead())h+='<div class="chk warn" id="subadm"><i>!</i><div><b>Вы заполняете отчёт за администратора.</b> Сдача пойдёт от вашего имени.</div></div>';
+  if(S.roHead)h+='<div class="chk ok" id="rohead"><i>👁</i><div><b>Просмотр отчёта</b> — только для чтения. Сдан'+(c.current&&c.current.submitted_at?' в '+hmOmsk(c.current.submitted_at):'')+(c.current?', версия '+c.current.version:'')+'. Исправить может администратор филиала.</div></div>';
   if(S.formErrors&&S.formErrors.length)h+='<div class="chk bad" id="form-errors"><i>!</i><div><b>Исправьте перед отправкой: '+S.formErrors.map(esc).join('; ')+'</b></div></div>';
   if(S.draftTs){const dt=new Date(S.draftTs);const hm=dt.toLocaleString('ru-RU',{timeZone:'Asia/Omsk',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     h+='<div class="chk warn"><i>!</i><div>Восстановлен ваш несохранённый черновик от '+hm+'. Если это не сегодняшние цифры — очистите форму.<br><button class="btn sec small" style="margin-top:8px" data-act="clearDraft">Очистить форму и начать заново</button></div></div>';}
   if(S.ctxOffline)h+='<div class="chk warn"><i>!</i><div><b>Нет связи с сервером.</b> Утренний приём кассы и вчерашний итог сейчас недоступны. Впишите начало смены по факту. Отчёт сохранится на устройстве и уйдёт при появлении интернета.<br><button class="btn sec small" style="margin-top:8px" data-act="reloadctx">Обновить с сервера</button></div></div>';
-  if(c.current)h+='<div class="chk warn"><i>!</i><div>За эту дату отчёт уже сдан (версия '+c.current.version+'). Изменения сохраняются как исправление — нужна причина.</div></div>';
+  if(c.current&&!S.roHead)h+='<div class="chk warn"><i>!</i><div>За эту дату отчёт уже сдан (версия '+c.current.version+'). Изменения сохраняются как исправление — нужна причина.</div></div>';
   if(c.current)h+='<button class="btn sec small" data-act="back" style="margin:0 0 8px">Выбрать другую дату</button>';
   if(c.current)h+='<div id="flagbox">'+flagsHtml()+'</div>';
 
@@ -373,7 +376,7 @@ function viewForm(){
   return h;
 }
 function viewBar(){
-  if(handoverGate())return '';
+  if(S.nosub||S.roHead||handoverGate())return '';
   return '<div class="bar"><div class="in"><div class="st" id="barst" data-act="tochecks"></div><button class="btn" data-act="submit">Отправить отчёт</button></div></div>';
 }
 function updateChecks(){

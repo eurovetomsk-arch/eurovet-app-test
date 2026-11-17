@@ -25,13 +25,22 @@ function evSyncHistory(){
   else if(evHistoryView!==snap.view)history.pushState({evrovet:snap},'',location.href);
   evHistoryView=snap.view;
 }
+let _renderedView=null;
+function roLock(){
+  const a=$('#app');if(!a)return;a.classList.toggle('ro',!!(S.view==='form'&&S.roHead));
+  if(!(S.view==='form'&&S.roHead))return;
+  a.querySelectorAll('input,select,textarea').forEach(e=>{e.disabled=true});
+}
 function render(){
+  /* c13: шторка не должна переживать смену экрана (REMARKS п.19) */
+  if(_renderedView!==null&&_renderedView!==S.view&&$('#ovwrap')&&$('#ovwrap').innerHTML&&!S.keepOv)closeOv();
+  _renderedView=S.view;
   evSyncHistory();
   setHeader();
   const app=$('#app'),bar=$('#barwrap');bar.innerHTML='';
   if(S.view==='login')app.innerHTML=viewLogin();
   else if(S.view==='branch')app.innerHTML=viewBranch();
-  else if(S.view==='form'){app.innerHTML=viewForm();bar.innerHTML=viewBar();updateChecks()}
+  else if(S.view==='form'){app.innerHTML=viewForm();bar.innerHTML=viewBar();if(!S.nosub)updateChecks();roLock()}
   else if(S.view==='done')app.innerHTML=viewDone();
   else if(S.view==='help')app.innerHTML=viewHelp();
   else if(S.view==='ctl')app.innerHTML=ctlHtml();
@@ -356,10 +365,20 @@ function closeOv(){S.ctlOpen=false;$('#ovwrap').innerHTML=''}
 function showMenu(){
   if(isHead()){
     /* 2.0, решение Михаила 17.11: меню руководителя — только редкое */
-    overlay('<h2>Меню</h2><button class="btn sec" style="margin:6px 0" data-act="muopen">Ручная загрузка (врачи, банк, графики)</button><button class="btn sec" style="margin:6px 0" data-act="mupinopen">Доступы и PIN</button><button class="btn sec" style="margin:6px 0" data-act="bdprevmenu">Пример поздравления</button><button class="btn sec" style="margin:14px 0 6px" data-act="logout">Выйти</button><button class="btn sec" style="margin:6px 0" data-act="ovclose">Закрыть</button>');
+    overlay('<h2>Меню</h2><button class="btn sec" style="margin:6px 0" data-act="muopen">Ручная загрузка (врачи, банк, графики)</button><button class="btn sec" style="margin:6px 0" data-act="mupinopen">Доступы и PIN</button><button class="btn sec" style="margin:6px 0" data-act="subadmin">Заменить администратора</button><button class="btn sec" style="margin:6px 0" data-act="bdprevmenu">Пример поздравления</button><button class="btn sec" style="margin:14px 0 6px" data-act="logout">Выйти</button><button class="btn sec" style="margin:6px 0" data-act="ovclose">Закрыть</button>');
     return;
   }
   overlay('<h2>Меню</h2>'+(isHead()?'<button class="btn sec" style="margin:6px 0" data-act="go" data-v="branch">Модули клиники (вакцины, препараты, доступы)</button><button class="btn sec" style="margin:6px 0" data-act="go" data-v="ctl">Контроль: что требует внимания</button>'+'<button class="btn sec" style="margin:6px 0" data-act="workopen">Мои начисления</button><button class="btn sec" style="margin:6px 0" data-act="schedopen">График смен</button><button class="btn sec" style="margin:6px 0" data-act="cchead">Колл-центр: смены и оплата</button><button class="btn sec" style="margin:6px 0" data-act="muopen">Ручная загрузка (начисления, банк, PIN)</button><button class="btn sec" style="margin:6px 0" data-act="testbr">Тестовый филиал (для проверок)</button>':'')+(isCC()&&!isHead()&&S.view!=='cc'?'<button class="btn sec" style="margin:6px 0" data-act="ccopen">Колл-центр: мои смены</button>':'')+(canReport()&&S.view==='cc'&&!isHead()?'<button class="btn sec" style="margin:6px 0" data-act="back">Отчёт филиала</button>':'')+(canReport()?'<button class="btn sec" style="margin:6px 0" data-act="help">Как заполнять отчёт</button>':'')+(isCC()&&!isHead()?'<a class="btn sec" style="margin:6px 0" href="help/instruktsiya_callcenter.pdf" target="_blank" rel="noopener">Инструкция оператора (PDF)</a>':'')+'<button class="btn sec" style="margin:6px 0" data-act="chpin">Сменить PIN</button><button class="btn sec" style="margin:6px 0" data-act="logout">Выйти</button><button class="btn sec" style="margin:6px 0" data-act="ovclose">Закрыть</button><p class="hint">Версия '+CFG.appVer+'</p>');
+}
+/* c13: руководитель заполняет отчёт за администратора ТОЛЬКО так: Меню → «Заменить администратора» → филиал → подтверждение */
+function subAdminPick(){
+  overlay('<h2>Заменить администратора</h2><p class="hint">Выберите филиал. Отчёт за этот день внесёте вы, от своего имени.</p>'
+    +BRANCHES.filter(b=>!b.testOnly).map(b=>'<button class="btn sec" style="margin:6px 0" data-act="subadminpick" data-id="'+esc(b.id)+'">'+esc(b.title)+'</button>').join('')
+    +'<button class="btn sec" style="margin:10px 0 0" data-act="ovclose">Отмена</button>');
+}
+function subAdminConfirm(id){
+  overlay('<h2>Подтвердите замену</h2><p style="margin:0 0 10px">Вы заполняете отчёт за администратора: <b>'+esc(brTitle(id))+'</b>, '+esc(S.date===omskToday()?'сегодня':ruDate(S.date))+'.</p><p class="hint">Отчёт будет сдан от вашего имени и виден в «Кто внёс».</p>'
+    +'<button class="btn" data-act="subadminyes" data-id="'+esc(id)+'">Да, заполнять отчёт</button><button class="btn sec" style="margin:8px 0 0" data-act="ovclose">Отмена</button>');
 }
 function showQueue(){
   let h='<h2>Отправка данных</h2><p class="hint">'+(S.online?'Связь есть.':'Связи нет — записи ждут на устройстве.')+'</p>';
@@ -462,6 +481,9 @@ document.addEventListener('click',async e=>{
     case'bankkind':if(S.mu){S.mu.bankKind=d.k;paint()}break;
     case'mucancelvac':muCancel('vac',d.k);break;
     case'repstatus':repStatusOverlay();break;
+    case'subadmin':subAdminPick();break;
+    case'subadminpick':subAdminConfirm(d.id);break;
+    case'subadminyes':openBranch(d.id,{asAdmin:true});break;
     case'schtemplate':schTemplateDownload();break;
     case'schimport':schImport();break;
     case'schpublish':schPublish();break;
@@ -546,7 +568,7 @@ document.addEventListener('click',async e=>{
       break}
     case'branch':{const dt=$('#dt');if(dt&&dt.value)S.date=dt.value;S.dateManual=S.date!==omskToday();openBranch(d.id);break}
     case'reloadctx':openBranch(S.branch);break;
-    case'back':closeOv();saveDraft();S.view='branch';S.form=null;render();break;
+    case'back':closeOv();saveDraft();S.view='branch';S.form=null;S.roHead=false;S.nosub=false;S.subAdmin=false;render();break;
     case'ccopen':closeOv();showCC();break;
     case'ccper':showCC(d.from,d.to);break;
     case'ccmark':ccMarkAsk(d.dt,d.on==='1');break;

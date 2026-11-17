@@ -119,7 +119,13 @@ function handoverCorrectGo(eventId){
   saveHandoverQueue();syncOpeningFromHandover();closeOv();render();flushHandover();
 }
 
-async function openBranch(id){
+/* c13 (REMARKS п.19): любое окно-шторка закрывается при переходе в филиал. Руководитель по умолчанию НЕ заполняет отчёт администратора:
+   «сдан» → просмотр (только чтение), «не сдан» → карточка «Отчёт не сдан. Сегодня на смене: …». Заполнить за администратора — только
+   Меню → «Заменить администратора» с подтверждением (opts.asAdmin). */
+async function openBranch(id,opts){
+  closeOv();
+  const asAdmin=!!(opts&&opts.asAdmin),headView=isHead()&&!asAdmin;
+  S.roHead=false;S.nosub=false;S.nosubInfo=null;S.subAdmin=asAdmin;
   if(!isHead()){S.date=omskToday();S.dateManual=false;}
   S.branch=id;S.busy=true;render();
   let ctx=null;S.ctxOffline=false;
@@ -142,6 +148,17 @@ async function openBranch(id){
     ctx.current=null;ctx.prev=null; // сданные версии и вчерашний остаток без связи неизвестны — не подставляем чужое/старое
   }
   S.ctx=ctx;
+  if(headView&&(S.ctxOffline||!ctx.current)){
+    /* не сдан (или нет связи): карточка без формы; кто на смене — из графика */
+    S.nosub=true;S.form=null;S.handover=null;S.nosubInfo={loading:!S.ctxOffline,admins:[],offline:S.ctxOffline};S.busy=false;S.view='form';render();window.scrollTo(0,0);
+    if(!S.ctxOffline)loadNoSubAdmins(id,S.date);
+    return;
+  }
+  if(headView){
+    S.roHead=true;S.handover=null;S.form=formFromReport(ctx.current.data);S.draftTs=null;S.busy=false;S.view='form';S.flags=null;render();window.scrollTo(0,0);
+    loadFlags(id,S.date);
+    return;
+  }
   S.handover=S.ctxOffline?null:{branch:id,date:S.date,loading:true,ctx:null,actual:'',error:null,offline:false};
   const draft=LS.get(draftKey());
   S.draftTs=null;
@@ -154,6 +171,25 @@ async function openBranch(id){
   if(!S.ctxOffline)loadHandover();
 }
 
+async function loadNoSubAdmins(id,date){
+  try{
+    const r=await rpc('ev_whos_where',{p_token:S.token,p_from:date,p_to:date},8000);
+    const rows=r&&r.ok?(Array.isArray(r.shifts)?r.shifts:(Array.isArray(r.rows)?r.rows:[])):null;
+    if(S.nosubInfo&&S.branch===id&&S.date===date)S.nosubInfo={loading:false,error:!rows,admins:(rows||[]).filter(x=>String(x.branch||x.branch_id||'')===String(id)&&(x.slot==='admin'||x.role==='admin')).map(x=>x.short_name||x.name||x.full).filter(Boolean)};
+  }catch(e){if(S.nosubInfo&&S.branch===id)S.nosubInfo={loading:false,error:true,admins:[]}}
+  if(S.nosub&&S.view==='form')render();
+}
+function nosubHtml(){
+  const i=S.nosubInfo||{loading:true,admins:[]},bt=brTitle(S.branch),dt=S.date===omskToday()?'сегодня':ruDate(S.date);
+  let who;
+  if(i.offline)who='Нет связи: статус отчёта неизвестен. Подключитесь к интернету и откройте филиал снова.';
+  else if(i.loading)who='Смотрю, кто сегодня на смене…';
+  else if(i.error)who='Кто на смене — пока не загрузилось.';
+  else who=i.admins.length?(S.date===omskToday()?'Сегодня на смене':'На смене в этот день')+': <b>'+i.admins.map(esc).join(', ')+'</b>':'Администратор на смене по графику не назначен.';
+  return '<div class="card" id="nosub"><h2>Отчёт не сдан</h2><p style="margin:0 0 8px"><b>'+esc(bt)+'</b>, '+esc(dt)+'</p><p style="margin:0 0 12px">'+who+'</p>'
+    +'<p class="hint">Отчёт заполняет администратор филиала. Если администратора нет и отчёт нужно внести за него — «Меню → Заменить администратора».</p>'
+    +'<button class="btn sec" data-act="back" style="margin-top:8px">Назад к филиалам</button></div>';
+}
 
 const LCATS=[['head','Руководитель'],['adm','Администратор'],['asst','Ассистент'],['doc','Врач'],['cc','Колл-центр'],['oth','Другие']];
 const inCat=(p,c)=>{

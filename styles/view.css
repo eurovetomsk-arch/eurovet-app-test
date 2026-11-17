@@ -205,3 +205,6 @@ button.sch-d.sel{outline:3px solid var(--acc);outline-offset:1px}
 .sch-tap{cursor:pointer}.sch-ch{color:var(--mute);font-size:22px;flex:none}
 .sch-pc{text-align:left}.sch-pn{font-size:28px;font-weight:700;margin:12px 0 2px}.sch-pf{font-size:20px;color:var(--mute);margin:0 0 12px}
 .sch-grp{font-size:15px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);margin:12px 0 2px}
+/* c13: просмотр сданного отчёта руководителем — только чтение */
+#app.ro input,#app.ro select,#app.ro textarea{opacity:.85}
+#app.ro button[data-act]:not([data-act="back"]):not([data-act="tochecks"]):not([data-act="flagdet"]){display:none}

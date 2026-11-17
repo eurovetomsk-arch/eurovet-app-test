@@ -4,7 +4,7 @@ const CFG={
   url:'https://txcibtcfuzqhhebeguby.supabase.co',
   key:window.STAGE1?.key||'',
   tol:10,                // допустимая погрешность включительно, ₽
-  appVer:'2.0-test-c12'
+  appVer:'2.0-test-c13'
 };
 const BRANCHES=[
   {id:'marksa',title:'Маркса, 45'},
@@ -76,6 +76,7 @@ function fmtNum(s){ // пробелы между тысячами: 12 332,50 (х
 }
 const N=s=>{const v=num(s);return(v==null||isNaN(v))?0:v};
 const ruDate=d=>d.split('-').reverse().join('.');
+const hmOmsk=t=>{try{return new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Omsk',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t))}catch(e){return ''}};
 const DEV=(()=>{let d=LS.get('ev_dev');if(!d){d=uid();LS.set('ev_dev',d)}return d})();
 
 /* ====== API ====== */
