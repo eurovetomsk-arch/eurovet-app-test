@@ -50,6 +50,15 @@ function ccMarkHtml(){
   if(Number(c.r.ops||0)>=2)return '<div class="chk warn"><i>!</i><div>На сегодня уже отмечены два оператора: '+esc((c.r.others||[]).join(', '))+'</div></div>';
   return '<button class="btn big ui2-markbtn" data-act="ccmark" data-dt="'+omskToday()+'" data-on="1">Отметить: я сегодня работаю</button><p class="hint" style="margin:6px 4px 0">Отметка — не то же самое, что график: от неё начисляется зарплата.</p>';
 }
+/* 2.0, п.21: человек с двумя ролями экрана — администратор + колл-центр — один экран: строка состояния обеих ролей, «Отметить» в блоке «Работа» */
+const isAdminCC=()=>!isHead()&&isCC()&&hasRole('admin');
+function bothTodayHtml(){
+  const rows=HOME_WHO.rows,pid=String(S.person?.id??S.person?.person_id??''),c=CC_TODAY,tm=t=>{try{return new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Omsk',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t))}catch(e){return ''}};
+  const cc=c.r?(c.r.me?'отмечено сегодня в '+esc(tm(c.r.marked_at))+' ✓':'смена не отмечена'):(c.loading?'загружаю…':'отметка пока недоступна');
+  const mine=(rows||[]).find(r=>r&&r.slot==='admin'&&((r.mine===true)||String(r.person_id??r.id??'')===pid));
+  const adm=HOME_WHO.error?'смена пока не загрузилась':!rows?'загружаю…':mine?('сегодня на <b>'+esc(homeBranchTitle(mine.branch||mine.branch_id))+'</b>'):'выберите филиал';
+  return '<div class="glass ui2-today"><span class="pin">📍</span><div><b>Колл-центр:</b> '+cc+'<br><b>Администратор:</b> '+adm+'</div></div>';
+}
 function homeTodayHtml(){
   const rows=HOME_WHO.rows;
   if(HOME_WHO.loading||(!rows&&!HOME_WHO.error))return '<div class="glass ui2-today"><span class="pin">⌛</span><div>Загружаю сегодняшнюю смену…</div></div>';
@@ -131,16 +140,16 @@ const HOME_NH_SECTION={cash_acceptance:'work',evening_report:'work',appointments
 function homeTileSection(k){return isHead()?HOME_TILE_META[k].section:(HOME_NH_SECTION[k]||HOME_TILE_META[k].section)}
 function homeSectionsHtml(){
   const names={finance:'Финансы',work:'Работа',preparations:'Препараты',clinic:'Клиника'},keys=homeTileKeys();
-  return (isHead()?['finance','preparations','clinic']:['work','preparations','clinic','finance']).map(sec=>{const a=keys.filter(k=>homeTileSection(k)===sec);return a.length?'<div class="ui2-group-title">'+names[sec]+'</div><div class="ui2-role-tiles'+(a.length===1?' single':'')+'">'+a.map(homeTileHtml).join('')+'</div>':''}).join('');
+  return (isHead()?['finance','preparations','clinic']:['work','preparations','clinic','finance']).map(sec=>{const a=keys.filter(k=>homeTileSection(k)===sec);return a.length?'<div class="ui2-group-title">'+names[sec]+'</div>'+(sec==='work'&&isAdminCC()?ccMarkHtml():'')+'<div class="ui2-role-tiles'+(a.length===1?' single':'')+'">'+a.map(homeTileHtml).join('')+'</div>':''}).join('');
 }
 function showHomeBranches(){
   const buttons=BRANCHES.filter(b=>!b.testOnly).map(b=>'<button class="ui2-branch branch-'+b.id+'" data-act="branch" data-id="'+b.id+'"'+(S.busy?' disabled':'')+'><span>'+esc(b.title)+'</span><small>Открыть отчёт и приём кассы</small></button>').join('');
-  overlay('<h2>Выберите филиал</h2><p class="hint">Откроется сегодняшний отчёт. Утром сначала показывается приём кассы.</p>'+buttons+'<button class="btn sec small" data-act="ovclose">Отмена</button>');
+  overlay('<h2>'+(isAdminCC()?'Я сегодня на филиале…':'Выберите филиал')+'</h2><p class="hint">Откроется сегодняшний отчёт. Утром сначала показывается приём кассы.</p>'+buttons+'<button class="btn sec small" data-act="ovclose">Отмена</button>');
 }
 function viewBranch(){
   if(isCC()&&!isHead())loadCCToday();
   if(isHead()){loadDayStatus();if(S.mr==null&&S.lv==null)loadMr();if(!S.revStatus||Date.now()-(S.revStatusAt||0)>60000)loadRevStatus()}else loadHomeWho();
-  let h='<section class="ui2-home-screen"><div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div>'+(isHead()?headDayLineHtml()+headTodayHtml():homeTodayHtml())+homeSectionsHtml();
+  let h='<section class="ui2-home-screen"><div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div>'+(isHead()?headDayLineHtml()+headTodayHtml():isAdminCC()?bothTodayHtml():homeTodayHtml())+homeSectionsHtml();
   if(isHead())h+='<div class="mrbox">'+mrHtml0()+lvHtml()+'</div>'; /* ждущие подтверждения инкассации и отпуска — только если есть */
   if(S.queue.length)h+='<div class="card quiet"><p class="hint">Не отправлено отчётов: '+S.queue.length+'. Нажмите «'+(S.online?'онлайн':'нет связи')+'» вверху.</p></div>';
   return h+'</section>';

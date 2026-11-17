@@ -312,7 +312,7 @@ function fdetBody(ds,r,fallback){
     if(vs.length){
       h+='<h3>Кто и что подавал и правил</h3>';
       vs.forEach(v=>{
-        h+='<div class="vr"><b>v'+v.version+'</b> · '+esc(v.by||'?')+' · '+omskAt(v.at)+(v.correction?' · правка':' · первая подача')+' · итог '+fnum(v.total)
+        h+='<div class="vr"><b>v'+v.version+'</b> · '+(v.by_shtab?'внесено Штабом по команде руководителя':esc(v.by||'?'))+' · '+omskAt(v.at)+(v.correction?' · правка':' · первая подача')+' · итог '+fnum(v.total)
           +(v.reason?'<br><small>Причина: '+esc(v.reason)+'</small>':'')
           +((v.changes||[]).length?(v.changes).map(c=>'<span class="chg">'+esc(c.field)+': '+fnum(c.from)+' → '+fnum(c.to)+'</span>').join(''):(v.version>1?'<small>Цифры не менялись (только текст/состав).</small>':''))+'</div>';
       });

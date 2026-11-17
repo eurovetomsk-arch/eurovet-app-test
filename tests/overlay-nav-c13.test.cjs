@@ -12,6 +12,7 @@ const P={
   admin:{id:16,full_name:'Фёдорова Татьяна Владимировна',short_name:'Фёдорова Т.В.',admin:true,roles:['admin']},
   doctor:{id:2,full_name:'Орлов Илья Петрович',short_name:'Орлов И.П.',work:true,doctor:true,roles:['doctor']},
   assistant:{id:11,full_name:'Семёнова Алина Романовна',short_name:'Семёнова А.Р.',work:true,assistant_clinical:true,roles:['assistant_clinical']},
+  pan:{id:31,full_name:'Паньковская Дарья Андреевна',short_name:'Паньковская Д.А.',admin:true,cc:true,work:true,roles:['admin','callcenter']},
   callcenter:{id:32,full_name:'Макарова Алёна Викторовна',short_name:'Макарова А.В.',cc:true,roles:['callcenter']}
 };
 const BR=[{id:'marksa',title:'Маркса, 45'},{id:'70let',title:'70 лет Октября, 20'},{id:'pereleta',title:'Перелёта, 19'}];
@@ -94,6 +95,22 @@ async function runRole(browser,url,role,engine){
     }
   }
 }
+async function panScreen(browser,url,engine){
+  console.log(engine+' pan: админ + колл-центр на одном экране');
+  const s=await session(browser,url,'pan');const t=await s.page.evaluate(()=>document.getElementById('app').innerText);
+  ok(/Колл-центр:/.test(t)&&/Администратор:/.test(t),engine+' pan: нет строки состояния обеих ролей');
+  ok(/Отметить: я сегодня работаю/.test(t),engine+' pan: нет «Отметить: я сегодня работаю»');
+  ok(/Приём кассы/.test(t)&&/Вечерний отчёт/.test(t),engine+' pan: нет плиток админа');
+  ok(/Мои начисления/.test(t)&&/График/.test(t),engine+' pan: нет «График»/«Мои начисления»');
+  ok((t.match(/Мои начисления/g)||[]).length===1,engine+' pan: «Мои начисления» продублированы');
+  await s.ctx.close();
+}
+async function headTiles(browser,url,engine){
+  const s=await session(browser,url,'head');const t=await s.page.evaluate(()=>[...document.querySelectorAll('#app .ui2-role-tile .t')].map(e=>e.textContent));
+  const i=t.indexOf('График'),j=t.indexOf('Мои начисления');
+  ok(i>=0&&j===i+1,engine+' head: «Мои начисления» должна стоять сразу после «График» ('+t.join('|')+')');
+  await s.ctx.close();
+}
 async function headFlow(browser,url,engine){
   console.log(engine+' head: «Отчёты сегодня» → филиал');
   let s=await session(browser,url,'head');let {page}=s;
@@ -134,7 +151,7 @@ async function headFlow(browser,url,engine){
   for(const e of engines){
     const browser=await pw[e].launch({headless:true});
     for(const role of Object.keys(P))await runRole(browser,url,role,e);
-    await headFlow(browser,url,e);
+    await headFlow(browser,url,e);await panScreen(browser,url,e);await headTiles(browser,url,e);
     await browser.close();
   }
   server.close();
