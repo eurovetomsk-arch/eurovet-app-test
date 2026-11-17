@@ -925,6 +925,12 @@ function revAgg(reps){
 }
 async function showRevenue(from,to){
   const today=omskToday();
+  /* 2.0: по умолчанию — последний день, где есть хоть один отчёт (утром это вчера, после сдачи всех — сегодня) */
+  if(!from&&!S.revFrom&&isHead()){
+    S.revFrom=S.revTo=today;if(!S.revBranch)S.revBranch='all';S.view='rev';S.rev=null;S.revLoad=true;paint();
+    try{const r=await rpc('ev_revenue',{p_token:S.token,p_from:addDays(today,-10),p_to:today},12000);
+      const ds=((r&&r.ok&&r.reports)||[]).map(x=>String(x.date)).sort();if(ds.length){from=to=ds[ds.length-1]}}catch(e){}
+  }
   if(!from){from=S.revFrom||today;to=S.revTo||from}
   S.revFrom=from;S.revTo=to;if(!S.revBranch)S.revBranch='all';
   S.view='rev';S.rev=null;S.revSal=null;S.revErr=null;S.revLoad=true;paint();
