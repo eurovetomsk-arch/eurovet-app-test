@@ -456,6 +456,8 @@ document.addEventListener('click',async e=>{
     case'paytab':S.payTab=d.k;paint();break;
     case'paysel':{const m=S.paySel||(S.paySel={});m[d.id]=b.checked;paint();break}
     case'payxlsx':payXlsx();break;
+    case'bankkind':if(S.mu){S.mu.bankKind=d.k;paint()}break;
+    case'mucancelvac':muCancel('vac',d.k);break;
     case'repstatus':repStatusOverlay();break;
     case'schtemplate':schTemplateDownload();break;
     case'schimport':schImport();break;

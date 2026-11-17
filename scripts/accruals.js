@@ -360,6 +360,8 @@ function workHtml(){
     h+='<div class="card"><h3 style="margin-top:2px">Доплаты и вычеты за период</h3>'+r.adj.map(i=>srow(ruDate(i.date)+' · '+esc(SAL_KIND[i.kind]||i.kind)+(i.comment?'<br><small style="color:var(--mute)">'+esc(i.comment)+'</small>':''),sgn(Number(i.amount)))).join('')
       +'<div class="srow big"><span>Итого за период</span><b>'+sgn(Number(r.adj_total))+'</b></div></div>';
   }
+  if(S.wkFrom)loadVacation(S.wkFrom,S.wkTo);
+  if(S.person&&VAC.key===S.wkFrom+'|'+S.wkTo)h+=vacPersonHtml(S.person.id);
   h+=payoutsHtml();
   return h;
 }
@@ -542,6 +544,7 @@ function payHtml(){
     +'<div class="srow sub"><span>Рассчитано сотрудников</span><b>'+Number(tt.closed_n||0)+' из '+Number(tt.people_n||0)+'</b></div>'
     +(Number(tt.diff)?'<div class="srow sub"><span>Разница округлений и переплат</span><b>'+sgn(Number(tt.diff))+'</b></div>':'')
     +(Number(tt.adv_debt)?'<div class="srow sub"><span>Выдано в долг, не удержано</span><b>'+money(Number(tt.adv_debt))+'</b></div>':'')
+    +vacPeriodLine(r)
     +'</div>';
   if(!r.multi)h+='<div class="card"><button class="btn" data-act="saladd">+ Такси, доплата или вычет</button></div>';
   (r.warnings||[]).forEach(w=>{h+='<div class="chk warn"><i>!</i><div>'+esc(w)+'</div></div>'});
@@ -653,6 +656,7 @@ function pplCard(x){
   h+='<div class="card"><div class="chips">'+(canClose&&!x.closed?'<button class="btn small" data-act="payclose1" data-id="'+x.id+'">Рассчитан</button>':'')
     +'<button class="btn small sec" data-act="paycard" data-id="'+x.id+'">История и выплаты</button>'
     +'</div></div>';
+  h+=vacPersonHtml(x.id);
   h+=pplShiftsHtml(x);
   h+='<details class="card"><summary><b>Доступ и PIN</b></summary><p class="hint">Новый PIN выдаётся в разделе загрузок и доступов. Старый перестанет работать.</p><button class="btn small sec" data-act="pplpin" data-id="'+x.id+'">Выдать новый PIN</button></details>';
   return h;
@@ -718,6 +722,7 @@ function pplShiftsHtml(x){
 /* 2.0 §15: переключатель «Люди | Выплата» в шапке */
 function pplSwitchHtml(cur){return '<div class="chips" style="margin:8px 0"><button class="chip'+(cur==='ppl'?' on':'')+'" data-act="'+(cur==='ppl'?'noop':'pplpayout')+'">Люди</button><button class="chip'+(cur==='pay'?' on':'')+'" data-act="'+(cur==='pay'?'noop':'pplpayout')+'">Выплата</button></div>'}
 function pplHtml(){
+  if(S.pay&&S.pay.from)loadVacation(S.pay.from,S.pay.to);
   const today=omskToday(),cs=perStart(today),pe=addDays(cs,-1),ps=perStart(pe),r=S.pay;
   const f=S.payFrom||(ps>=PAY_START?ps:cs),t=S.payTo||(ps>=PAY_START?pe:perEnd(cs));
   const chip=(l,a,b)=>'<button class="chip'+((f===a&&t===b)?' on':'')+'" data-act="payper" data-from="'+a+'" data-to="'+b+'">'+l+'</button>';
@@ -727,6 +732,7 @@ function pplHtml(){
   if(x0)return pplCard(x0);
   let h='<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="margin:0">Люди</h2><button class="btn small" data-act="saladd" aria-label="Доплата, вычет или такси" style="min-width:48px">+</button></div>'+pplSwitchHtml('ppl')+'<div class="chips">'+chips+'</div><p class="hint" style="margin:6px 0 0">'+ruDate(f)+' — '+ruDate(t)+'</p></div>';
   if(!r)return h+'<div class="card"><p class="hint">Загружаю…</p></div>';
+  h+=vacPeriodLine(r)?'<div class="card">'+vacPeriodLine(r)+'</div>':'';
   const rows=pplRows(r),has=g=>rows.some(x=>pplHasGroup(x,g));
   let pt=S.pplTab||'all';if(pt!=='all'&&!has(pt))pt='all';
   const q=(S.paySearch||'').trim().toLowerCase();
@@ -1404,10 +1410,11 @@ async function showMU(){
     if(!p||!p.ok){S.mu.err=MU_ERR[p&&p.error]||'Не удалось загрузить список сотрудников';}
     else{S.mu.people=p.people;S.mu.idx=muIndex(p.people)}
     if(b&&b.ok){S.mu.batches=b;muSyncBankPeriod()}
+    loadVacation('2026-10-16',addDays(omskToday(),7),true);
   }catch(e){if(S.mu)S.mu.err=e.net?'Нет связи.':'Ошибка сервера.'}
   if(S.view==='mu')paint();
 }
-async function muReloadBatches(){try{const b=await rpc('ev_mu_batches',{p_token:S.token},15000);if(S.mu&&b&&b.ok){S.mu.batches=b;muSyncBankPeriod()}}catch(e){}if(S.view==='mu')paint()}
+async function muReloadBatches(){loadVacation('2026-10-16',addDays(omskToday(),7),true);try{const b=await rpc('ev_mu_batches',{p_token:S.token},15000);if(S.mu&&b&&b.ok){S.mu.batches=b;muSyncBankPeriod()}}catch(e){}if(S.view==='mu')paint()}
 function muBatchDupVM(f){ // предупреждение до отправки
   const b=S.mu.batches;if(!b||!f.parsed||!f.parsed.period)return'';
   const hit=(b.vm||[]).find(x=>!x.cancelled&&x.branch===f.branch&&x.from===f.parsed.period[0]&&x.to===f.parsed.period[1]);
@@ -1462,7 +1469,21 @@ async function muPickBank(input){
   }catch(e){b.err=e&&e.message==='nocrypto'?'Нужно открывать приложение по https.':'Не удалось прочитать файл.'}
   S.mu.bank=b;muSyncBankPeriod();paint();
 }
+async function muLoadVacation(){
+  const b=S.mu.bank;if(!b||S.mu.busy)return;
+  const ok=b.rows.filter(r=>!r.err&&r.date);if(!ok.length)return;
+  const miss=b.rows.filter(r=>r.err);const tot=muR2(ok.reduce((s,r)=>s+r.amount,0));
+  if(!confirm('Загрузить ОТПУСКНЫЕ?\nСтрок: '+ok.length+', итого '+muF(tot)+' ₽.\nОни не вычитаются из зарплаты и не входят в «Выплачено».'+(miss.length?'\n\nБудут пропущены ('+miss.length+'): '+miss.slice(0,5).map(r=>r.fio+' ('+r.err+')').join(', '):'')))return;
+  S.mu.busy=true;paint();
+  try{
+    const r=await rpc('ev_mu_load_vacation',{p_token:S.token,p_hash:b.hash,p_rows:ok.map(x=>({person_id:x.person_id,amount:x.amount,date:x.date}))},25000);
+    if(r&&r.ok){b.done='Отпускные загружены. Строк: '+r.rows+', итого '+muF(Number(r.total||0))+' ₽.';S.mu.msg='Отпускные загружены.'}
+    else{b.err=MU_ERR[r&&r.error]||'Не загружено'+(r&&r.error?' ('+r.error+')':'');if(r&&r.error==='session'){S.mu=null;S.token=null;LS.del('ev_token');S.view='login';render();return}}
+  }catch(e){b.err=e.net?'Нет связи. Ничего не загружено, повторите.':'Ошибка сервера.'}
+  S.mu.busy=false;await muReloadBatches();
+}
 async function muLoadBank(){
+  if(S.mu&&S.mu.bankKind==='vacation')return muLoadVacation();
   const b=S.mu.bank;if(!b||S.mu.busy)return;
   if(!b.period){toast('Нет открытого периода с готовыми начислениями',6000);return}
   const ok=b.rows.filter(r=>!r.err);if(!ok.length)return;
@@ -1484,6 +1505,9 @@ async function muLoadBank(){
 }
 async function muCancel(kind,key){
   if(S.mu.busy)return;
+  if(kind==='vac'){if(!confirm('Отменить загрузку отпускных (все строки этого файла)?'))return;S.mu.busy=true;paint();
+    try{const r=await rpc('ev_mu_cancel_vacation',{p_token:S.token,p_hash:key},20000);S.mu.msg=r&&r.ok?'Отпускные отменены.':(MU_ERR[r&&r.error]||'Не отменено')}catch(e){S.mu.msg=e.net?'Нет связи.':'Ошибка сервера.'}
+    S.mu.busy=false;await muReloadBatches();return}
   if(!confirm(kind==='vm'?'Отменить загрузку начислений №'+key+'? Расчёт зарплаты по ней пересчитается.':'Отменить загрузку выплат банка (все строки этого файла)?'))return;
   S.mu.busy=true;paint();
   try{
@@ -1612,6 +1636,29 @@ function schUploadHtml(){
   }
   return h+'</div></div>';
 }
+/* ====== 2.0 c11 · ОТПУСКНЫЕ (слово Михаила 17.11, 12а) ======
+   Банковский файл «Отпускные» привязывается к ДАТЕ платежа, период не нужен. НЕ входит в «Выплачено» и «Остаток к выплате»
+   (отдельная таблица на сервере: ev_mu_load_vacation / ev_mu_cancel_vacation / ev_vacation_list). */
+const VAC={key:'',items:null,total:0,loads:null,err:null,loading:false};
+async function loadVacation(from,to,force){
+  if(!S.token)return;const key=from+'|'+to;
+  if(VAC.loading||(!force&&VAC.key===key&&(VAC.items||VAC.err)))return;
+  VAC.key=key;VAC.loading=true;VAC.err=null;
+  try{const r=await rpc('ev_vacation_list',{p_token:S.token,p_person:null,p_from:from,p_to:to},10000);
+    if(r&&r.ok){VAC.items=r.items||[];VAC.total=Number(r.total||0);VAC.loads=r.loads||null}else{VAC.items=[];VAC.total=0;VAC.err=(r&&r.error)||'err'}
+  }catch(e){VAC.items=[];VAC.total=0;VAC.err='net'}
+  VAC.loading=false;if(['pay','work','mu'].includes(S.view))paint();
+}
+function vacLinesHtml(items){return (items||[]).map(i=>'<div class="srow sub"><span>'+ruDate(i.date)+'</span><b>'+money(Number(i.amount))+'</b></div>').join('')}
+function vacPeriodLine(r){
+  if(!r||!r.from||VAC.key!==r.from+'|'+r.to||!(VAC.total>0))return '';
+  return '<div class="srow sub"><span>Отпускные за период<br><small style="color:var(--mute)">отдельная выплата, не входит в «Выплачено» и «Остаток к выплате»</small></span><b>'+money(VAC.total)+'</b></div>';
+}
+function vacPersonHtml(pid){
+  const it=(VAC.items||[]).filter(i=>String(i.person)===String(pid));if(!it.length)return '';
+  const sum=it.reduce((q,i)=>q+Number(i.amount||0),0);
+  return '<div class="card"><h3 style="margin-top:2px">Отпускные</h3>'+it.map(i=>'<div class="srow"><span>Отпускные · '+ruDate(i.date)+'<br><small style="color:var(--mute)">не вычитаются из зарплаты</small></span><b>'+money(Number(i.amount))+'</b></div>').join('')+(it.length>1?'<div class="srow sub"><span>Всего</span><b>'+money(sum)+'</b></div>':'')+'</div>';
+}
 function muHtml(){
   const m=S.mu||{};let h='<div class="card"><button class="btn sec small" data-act="muback" style="margin:0 0 10px">← Назад</button><h2>Ручная загрузка</h2><p class="hint">Раздел только для руководителя. Сюда загружаются файлы Vetmanager (начисления врачей), выплаты из банка и выдаются PIN. Файлы разбираются на вашем устройстве, в базу уходят только ФИО-сопоставленные суммы. Номера карт и счетов не сохраняются.</p>';
   if(m.err)h+='<div class="note bad" style="color:var(--bad)">'+esc(m.err)+'</div>';
@@ -1645,7 +1692,7 @@ function muHtml(){
   });
   h+='</div>';
   /* B. банк */
-  h+='<div class="card"><h2>2. Выплаты из банка</h2><p class="hint">Файл переводов (реестр банка, 1С, txt или csv). Приложение показывает только открытые периоды с готовыми начислениями, начавшиеся не позже даты платежа. Если их несколько, сначала выбран самый ранний. Перед загрузкой обязательно проверьте и подтвердите период.</p>'
+  h+='<div class="card"><h2>2. Выплаты из банка</h2><div class="srow big" style="margin:6px 0 2px"><span>Тип файла</span><b>'+(m.bankKind==='vacation'?'Отпускные':'Зарплата')+'</b></div><div class="chips" style="margin-bottom:8px"><button class="chip'+(m.bankKind!=='vacation'?' on':'')+'" data-act="bankkind" data-k="salary">Зарплата</button><button class="chip'+(m.bankKind==='vacation'?' on':'')+'" data-act="bankkind" data-k="vacation">Отпускные</button></div>'+(m.bankKind==='vacation'?'<p class="hint" style="margin:0 0 8px">Отпускные не вычитаются из зарплаты и не входят в «Выплачено». Период не нужен: привязываются к дате платежа из файла.</p>':'')+(m.bankKind==='vacation'?'<p class="hint">Файл переводов (реестр банка, 1С, txt или csv) с отпускными. Проверьте строки и даты платежа перед загрузкой.</p>':'<p class="hint">Файл переводов (реестр банка, 1С, txt или csv). Приложение показывает только открытые периоды с готовыми начислениями, начавшиеся не позже даты платежа. Если их несколько, сначала выбран самый ранний. Перед загрузкой обязательно проверьте и подтвердите период.</p>')
     +'<label class="btn sec" style="display:block;text-align:center;margin:6px 0">Выбрать файл<input type="file" class="mufile" data-k="bank" accept=".txt,.csv,.tsv,.xml,.1c,.dat,text/*" style="display:none"></label>';
   const bk=m.bank;
   if(bk){
@@ -1654,16 +1701,17 @@ function muHtml(){
     else{
       const ok=bk.rows.filter(r=>!r.err),bad=bk.rows.filter(r=>r.err);
       h+='<div class="srow sub"><span>Формат: '+esc(bk.format)+', кодировка '+esc(bk.enc)+'</span></div>';
-      const sel=bk.openPeriods||[];
-      if(bk.period)h+='<div class="srow big" style="margin:10px 0"><span>Период</span><b>'+ruDate(bk.period[0])+' — '+ruDate(bk.period[1])+'</b></div>'
+      const sel=bk.openPeriods||[],vac=m.bankKind==='vacation',noDate=bk.rows.filter(r=>!r.err&&!r.date).length;
+      if(vac){h+='<div class="srow big" style="margin:10px 0"><span>Тип файла</span><b>Отпускные</b></div>'+(noDate?'<div class="chk bad"><i>!</i><div><b>В файле нет даты платежа у строк: '+noDate+'</b><br>Для отпускных дата обязательна: загрузка закрыта.</div></div>':'')}
+      else if(bk.period)h+='<div class="srow big" style="margin:10px 0"><span>Период</span><b>'+ruDate(bk.period[0])+' — '+ruDate(bk.period[1])+'</b></div>'
         +'<label class="f"><span>Проверьте период</span><select id="mubper">'+sel.map(p=>'<option value="'+p[0]+'|'+p[1]+'"'+(p[0]===bk.period[0]?' selected':'')+'>'+ruDate(p[0])+' — '+ruDate(p[1])+'</option>').join('')+'</select></label>';
-      else h+='<div class="chk warn"><i>!</i><div><b>Нет открытого периода с готовыми начислениями</b><br>Сначала загрузите начисления врачей по трём филиалам. Уже выданные периоды в списке не показываются.</div></div>';
+      else if(!vac)h+='<div class="chk warn"><i>!</i><div><b>Нет открытого периода с готовыми начислениями</b><br>Сначала загрузите начисления врачей по трём филиалам. Уже выданные периоды в списке не показываются.</div></div>';
       h+='<div class="srow"><span>Распознано / итого</span><b>'+ok.length+' / '+muF(ok.reduce((s,r)=>s+r.amount,0))+' ₽</b></div>';
       h+='<details open><summary>Строки ('+bk.rows.length+')</summary>'+bk.rows.map(r=>{const pe=r.person_id?(m.people||[]).find(x=>x.id===r.person_id):null;return'<div class="srow sub"><span>'+esc(pe?pe.short_name:r.fio)+(r.date?' · '+ruDate(r.date):'')+(r.err?'<br><span style="color:var(--bad)">'+esc(r.err)+' — будет пропущена</span>':'')+'</span><b>'+(r.amount!=null?muF(r.amount):'—')+'</b></div>'}).join('')+'</details>';
       if(bk.issues.length)h+='<div style="color:var(--bad);margin-top:4px;font-size:13px">'+bk.issues.map(esc).join('<br>')+'</div>';
       if(bad.length)h+='<div style="color:var(--warn);margin-top:4px;font-size:13px">Не сопоставлено строк: '+bad.length+'. Они не загрузятся.</div>';
       if(bk.done)h+='<div style="color:var(--ok);margin-top:6px;font-weight:700">'+esc(bk.done)+'</div>';
-      else h+='<button class="btn" style="margin-top:8px" data-act="mubankgo"'+((!ok.length||!bk.period||m.busy||bk.issues.length)?' disabled':'')+'>'+(m.busy?'Загрузка…':'Подтвердить и загрузить выплаты')+'</button>';
+      else h+='<button class="btn" style="margin-top:8px" data-act="mubankgo"'+((!ok.length||(!vac&&!bk.period)||(vac&&noDate)||m.busy||bk.issues.length)?' disabled':'')+'>'+(m.busy?'Загрузка…':(vac?'Подтвердить и загрузить отпускные':'Подтвердить и загрузить выплаты'))+'</button>';
     }
     h+=' <button class="btn sec small" data-act="mubankdrop">Убрать из списка</button></div>';
   }
@@ -1674,7 +1722,8 @@ function muHtml(){
   if(!bt)h+='<p class="hint">Загрузка списка…</p>';
   else{
     h+='<h3>Начисления врачей</h3>'+((bt.vm||[]).length?bt.vm.map(x=>'<div class="srow"><span'+(x.cancelled?' style="text-decoration:line-through;color:var(--mute)"':'')+'><b>№'+x.id+'</b> '+esc(muBrTitle(x.branch))+'<br><small>'+ruDate(x.from)+' — '+ruDate(x.to)+' · '+x.rows+' стр. · '+muF(x.total)+' ₽</small></span>'+(x.cancelled?'<small>отменена</small>':'<button class="btn sec small" data-act="mucancel" data-kind="vm" data-key="'+x.id+'"'+(m.busy?' disabled':'')+'>Отменить</button>')+'</div>').join(''):'<p class="hint">Пока ничего.</p>');
-    h+='<h3>Выплаты банка</h3>'+((bt.bank||[]).length?bt.bank.map(x=>'<div class="srow"><span'+(x.cancelled?' style="text-decoration:line-through;color:var(--mute)"':'')+'><small>'+ruDate(x.from)+' — '+ruDate(x.to)+(x.date?' · платёж '+ruDate(x.date):'')+'</small><br>'+esc((x.who||[]).join(', '))+(x.rows>(x.who||[]).length?' и др.':'')+' · '+x.rows+' стр. · '+muF(x.total)+' ₽</span>'+(x.cancelled?'<small>отменена</small>':'<button class="btn sec small" data-act="mucancel" data-kind="bank" data-key="'+esc(x.hash)+'"'+(m.busy?' disabled':'')+'>Отменить</button>')+'</div>').join(''):'<p class="hint">Пока ничего.</p>');
+    h+='<h3>Отпускные</h3>'+((VAC.loads||[]).length?VAC.loads.map(x=>'<div class="srow"><span'+(x.cancelled?' style="text-decoration:line-through;color:var(--mute)"':'')+'><small>платёж '+ruDate(x.date)+'</small><br>'+x.rows+' стр. · '+muF(Number(x.total))+' ₽</span>'+(x.cancelled?'<small>отменена</small>':'<button class="btn sec small" data-act="mucancelvac" data-k="'+esc(x.hash)+'">Отменить</button>')+'</div>').join(''):'<p class="hint">Отпускные пока не загружались.</p>')
+    +'<h3>Выплаты банка</h3>'+((bt.bank||[]).length?bt.bank.map(x=>'<div class="srow"><span'+(x.cancelled?' style="text-decoration:line-through;color:var(--mute)"':'')+'><small>'+ruDate(x.from)+' — '+ruDate(x.to)+(x.date?' · платёж '+ruDate(x.date):'')+'</small><br>'+esc((x.who||[]).join(', '))+(x.rows>(x.who||[]).length?' и др.':'')+' · '+x.rows+' стр. · '+muF(x.total)+' ₽</span>'+(x.cancelled?'<small>отменена</small>':'<button class="btn sec small" data-act="mucancel" data-kind="bank" data-key="'+esc(x.hash)+'"'+(m.busy?' disabled':'')+'>Отменить</button>')+'</div>').join(''):'<p class="hint">Пока ничего.</p>');
   }
   h+='</div>';
   /* D. PIN */
