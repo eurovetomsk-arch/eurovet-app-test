@@ -7,7 +7,7 @@ const VX={data:null,err:null,loading:false,at:0,branch:null,mode:'list',entry:nu
 const vacHm=t=>{try{return new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Omsk',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t))}catch(e){return ''}};
 const vacCanEnter=()=>!!(S.person&&(isHead()||personRoles().includes('admin')||canReport()));
 async function loadVacOverview(force){
-  if(!S.token||VX.loading)return;
+  if(!S.token||VX.loading||(UI2.moduleBuilt||{}).vaccines!==true)return; /* модуль выключен настройкой (в живом — до миграции L09) */
   if(!force&&VX.data&&Date.now()-VX.at<120000)return;
   VX.loading=true;
   try{
