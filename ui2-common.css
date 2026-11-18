@@ -605,3 +605,6 @@ body.ui2 .vac-step input.vq{width:62px;height:44px;text-align:center;font-size:1
 body.ui2 .vac-day{border-top:1px solid var(--line);padding:10px 0}
 body.ui2 .vac-day small{display:block;color:var(--mute);margin:2px 0 6px}
 body.ui2 .vac-dq{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}
+
+/* c21: заметка о связи на экране входа */
+body.ui2 .ui2-login-net{margin:14px 22px 0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.14);color:#EAF6F8;font-size:13px;line-height:1.4;text-align:center;white-space:normal}

@@ -220,7 +220,16 @@ function loginBoxes(){
     +'<div class="ui2-field-label" style="margin-top:10px;opacity:.7;font-weight:600">Автоматический выход через 30 минут без действий (кроме руководителя).</div>';
 }
 function loginPad(){return '<div class="ui2-pad">'+['1','2','3','4','5','6','7','8','9'].map(n=>'<button data-act="logindigit" data-n="'+n+'">'+n+'</button>').join('')+'<button class="blank" tabindex="-1" aria-hidden="true"></button><button data-act="logindigit" data-n="0">0</button><button class="del" data-act="logindel" aria-label="Стереть">⌫</button></div>'}
+/* c21: без сети войти нельзя (вход проверяет сервер), но данные не потеряны — говорим об этом прямо */
+function loginNetNote(){
+  const q=(S.queue||[]).length,hq=(S.handoverQueue||[]).length;
+  if(S.online&&!q&&!hq)return '';
+  let t='';
+  if(!S.online)t+='Нет интернета: войти сейчас нельзя. ';
+  if(q||hq)t+='На этом устройстве сохранено и ждёт отправки: '+[q?'отчётов '+q:'',hq?'приёмок кассы '+hq:''].filter(Boolean).join(', ')+'. Данные не потеряются. Войдите, когда появится интернет, и они отправятся сами.';
+  return t?'<p class="ui2-login-net" role="status">'+esc(t.trim())+'</p>':'';
+}
 function viewLogin(){
-  if(S.loginScreen==='start')return '<section class="ui2-login-shell ui2-start"><div class="ui2-login-spacer"></div><div class="ui2-halo">'+evroMark('evro-mark')+'</div>'+loginWordmark('lg')+'<p class="ui2-login-lead">'+esc(loginSlogan())+'</p><div class="ui2-login-spacer"></div><button class="btn ui2-login-btn" data-act="loginstart">Войти</button></section>';
-  return '<section class="ui2-login-shell ui2-key-login">'+loginWordmark('sm')+'<h2>'+(S.loginStep==='number'?'Ваш личный номер':'Введите PIN')+'</h2><div class="ui2-login-entry">'+loginBoxes()+'</div><div class="ui2-login-spacer"></div>'+loginPad()+'<p class="ui2-login-fine">Номер и PIN — ваша подпись. Никому не передавайте</p>'+(S.busy?'<div class="ui2-login-busy">Входим…</div>':'')+'</section>';
+  if(S.loginScreen==='start')return '<section class="ui2-login-shell ui2-start"><div class="ui2-login-spacer"></div><div class="ui2-halo">'+evroMark('evro-mark')+'</div>'+loginWordmark('lg')+'<p class="ui2-login-lead">'+esc(loginSlogan())+'</p>'+loginNetNote()+'<div class="ui2-login-spacer"></div><button class="btn ui2-login-btn" data-act="loginstart">Войти</button></section>';
+  return '<section class="ui2-login-shell ui2-key-login">'+loginWordmark('sm')+'<h2>'+(S.loginStep==='number'?'Ваш личный номер':'Введите PIN')+'</h2><div class="ui2-login-entry">'+loginBoxes()+'</div><div class="ui2-login-spacer"></div>'+loginPad()+''+loginNetNote()+'<p class="ui2-login-fine">Номер и PIN — ваша подпись. Никому не передавайте</p>'+(S.busy?'<div class="ui2-login-busy">Входим…</div>':'')+'</section>';
 }

@@ -689,8 +689,8 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='Backspace'){e.preventDefault();document.querySelector('[data-act="logindel"]')?.click()}
 });
 
-window.addEventListener('online',()=>{S.online=true;setHeader();kick()});
-window.addEventListener('offline',()=>{S.online=false;setHeader()});
+window.addEventListener('online',()=>{S.online=true;setHeader();if(S.view==='login')render();kick()});
+window.addEventListener('offline',()=>{S.online=false;setHeader();if(S.view==='login')render()});
 function syncDate(){ // приложение могло неделю висеть открытым: если дату руками не меняли — всегда сегодняшняя
   if(!S.dateManual&&S.date!==omskToday()){S.date=omskToday();if(S.view==='branch'&&S.token)render()}
 }
