@@ -52,7 +52,8 @@ function render(){
   else if(S.view==='mu')app.innerHTML=muHtml();
   else if(S.view==='sched')app.innerHTML=schedHtml();
   else if(S.view==='prepare')app.innerHTML=prepareHtml();
-  if(S.person&&['branch','ctl','rev','sal','cc','work','pay','sched','prepare'].includes(S.view))bar.innerHTML=navHtml();
+  else if(S.view==='vac')app.innerHTML=vacHtml();
+  if(S.person&&['branch','ctl','rev','sal','cc','work','pay','sched','prepare','vac'].includes(S.view))bar.innerHTML=navHtml();
 }
 window.addEventListener('popstate',e=>{
   const x=e.state&&e.state.evrovet;if(!x)return;
@@ -481,6 +482,14 @@ document.addEventListener('click',async e=>{
     case'bankkind':if(S.mu){S.mu.bankKind=d.k;paint()}break;
     case'mucancelvac':muCancel('vac',d.k);break;
     case'repstatus':repStatusOverlay();break;
+    case'vacbranch':VX.branch=d.id;paint();break;
+    case'vacentry':vacEntryStart();break;
+    case'vacstep':{const e=VX.entry;if(!e)break;const n=Math.max(0,Math.min(9999,(parseInt(e.qty[d.id],10)||0)+Number(d.s)));e.qty[d.id]=String(n);e.savedAt=null;const inp=document.querySelector('.vq[data-id="'+d.id+'"]');if(inp)inp.value=n;break}
+    case'vacday':{if(VX.entry){VX.entry.date=d.d;VX.entry.savedAt=null;paint()}break}
+    case'vacsave':vacSave();break;
+    case'vachist':vacHistStart();break;
+    case'vachistbr':VX.branch=d.id;vacHistStart();break;
+    case'vacback':VX.mode='list';VX.entry=null;paint();window.scrollTo(0,0);break;
     case'subadmin':subAdminPick();break;
     case'subadminpick':subAdminConfirm(d.id);break;
     case'subadminyes':openBranch(d.id,{asAdmin:true});break;
@@ -626,7 +635,7 @@ document.addEventListener('click',async e=>{
     case'setReason':{const v=(($('#rs-'+d.id)||{}).value||'').trim();if(v.length<3){toast('Напишите причину');break}
       const it=S.queue.find(x=>x.uid===d.id);if(it){it.reason=v;it.status='new'}saveQueue();closeOv();await flush();break}
     case'doUpdate':reloadNew();break;
-    case'go':{closeOv();const v=d.v;if(v==='work')showWork(S.wkFrom,S.wkTo);else if(v==='cc')showCC();else if(v==='sched')showSched();else if(v==='branch'){S.view='branch';render();window.scrollTo(0,0)}else if(v==='ctl')showControl();else if(v==='rev')showRevenue();else if(v==='pay'){S.pplMode=false;S.paySafe=false;showPay()}else if(v==='safe'){S.pplMode=false;S.paySafe=true;showPay(S.payFrom,S.payTo);loadSafe()}else if(v==='ppl'){S.pplMode=true;S.paySafe=false;S.pplId=null;showPay()}else if(v==='sal')showSalary(S.salFrom,S.salTo);break}
+    case'go':{closeOv();const v=d.v;if(v==='work')showWork(S.wkFrom,S.wkTo);else if(v==='cc')showCC();else if(v==='sched')showSched();else if(v==='branch'){S.view='branch';render();window.scrollTo(0,0)}else if(v==='ctl')showControl();else if(v==='vac')showVac();else if(v==='rev')showRevenue();else if(v==='pay'){S.pplMode=false;S.paySafe=false;showPay()}else if(v==='safe'){S.pplMode=false;S.paySafe=true;showPay(S.payFrom,S.payTo);loadSafe()}else if(v==='ppl'){S.pplMode=true;S.paySafe=false;S.pplId=null;showPay()}else if(v==='sal')showSalary(S.salFrom,S.salTo);break}
     case'salcopy':copyPay();break;
     case'salper':showSalary(d.from,d.to);break;
     case'saldates':S.salDates=!S.salDates;paint();break;

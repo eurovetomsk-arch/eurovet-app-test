@@ -110,8 +110,8 @@ const HOME_TILE_META={
   my_schedule:{section:'clinic',size:'sm',title:'График',sub:'Мои смены и кто где',view:'sched'},
   my_accruals:{section:'clinic',size:'sm',title:'Мои начисления',sub:'Начислено за период',view:'work'},
   where_i_work:{section:'work',size:'wide',title:'Где я работаю',sub:'Мои смены и кто где сегодня',view:'sched'},
-  vaccines:{section:'preparations',size:'sm',title:'Вакцины',sub:'Остатки и движение',prepare:'Здесь будут остатки вакцин и их движение по филиалам.'},
-  vaccines_all_branches:{section:'preparations',size:'sm',title:'Вакцины по филиалам',sub:'Остатки во всех клиниках',prepare:'Здесь будут остатки вакцин по всем филиалам.'},
+  vaccines:{section:'preparations',size:'sm',title:'Вакцины',sub:'Остатки по филиалам',view:'vac',prepare:'Здесь будут остатки вакцин и их движение по филиалам.'},
+  vaccines_all_branches:{section:'preparations',size:'sm',title:'Вакцины по филиалам',sub:'Остатки во всех клиниках',view:'vac',prepare:'Здесь будут остатки вакцин по всем филиалам.'},
   dose_calculator:{section:'preparations',size:'sm',title:'Расчёт дозы',sub:'Быстрый расчёт препарата',prepare:'Здесь будет безопасный расчёт дозы препарата.'},
   supplies:{section:'preparations',size:'sm',title:'Препараты и расходники',sub:'Заявка и остатки',prepare:'Скоро: заявка препаратов и расходников — здесь же будут остатки.'},
   supplies_all_requests:{section:'preparations',size:'sm',title:'Заявки филиалов',sub:'Все заявки на снабжение',prepare:'Здесь будут заявки филиалов на препараты и расходники.'},
@@ -133,7 +133,7 @@ function homeTileKeys(){
 }
 function homeTileHtml(k){
   const m=HOME_TILE_META[k],built=(UI2.moduleBuilt||{})[k]===true,attrs=built?(m.act?' data-act="'+m.act+'"':' data-act="go" data-v="'+m.view+'"'):' data-act="prepare" data-k="'+k+'"';
-  return '<button class="glass ui2-role-tile '+m.size+'"'+attrs+'><span class="ic">'+homeIcon(k)+'</span><span><span class="t">'+esc(m.title)+'</span><span class="sub">'+esc(m.sub)+'</span></span></button>';
+  return '<button class="glass ui2-role-tile '+m.size+'"'+attrs+'><span class="ic">'+homeIcon(k)+'</span><span><span class="t">'+esc(m.title)+'</span><span class="sub">'+esc(m.sub)+'</span>'+((k==='vaccines'||k==='vaccines_all_branches')?vacTileBadge():'')+'</span></button>';
 }
 /* свод §17: у не-руководителей разделы — Работа → Препараты → Клиника; у руководителя — Финансы → Препараты → Клиника (§15/«главная на плитках») */
 const HOME_NH_SECTION={cash_acceptance:'work',evening_report:'work',appointments:'work',where_i_work:'clinic'};
@@ -147,9 +147,10 @@ function showHomeBranches(){
   overlay('<h2>'+(isAdminCC()?'Я сегодня на филиале…':'Выберите филиал')+'</h2><p class="hint">Откроется сегодняшний отчёт. Утром сначала показывается приём кассы.</p>'+buttons+'<button class="btn sec small" data-act="ovclose">Отмена</button>');
 }
 function viewBranch(){
+  loadVacOverview();
   if(isCC()&&!isHead())loadCCToday();
   if(isHead()){loadDayStatus();if(S.mr==null&&S.lv==null)loadMr();if(!S.revStatus||Date.now()-(S.revStatusAt||0)>60000)loadRevStatus()}else loadHomeWho();
-  let h='<section class="ui2-home-screen"><div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div>'+(isHead()?headDayLineHtml()+headTodayHtml():isAdminCC()?bothTodayHtml():homeTodayHtml())+homeSectionsHtml();
+  let h='<section class="ui2-home-screen"><div class="ui2-greeting"><small>'+esc(stageRole(S.person))+'</small><h1>'+esc(stageGreeting(S.person))+'</h1></div>'+(isHead()?headDayLineHtml()+headTodayHtml():isAdminCC()?bothTodayHtml():homeTodayHtml())+vacReminderHtml()+homeSectionsHtml();
   if(isHead())h+='<div class="mrbox">'+mrHtml0()+lvHtml()+'</div>'; /* ждущие подтверждения инкассации и отпуска — только если есть */
   if(S.queue.length)h+='<div class="card quiet"><p class="hint">Не отправлено отчётов: '+S.queue.length+'. Нажмите «'+(S.online?'онлайн':'нет связи')+'» вверху.</p></div>';
   return h+'</section>';

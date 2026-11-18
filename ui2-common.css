@@ -586,3 +586,22 @@ body.bd-open{overflow:hidden}
 @keyframes bd-in{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:none}}
 .bd.bd-static .bd-glow,.bd.bd-static .bd-card>*,.bd.bd-static .bd-foot{animation:none}
 @media (prefers-reduced-motion:reduce){.bd *{animation:none!important}}
+
+/* ====== 2.0 · Вакцины (п.24): красное «мало» видно всем ролям ====== */
+body.ui2 .vac-low{display:inline-block;margin-top:6px;padding:2px 9px;border-radius:999px;background:var(--ev-bad);color:#fff;font-size:12px;font-weight:800;letter-spacing:.2px}
+body.ui2 .vac-grp{margin:14px 0 4px;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mute)}
+body.ui2 .vac-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+body.ui2 .vac-row>span{flex:1 1 auto;min-width:0;font-weight:600}
+body.ui2 .vac-row small,body.ui2 .vac-edit small{display:block;font-weight:500;font-size:12px;color:var(--mute)}
+body.ui2 .vac-row b{font-size:22px;font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
+body.ui2 .vac-row em{font-style:normal;font-size:11px;font-weight:800;color:#fff;background:var(--ev-bad);border-radius:999px;padding:2px 8px}
+body.ui2 .vac-row.low b,body.ui2 .vac-row.low>span{color:var(--ev-bad)}
+body.ui2 .vac-lowcard span{display:inline-block}
+body.ui2 .vac-edit{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+body.ui2 .vac-edit>span{flex:1 1 auto;min-width:0;font-weight:600}
+body.ui2 .vac-step{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+body.ui2 .vac-b{width:44px;height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--acc);font-size:26px;font-weight:800;line-height:1;padding:0}
+body.ui2 .vac-step input.vq{width:62px;height:44px;text-align:center;font-size:18px;font-weight:800;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:0}
+body.ui2 .vac-day{border-top:1px solid var(--line);padding:10px 0}
+body.ui2 .vac-day small{display:block;color:var(--mute);margin:2px 0 6px}
+body.ui2 .vac-dq{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}
