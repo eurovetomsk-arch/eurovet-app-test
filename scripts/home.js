@@ -5,8 +5,8 @@ function stageGreetingWord(h=(new Date()).getHours()){return h>=5&&h<12?'Доб�
 function stageGreetingName(p){
   const full=String(p?.full_name||p?.name||'').trim(),a=full.split(/\s+/).filter(Boolean);
   if(a.length>=3)return a[1]+' '+a[2];
-  const short=String(p?.short_name||p?.name||full).trim();
-  return short||'';
+  /* c20: «Имя Отчество» только из полного ФИО в 3 слова; из 2 слов (или только короткого имени) приветствие без имени */
+  return '';
 }
 function stageGreeting(p){const n=stageGreetingName(p);return stageGreetingWord()+(n?', '+n:'');}
 function stageRole(p){

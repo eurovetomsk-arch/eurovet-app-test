@@ -209,7 +209,9 @@ function flagLine(f,where){
     +(nums?'<br><small>'+esc(nums)+'</small>':'')
     +(isHead()&&FLAG_HINT[f.code]?'<br><small>'+FLAG_HINT[f.code]+'</small>':'')+(isHead()&&(vmDetail||f.detail)?'<br><small>'+nameDetail(vmDetail||f.detail)+'</small>':'')
     +(f.accepted?'<br><small>принято руководителем</small>':'')
-    +(isHead()&&!f.accepted&&!['vm_not_checked','vm_partial'].includes(f.code)?'<br><span class="fbtns"><button class="btn sec small" data-act="accept" data-bid="'+esc(bid)+'" data-dt="'+esc(dt)+'" data-code="'+esc(f.code)+'" data-ver="'+(Number(f.version)||0)+'">Принять</button><button class="btn sec small" data-act="fdet" data-bid="'+esc(bid)+'" data-dt="'+esc(dt)+'" data-code="'+esc(f.code)+'" data-ver="'+(Number(f.version)||0)+'">Подробнее</button></span>':'')
+    +(where==='ctl'&&!f.accepted&&(f.blocked||['vm_not_checked','vm_partial'].includes(f.code))?'<br><small><b>Ждёт сверку Штаба</b></small>':'')
+    +(where==='ctl'&&f.accepted&&f.accepted_by?'<br><small>принял: '+esc(f.accepted_by)+(f.accepted_at?' · '+omskAt(f.accepted_at):'')+'</small>':'')
+    +(isHead()&&!f.accepted&&!['vm_not_checked','vm_partial'].includes(f.code)?'<br><span class="fbtns"><button class="btn sec small" data-act="'+(where==='ctl'?'ctlquick':'accept')+'" data-bid="'+esc(bid)+'" data-dt="'+esc(dt)+'" data-code="'+esc(f.code)+'" data-ver="'+(Number(f.version)||0)+'">Принять</button><button class="btn sec small" data-act="fdet" data-bid="'+esc(bid)+'" data-dt="'+esc(dt)+'" data-code="'+esc(f.code)+'" data-ver="'+(Number(f.version)||0)+'">Подробнее</button></span>':'')
     +'</div></div>';
 }
 function flagsHtml(){
@@ -257,30 +259,42 @@ function navHtml(){
 async function showControl(){
   S.view='ctl';S.ctlLoad=true;S.ctlErr=null;paint();window.scrollTo(0,0);loadMr();loadVmNames();
   try{
-    const to=omskToday(),from=addDays(to,-6);
-    const r=await rpc('ev_flags_overview',{p_token:S.token,p_from:from,p_to:to},10000);
+    const r=await rpc('ev_flags_pending',{p_token:S.token},20000);
     if(!r||!r.ok)S.ctlErr=(r&&r.error==='session'?'Сессия закончилась, войдите заново.':'Нет доступа.');
-    else{S.ctl=r.flags||[];S.ctlCoverage=r.coverage||[]}
+    else{S.ctl=r.pending||[];S.ctlCoverage=r.coverage||[];S.ctlAccepted=r.accepted||[]}
   }catch(e){S.ctlErr=e.net?'Нет связи.':'Ошибка сервера.'}
   S.ctlLoad=false;if(S.view==='ctl')paint();
 }
+function ctlReady(fl){return (fl||[]).filter(f=>!f.accepted&&!f.blocked&&!['vm_not_checked','vm_partial'].includes(f.code))}
+function ctlPayload(f){return{branch:f.branch||S.branch,date:f.date||S.date,code:f.code,version:Number(f.version)||0,confirm_money:true}}
+async function ctlAccept(items){
+  if(S.ctlBusy||!items.length)return;S.ctlBusy=true;closeOv();if(S.view==='ctl')paint();
+  try{
+    const r=await rpc('ev_accept_quick',{p_token:S.token,p_items:items.slice(0,500)},30000);
+    if(!r||!r.ok)toast(r&&r.error==='awaiting_shtab_check'?'Сначала нужна сверка Штаба':r&&r.error==='session'?'Сессия закончилась, войдите заново':'Не удалось принять',5000);
+    else toast(r.accepted?'Принято: '+r.accepted:'Уже было принято');
+  }catch(e){toast(e.net?'Нет связи':'Ошибка сервера',5000)}
+  S.ctlBusy=false;S.revStatusAt=0;if(S.view==='ctl')await showControl();
+}
 function ctlHtml(){
-  let h='<div class="mrbox">'+mrHtml()+'</div><div class="card"><h2>Контроль · 7 дней</h2>';
+  let h='<div class="mrbox">'+mrHtml()+'</div><div class="card"><h2>Контроль · с 27.10</h2>';
   if(S.ctlErr)h+='<p>'+esc(S.ctlErr)+'</p><button class="btn sec small" data-act="go" data-v="ctl">Повторить</button>';
   else if(S.ctlLoad&&!S.ctl)h+='<p class="hint">Загружаю…</p>';
   else{
-    const fl=S.ctl||[],open=fl.filter(f=>!f.accepted),cv=S.ctlCoverage||[];
+    const fl=S.ctl||[],open=fl,cv=S.ctlCoverage||[],ready=ctlReady(fl),done=S.ctlAccepted||[];
     const complete=cv.filter(x=>x.status==='complete').length;
     const waiting=cv.filter(x=>['pending','missing'].includes(x.status));
     const pending=waiting.length;
     const incompleteRows=cv.filter(x=>!['complete','pending','missing'].includes(x.status)),incomplete=incompleteRows.length;
     const staleDays=waiting.reduce((n,x)=>Math.max(n,Math.max(0,Math.floor((Date.parse(omskToday()+'T00:00:00Z')-Date.parse(String(x.date||'')+'T00:00:00Z'))/86400000))),0);
-    h+='<p class="hint">Открытых расхождений: '+open.length+'. Vetmanager подтвердил '+complete+' из '+cv.length+' текущих версий отчётов.</p>';
+    h+='<p class="hint">Ждут решения: '+open.length+'. Vetmanager подтвердил '+complete+' из '+cv.length+' текущих версий отчётов.</p>';
     if(pending)h+=staleDays>2
       ?'<div class="chk warn"><i>!</i><div><b>Сверка Vetmanager не проводилась '+staleDays+' '+(staleDays%10===1&&staleDays%100!==11?'день':([2,3,4].includes(staleDays%10)&&![12,13,14].includes(staleDays%100)?'дня':'дней'))+'</b><br><small>Ожидание длится больше двух суток. Строка видна только руководителю; отчёты и суммы она не меняет.</small></div></div>'
       :'<div class="chk wait"><i>…</i><div><b>Ожидают плановой сверки: '+pending+'</b><br><small>Сегодняшние отчёты проверятся автоматически после закрытия смен. Ничего принимать вручную не нужно.</small></div></div>';
     if(incomplete){const details=incompleteRows.map(x=>{const bt=(BRANCHES.find(b=>b.id===x.branch)||{}).title||x.branch;return bt+' · '+ruDate(x.date)+': '+vmCoverageText(x)}).join(' ');h+='<div class="chk bad"><i>!</i><div><b>Сверка Vetmanager не завершена: '+incomplete+'</b><br><small>'+esc(details)+'</small></div></div>'}
+    if(ready.length)h+='<button class="btn ctl-all" data-act="ctlall"'+(S.ctlBusy?' disabled':'')+'>Принять всё ('+ready.length+')</button><p class="hint">Красные сверху. Деньги и отчёты не меняются.</p>';
     h+=fl.length?fl.map(f=>flagLine(f,'ctl')).join(''):(cv.length&&complete+pending===cv.length?(pending?'<p>Подтверждённых расхождений сейчас нет. Идёт плановая сверка сегодняшних отчётов.</p>':'<p>Расхождений нет. Все текущие версии отчётов подтверждены Vetmanager.</p>'):'<p>Нет подтверждённых данных для вывода «расхождений нет».</p>');
+    h+='<details class="ctl-done"><summary>Принято ('+done.length+')</summary>'+(done.length?done.map(f=>flagLine(f,'ctl')).join(''):'<p class="hint">Пока ничего не принято.</p>')+'</details>';
   }
   return h+'</div>';
 }
@@ -329,7 +343,7 @@ function fdetBody(ds,r,fallback){
     h+='<p class="hint" style="margin-top:12px">'+(fallback==='load'?'Загружаю версии и авторов…':'Версии отчёта и авторы сейчас недоступны'+(fallback==='net'?' (нет связи).':'.'))+'</p>';
   }
   const open=!f0.accepted;
-  h+=(open?'<button class="btn" style="margin-top:8px" data-act="accept" data-bid="'+esc(ds.bid)+'" data-dt="'+esc(ds.dt)+'" data-code="'+esc(ds.code)+'" data-ver="'+(Number(ds.ver)||0)+'">Принять</button>':'<p class="hint">Уже принято руководителем.</p>')
+  h+=(open?'<button class="btn" style="margin-top:8px" data-act="ctlquick" data-bid="'+esc(ds.bid)+'" data-dt="'+esc(ds.dt)+'" data-code="'+esc(ds.code)+'" data-ver="'+(Number(ds.ver)||0)+'">Принять</button>':'<p class="hint">Уже принято руководителем.</p>')
     +'<button class="btn sec" style="margin-top:8px" data-act="ovclose">Назад</button></div>';
   return h;
 }
@@ -653,6 +667,8 @@ document.addEventListener('click',async e=>{
     case'revbr':S.revBranch=d.b;paint();window.scrollTo(0,0);break;
     case'revgo':{const f=($('#revf')||{}).value,t=($('#revt')||{}).value;if(!f||!t||t<f){toast('Проверьте даты периода');break}showRevenue(f,t);break}
     case'accept':acceptForm(d);break;
+    case'ctlquick':ctlAccept([{branch:d.bid,date:d.dt,code:d.code,version:Number(d.ver)||0,confirm_money:true}]);break;
+    case'ctlall':ctlAccept(ctlReady(S.ctl).map(ctlPayload));break;
     case'fdet':showFlagDetail(d);break;
     case'acceptgo':doAccept(S.accDs,($('#accnote')||{}).value||'');break;
     case'chpin':showPin();break;

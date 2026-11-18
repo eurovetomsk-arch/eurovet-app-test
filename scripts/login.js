@@ -10,6 +10,8 @@ async function doLogin(pin){
     const r=await rpc('ev_login_number',{p_number:number,p_pin:pin,p_device:DEV,p_shared:shared});
     // 2.0 deliberately opens the role-aware home for every authenticated role.
     // The former showCC/showWork redirects hid the new main screen from those roles.
+    /* c20: роль без экрана (например, аутсорс; screen_access/список ролей экрана пуст) — приложение для неё не строится */
+    if(r.ok&&personRoles(r.person).length===0){rpc('ev_logout',{p_token:r.token}).catch(()=>{});S.loginPin='';S.busy=false;toast('Для вашей роли экран в приложении не предусмотрен.',7000);render();return}
     if(r.ok){S.token=r.token;S.person=r.person;S.shared=shared;touchAct();S.busy=false;S.view='branch';render();flush();birthdayCheck();return}
     const m={bad_pin:'Неверный PIN'+(r.attempts_left!=null?'. Осталось попыток: '+r.attempts_left:''),locked:'Слишком много ошибок. Вход закрыт на 15 минут.',expired:'Срок PIN истёк — обратитесь к руководителю.',no_access:'Нет доступа. Обратитесь к руководителю.'};
     toast(m[r.error]||'Ошибка входа',6000);

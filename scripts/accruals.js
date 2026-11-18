@@ -981,10 +981,10 @@ function revDoctorsHtml(){
 }
 /* 2.0 §15: над выручкой одна строка статуса (бывший «Контроль»): 🟢 всё сходится / 🔴 требует внимания: N */
 async function loadRevStatus(){
-  if(!isHead())return;const to=omskToday(),from=addDays(to,-6);
-  try{const r=await rpc('ev_flags_overview',{p_token:S.token,p_from:from,p_to:to},10000);
-    if(r&&r.ok){S.ctl=r.flags||[];S.ctlCoverage=r.coverage||[];const cv=S.ctlCoverage;
-      S.revStatus={open:(S.ctl||[]).filter(f=>!f.accepted&&f.code!=='vm_not_checked').length,incomplete:cv.filter(x=>!['complete','pending','missing'].includes(x.status)).length}}
+  if(!isHead())return;
+  try{const r=await rpc('ev_flags_pending',{p_token:S.token},20000);
+    if(r&&r.ok){S.ctl=r.pending||[];S.ctlAccepted=r.accepted||[];S.ctlCoverage=r.coverage||[];const cv=S.ctlCoverage;
+      S.revStatus={open:(S.ctl||[]).filter(f=>!f.blocked&&!['vm_not_checked','vm_partial'].includes(f.code)).length,incomplete:cv.filter(x=>!['complete','pending','missing'].includes(x.status)).length}}
     else S.revStatus={err:true}}catch(e){S.revStatus={err:true}}
   S.revStatusAt=Date.now();if(S.view==='rev'||S.view==='branch')paint();
 }
@@ -994,7 +994,7 @@ function revStatusHtml(){
   if(s.err)return '<button class="glass ui2-today calm" data-act="go" data-v="ctl"><span class="pin">○</span><div>Статус дня не загрузился. Открыть «Контроль» ›</div></button>';
   const n=(s.open||0)+(s.incomplete||0);
   return n?'<button class="glass ui2-today bad" data-act="go" data-v="ctl"><span class="pin">🔴</span><div><b>Требует внимания: '+n+'</b><br>Открыть разбор ›</div></button>'
-    :'<button class="glass ui2-today" data-act="go" data-v="ctl"><span class="pin">🟢</span><div><b>Всё сходится</b><br>Отчёты и сверка за неделю без расхождений ›</div></button>';
+    :'<button class="glass ui2-today" data-act="go" data-v="ctl"><span class="pin">🟢</span><div><b>Всё сходится</b><br>Отчёты и сверка с 27.10 без расхождений ›</div></button>';
 }
 function staffLine(o,rt){
   const pct=Math.round(Number(rt.admin_pharmacy_pct)*10000)/100;

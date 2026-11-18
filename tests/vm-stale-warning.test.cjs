@@ -21,7 +21,7 @@ const old=new Date(today+'T00:00:00Z');old.setUTCDate(old.getUTCDate()-4);const 
     await page.route('**/rest/v1/rpc/**',route=>{
       const name=route.request().url().split('/').pop();
       const body=name==='ev_login_number'?{ok:true,token:'qa-token',person:{id:106,full_name:'Руководителей Михаил Романович',short_name:'Руководителей М. Р.',head:true,roles:['head']}}
-        :name==='ev_flags_overview'?{ok:true,flags:[],coverage:[{branch:'pereleta',date:oldDate,version:1,status:'missing',checked_at:null,coverage:{}}]}
+        :name==='ev_flags_pending'?{ok:true,pending:[],accepted:[],coverage:[{branch:'pereleta',date:oldDate,version:1,status:'missing',checked_at:null,coverage:{}}]}
         :name==='ev_day_status'?{ok:true,branches:[]}
         :name==='ev_cash_on_hand'?{ok:false}
         :{ok:true,rows:[],items:[]};
@@ -36,7 +36,7 @@ const old=new Date(today+'T00:00:00Z');old.setUTCDate(old.getUTCDate()-4);const 
   await page.locator('.ui2-home-screen').waitFor();
     const reports=page.locator('.ui2-role-tile',{hasText:'Отчёты'});
     await reports.click();
-    await page.getByText('Контроль · 7 дней').waitFor();
+    await page.getByText('Контроль · с 27.10').waitFor();
     await page.waitForTimeout(250);
     await page.getByText('Сверка Vetmanager не проводилась 4 дня').waitFor();
     assert.equal(await page.locator('.chk.warn',{hasText:'Сверка Vetmanager не проводилась'}).count(),1);

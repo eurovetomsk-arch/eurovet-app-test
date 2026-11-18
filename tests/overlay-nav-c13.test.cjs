@@ -32,6 +32,7 @@ function rpcBody(name,a,person){
     case'ev_cash_on_hand':return{ok:false};
     case'ev_cc_today':return{ok:true,date:today,me:false,marked_at:null,ops:0,others:[]};
     case'ev_flags_overview':return{ok:true,flags:[],coverage:[]};
+    case'ev_flags_pending':return{ok:true,pending:[],accepted:[],coverage:[]};
     default:return{ok:true,rows:[],items:[],shifts:[],branches:[]};
   }
 }

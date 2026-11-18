@@ -127,9 +127,14 @@ async function inspect(engineName,engine){
           for(const title of ['Люди и доступы','Вечерний отчёт','Выручка'])assert.match(leaderBody,new RegExp(title),engineName+' leader union');
           await leader.close();
           const neutral=await browser.newPage({viewport:{width:375,height:900}});
-          await login(neutral,{id:199,full_name:'Безролевой Тест Тестович',short_name:'Безролевой Т. Т.',work:true,roles:[]});
-          const neutralBody=await neutral.locator('body').innerText();
-          for(const title of ['Вечерний отчёт','Мои записи','Мои начисления','Деньги'])assert.doesNotMatch(neutralBody,new RegExp(title),engineName+' no-role fallback');
+          /* c20: роль без экрана (roles=[]) — вход закрывается сообщением, главный экран не строится (отчёт 3724) */
+          await stub(neutral,{id:199,full_name:'Безролевой Тест Тестович',short_name:'Безролевой Т. Т.',work:true,roles:[]});
+          await neutral.goto(appUrl,{waitUntil:'domcontentloaded'});
+          await neutral.locator('[data-act="loginstart"]').click();
+          for(const n of '123123456')await neutral.locator(`[data-act="logindigit"][data-n="${n}"]`).click();
+          await neutral.waitForTimeout(1200);
+          assert.equal(await neutral.evaluate(()=>!!S.token),false,engineName+' no-role: сессия не должна открываться');
+          assert.equal(await neutral.locator('.ui2-home-screen').count(),0,engineName+' no-role: главного экрана нет');
           await neutral.close();
         }finally{await browser.close()}
       }
