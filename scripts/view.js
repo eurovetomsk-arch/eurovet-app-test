@@ -575,7 +575,8 @@ document.addEventListener('click',async e=>{
     case'ltab':if(d.t===''){S.loginTab=null;S.notMe=true}else{S.loginTab=d.t;LS.set('ev_tab',d.t)}S.pick=null;render();break;
     case'notme':S.loginTab=null;S.notMe=true;S.pick=null;render();break;
     case'pick':S.pick=Number(d.id);render();setTimeout(()=>{const p=$('#pin');if(p)p.focus()},0);break;
-    case'loginstart':S.loginScreen='keypad';S.loginStep='number';S.loginNumber='';S.loginPin='';render();break;
+    case'loginstart':if(!applySavedNumber()){S.loginScreen='keypad';S.loginStep='number';S.loginNumber='';S.loginPin=''}render();break;
+    case'loginnotme':try{localStorage.removeItem(LOGIN_NUM_KEY)}catch(e){}S.loginRemembered=false;S.loginStep='number';S.loginNumber='';S.loginPin='';render();break;
     case'loginchange':S.loginStep='number';S.loginNumber='';S.loginPin='';render();break;
     case'logindel':if(S.busy)break;if(S.loginStep==='pin'){S.loginPin=S.loginPin.slice(0,-1);if(!S.loginPin.length&&S.loginNumber.length<3)S.loginStep='number'}else S.loginNumber=S.loginNumber.slice(0,-1);render();break;
     case'logindigit':{

@@ -46,7 +46,7 @@ async function newCtx(browser){return browser.newContext({viewport:{width:375,he
 async function goOffline(c){net.offline=true;if(c.browser().browserType().name()==='chromium')await c.setOffline(true)}
 async function goOnline(c){net.offline=false;if(c.browser().browserType().name()==='chromium')await c.setOffline(false)}
 async function login(p){
-  await p.locator('[data-act="loginstart"]').tap();for(const n of '123123456')await p.locator(`[data-act="logindigit"][data-n="${n}"]`).tap();
+  const pinOnly1=await p.locator('[data-act="loginstart"]').count()===0; /* c28: запомненный номер */if(!pinOnly1)await p.locator('[data-act="loginstart"]').tap();for(const n of (pinOnly1?'123456':'123123456'))await p.locator(`[data-act="logindigit"][data-n="${n}"]`).tap();
   await p.locator('.ui2-home-screen').waitFor({timeout:8000}).catch(async e=>{console.log('LOGIN-DEBUG',await p.evaluate(async()=>{try{const r=await fetch(CFG.url+'/rest/v1/rpc/ev_x',{method:'POST',body:'{}'});return CFG.url+' '+r.status}catch(e){return CFG.url+' ERR '+e}}),rpcLog.slice(-4),(await p.evaluate(()=>document.body.innerText)).slice(0,200));throw e});await wait(500);
 }
 async function until(p,fn,ms){const t=Date.now();while(Date.now()-t<(ms||20000)){if(await p.evaluate(fn).catch(()=>false))return;await wait(300)}throw new Error('таймаут: '+fn)}
@@ -115,7 +115,7 @@ const sent=()=>rpcLog.filter(x=>x.startsWith('ev_submit')).length;
     assert.equal(off.view,'login',eng+': без сети страница открылась (экран входа)');assert.equal(off.q,1,eng+': очередь отчётов цела после закрытия');assert.equal(off.hq,1,eng+': очередь кассы цела после закрытия');
     assert.match(off.txt,/ждёт отправки: отчётов 1, приёмок кассы 1/,eng+': на экране входа сказано, что данные сохранены');
     if(out)await p2.screenshot({path:out+'/'+eng+'-2-offline-login.png'});
-    await p2.locator('[data-act="loginstart"]').tap();for(const n of '123123456')await p2.locator(`[data-act="logindigit"][data-n="${n}"]`).tap();await wait(800);
+    /* c28: номер запомнен на устройстве — после повторного открытия сразу экран PIN */const pinOnly=await p2.locator('[data-act="loginstart"]').count()===0;if(!pinOnly)await p2.locator('[data-act="loginstart"]').tap();for(const n of (pinOnly?'123456':'123123456'))await p2.locator(`[data-act="logindigit"][data-n="${n}"]`).tap();await wait(800);
     assert.match(await p2.evaluate(()=>document.body.innerText),/Нет связи/,eng+': вход без сети — понятное сообщение');
     /* 5. сеть вернулась, вход: отправляется один раз, без дубля */
     await goOnline(c);await wait(300);
@@ -129,7 +129,7 @@ const sent=()=>rpcLog.filter(x=>x.startsWith('ev_submit')).length;
     /* 6. очень медленная сеть (ответ через 7 с): открывается сохранённая копия, без ошибки и без ожидания по 4 с на каждый файл */
     if(eng==='chromium'){ /* в WebKit Playwright этот сценарий (ответ сервера через 7 с) не открывает страницу даже с копией: проверено вручную нельзя, в отчёте помечено «не покрыто» */
     await p2.close();net.slow=7000;const p3=await c.newPage();const t0=Date.now();await p3.goto(url,{waitUntil:'domcontentloaded',timeout:20000});const dt=Date.now()-t0;
-    assert.ok(dt<6500,eng+': копия показана быстрее 6,5 с (не ждёт медленную сеть по 4 с на каждый файл), было '+dt+' мс');console.log(eng,'медленная сеть: страница из копии за',dt,'мс');assert.ok((await p3.evaluate(()=>document.body.innerText)).includes('Войти'),eng+': страница из копии открылась');net.slow=0;}
+    assert.ok(dt<6500,eng+': копия показана быстрее 6,5 с (не ждёт медленную сеть по 4 с на каждый файл), было '+dt+' мс');console.log(eng,'медленная сеть: страница из копии за',dt,'мс');assert.ok(/Войти|Введите PIN/.test(await p3.evaluate(()=>document.body.innerText)),eng+': страница из копии открылась (экран входа или PIN при запомненном номере)');net.slow=0;}
     assert.deepEqual(errs,[],eng+': ошибки JS '+errs.join('|'));
     console.log(eng,'PASS');await b.close();
   }
