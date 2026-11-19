@@ -1,4 +1,4 @@
-/* c28: запоминание личного номера на устройстве. Хранится только номер (3 цифры): PIN, токен, имя — нет. «Это не я» стирает номер. Выход номер не стирает.
+/* c28 + c31: запоминание личного номера (c31: приложение всегда открывается на стартовом экране; «Войти» подставляет номер) на устройстве. Хранится только номер (3 цифры): PIN, токен, имя — нет. «Это не я» стирает номер. Выход номер не стирает.
    Мок ответов сервера; тестовые цифры. */
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),http=require('node:http'),path=require('node:path');
@@ -31,7 +31,10 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
     const dump=JSON.stringify(st);assert.ok(!dump.includes('246801'),eng+': PIN не хранится');assert.ok(!dump.includes('tok-secret-xyz'),eng+': токен не хранится');assert.ok(!dump.includes('Лечебная'),eng+': имя не хранится');
     // 2) открыли приложение заново: номер подставлен, остаётся PIN
     await p.reload();await wait(700);sc=await screen();
-    assert.ok(!sc.start&&sc.step==='pin'&&sc.num==='123'&&sc.notme,eng+': номер подставлен, виден «Это не я» '+JSON.stringify(sc));
+    assert.ok(sc.start&&!sc.notme,eng+': c31: открытие без токена — стартовый экран, не PIN '+JSON.stringify(sc));
+    if(out)await p.screenshot({path:`${out}/${eng}-start-remembered.png`});
+    await p.locator('[data-act="loginstart"]').tap();await wait(200);sc=await screen();
+    assert.ok(!sc.start&&sc.step==='pin'&&sc.num==='123'&&sc.notme,eng+': «Войти» — номер подставлен, виден «Это не я» '+JSON.stringify(sc));
     if(out)await p.screenshot({path:`${out}/${eng}-pin-step.png`});
     // неверный PIN не стирает номер и не входит
     await tapDigits('111111');await wait(900);assert.equal((await screen()).num,'123');assert.equal((await ls()).ev_login_number,'123');
@@ -39,12 +42,16 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
     assert.deepEqual(logins,['123','123','123'],eng+': вход с запомненным номером');
     // 3) выход из приложения номер не стирает, снова экран PIN
     await p.evaluate(()=>logout());await wait(600);sc=await screen();
-    assert.ok(sc.step==='pin'&&sc.num==='123',eng+': после выхода номер остаётся '+JSON.stringify(sc));assert.equal((await ls()).ev_login_number,'123');
+    assert.ok(sc.start&&sc.step==='number'&&sc.num===''&&!sc.notme,eng+': c31: после выхода — стартовый экран, не PIN '+JSON.stringify(sc));assert.equal((await ls()).ev_login_number,'123',eng+': номер после выхода остаётся');
+    await p.locator('[data-act="loginstart"]').tap();await wait(200);sc=await screen();
+    assert.ok(sc.step==='pin'&&sc.num==='123'&&sc.notme,eng+': после выхода «Войти» — PIN с номером '+JSON.stringify(sc));
     assert.ok(!JSON.stringify(await ls()).includes('tok-secret-xyz'));
     // 4) «Это не я»: номер стёрт, экран ввода номера; после перезагрузки — стартовый экран
     await p.locator('[data-act="loginnotme"]').tap();await wait(300);sc=await screen();
     assert.ok(sc.step==='number'&&sc.num===''&&!sc.notme,eng+': «Это не я» — ввод номера заново');assert.equal((await ls()).ev_login_number,undefined,eng+': номер стёрт');
     await p.reload();await wait(600);assert.ok((await screen()).start,eng+': после «Это не я» и перезагрузки — стартовый экран');
+    await p.locator('[data-act="loginstart"]').tap();await wait(200);sc=await screen();assert.ok(sc.step==='number'&&sc.num===''&&!sc.notme,eng+': без запомненного номера «Войти» — ввод номера '+JSON.stringify(sc));
+    await p.reload();await wait(600);
     // 5) другой номер запоминается заново
     await p.locator('[data-act="loginstart"]').tap();await tapDigits('456');await tapDigits('246801');await p.locator('.ui2-home-screen').waitFor({timeout:8000});assert.equal((await ls()).ev_login_number,'456');
     assert.deepEqual(errs,[],eng+': JS-ошибки '+errs.join('|'));
