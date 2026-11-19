@@ -4,7 +4,7 @@ const CFG={
   url:'https://txcibtcfuzqhhebeguby.supabase.co',
   key:window.STAGE1?.key||'',
   tol:10,                // допустимая погрешность включительно, ₽
-  appVer:'2.0-test-c22'
+  appVer:'2.0-test-c23'
 };
 const BRANCHES=[
   {id:'marksa',title:'Маркса, 45'},
