@@ -97,9 +97,13 @@ function repStatusOverlay(){
     return '<button class="chk '+cls+' repbr" style="width:100%;text-align:left;font:inherit;margin:6px 0" data-act="branch" data-id="'+esc(x.branch)+'"><i>'+(cls==='ok'?'✓':cls==='bad'?'!':'…')+'</i><div><b>'+esc(brTitle(x.branch))+'</b><br>'+st+'</div></button>'}).join('');
   overlay('<h2>Отчёты сегодня</h2><p class="hint">Нажмите на филиал — откроется его отчёт.</p>'+rows+'<button class="btn sec" style="margin-top:10px" data-act="ovclose">Закрыть</button>');
 }
+/* c25: экран перерисовывается через innerHTML — картинки создаются заново, и iPhone Safari успевает показать пустое место, пока декодирует иконку.
+   Держим в памяти уже загруженные и декодированные копии (по одной на файл) и даём размер заранее: новый узел сразу берёт готовую картинку из памяти. */
+const IMG_KEEP=new Map();
+function keepImg(src){if(IMG_KEEP.has(src))return;const im=new Image();im.decoding='sync';im.src=src;IMG_KEEP.set(src,im);try{if(im.decode)im.decode().catch(()=>{})}catch(e){}}
 function homeIcon(name){
   const files={evening_report:'icons/01-evening-report.png',cash_acceptance:'icons/03-cash-acceptance.png',appointments:'icons/10-my-appointments.png',callcenter_shift:'icons/08-my-schedule.png',where_i_work:'icons/07-who-is-where.png',my_accruals:'icons/09-my-accruals.png',my_schedule:'icons/08-my-schedule.png',vaccines:'icons/05-vaccines.png',vaccines_all_branches:'icons/05-vaccines.png',dose_calculator:'icons/20-dose-calc.png',supplies:'icons/21-order.png',supplies_all_requests:'icons/06-drug-request.png',supply_order:'icons/21-order.png',head_money:'icons/14-revenue-director-only.png',head_reports:'icons/04-audit.png',head_cash_safe:'icons/19-safe.png',head_payroll:'icons/09-my-accruals.png',people_roles:'icons/15-access-permissions.png',head_collections:'icons/02-cash-register.png',head_schedule:'icons/08-my-schedule.png',birthdays:'icons/23-greetings.png'};
-  if(files[name])return '<img src="'+files[name]+'" alt="">';
+  if(files[name]){keepImg(files[name]);return '<img src="'+files[name]+'" alt="" width="58" height="58" decoding="sync">'}
   return '';
 }
 const HOME_TILE_META={

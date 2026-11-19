@@ -22,7 +22,7 @@ function fn(src,name){
   throw new Error('unterminated '+name);
 }
 
-assert.match(common,/appVer:'2.0-test-c24'/);
+assert.match(common,/appVer:'2.0-test-c25'/);
 assert.equal(fn(report,'compute'),fn(base,'compute'),'2.0 financial formulas changed');
 assert.equal(fn(report,'validate'),fn(base,'validate'),'2.0 existing validation rules changed');
 assert.match(fn(report,'submit'),/В смене не было ассистента\?/);

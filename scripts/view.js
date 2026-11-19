@@ -5,8 +5,8 @@ function setHeader(){
   document.body.classList.toggle('login-mode',S.view==='login');
   if(S.view==='login'){h.className='login-head';h.innerHTML='';return}
   h.className=S.view==='form'?'form-head':'';
-  if(S.view==='help'&&!S.person){h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt=""><div><b>Мой ЕВРОВЕТ</b><small>Всё о вашей работе — в одном месте</small></div></div>'+netBadge();return}
-  h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt=""><div><b>'+esc(S.person?(S.person.short_name||S.person.name):'')+'</b><small>'+esc(stageRole(S.person))+'</small></div></div><div class="hb">'+netBadge()+
+  if(S.view==='help'&&!S.person){h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt="" width="42" height="42" decoding="sync"><div><b>Мой ЕВРОВЕТ</b><small>Всё о вашей работе — в одном месте</small></div></div>'+netBadge();return}
+  h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt="" width="42" height="42" decoding="sync"><div><b>'+esc(S.person?(S.person.short_name||S.person.name):'')+'</b><small>'+esc(stageRole(S.person))+'</small></div></div><div class="hb">'+netBadge()+
     (S.view==='form'?'<button class="pill" data-act="back">Филиал</button>':'')+(S.view==='cc'&&canReport()&&!isHead()?'<button class="pill" data-act="back">Отчёт</button>':'')+'</div>'; /* 2.0: «Меню» только внизу */
 }
 function netBadge(){
@@ -31,6 +31,7 @@ function roLock(){
   if(!(S.view==='form'&&S.roHead))return;
   a.querySelectorAll('input,select,textarea').forEach(e=>{e.disabled=true});
 }
+keepImg('mark.svg');
 function render(){
   /* c13: шторка не должна переживать смену экрана (REMARKS п.19) */
   if(_renderedView!==null&&_renderedView!==S.view&&$('#ovwrap')&&$('#ovwrap').innerHTML&&!S.keepOv)closeOv();
