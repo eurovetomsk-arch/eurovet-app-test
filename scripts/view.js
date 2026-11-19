@@ -7,7 +7,7 @@ function setHeader(){
   h.className=S.view==='form'?'form-head':'';
   if(S.view==='help'&&!S.person){h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt="" width="42" height="42" decoding="sync"><div><b>Мой ЕВРОВЕТ</b><small>Всё о вашей работе — в одном месте</small></div></div>'+netBadge();return}
   h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt="" width="42" height="42" decoding="sync"><div><b>'+esc(S.person?(S.person.short_name||S.person.name):'')+'</b><small>'+esc(stageRole(S.person))+'</small></div></div><div class="hb">'+netBadge()+
-    (S.view==='form'?'<button class="pill" data-act="back">Филиал</button>':'')+(S.view==='cc'&&canReport()&&!isHead()?'<button class="pill" data-act="back">Отчёт</button>':'')+'</div>'; /* 2.0: «Меню» только внизу */
+    (S.view==='form'?'<button class="pill" data-act="back" aria-label="Назад на главную">‹ Назад</button>':'')+(S.view==='cc'&&canReport()&&!isHead()?'<button class="pill" data-act="back">Отчёт</button>':'')+'</div>'; /* 2.0: «Меню» только внизу */
 }
 function netBadge(){
   const q=S.queue.length+S.handoverQueue.length;
@@ -592,7 +592,7 @@ document.addEventListener('click',async e=>{
       break}
     case'branch':{const dt=$('#dt');if(dt&&dt.value)S.date=dt.value;S.dateManual=S.date!==omskToday();openBranch(d.id);break}
     case'reloadctx':openBranch(S.branch);break;
-    case'back':closeOv();saveDraft();S.view='branch';S.form=null;S.roHead=false;S.nosub=false;S.subAdmin=false;render();break;
+    case'back':closeOv();saveDraftNow();S.view='branch';S.form=null;S.roHead=false;S.nosub=false;S.subAdmin=false;render();break;
     case'ccopen':closeOv();showCC();break;
     case'ccper':showCC(d.from,d.to);break;
     case'ccmark':ccMarkAsk(d.dt,d.on==='1');break;
