@@ -1,5 +1,5 @@
 'use strict';
-/* Калькулятор доз c34: тестовый клинический сценарий без записи в Supabase.
+/* Калькулятор доз c35: тестовый клинический сценарий без записи в Supabase.
    Каталог и структурированные правила загружаются только при открытии модуля. */
 const DOSE={
   state:'idle',data:null,rules:null,error:null,species:'dog',weight:'',doseValue:'',route:'',query:'',group:'all',status:'calc',selected:null,limit:24,
@@ -124,12 +124,13 @@ function doseDetails(item,scheme,rule){
 }
 function doseFeedbackSection(item){
   const fb=DOSE.feedback[item.id];return '<details class="dose-review"><summary>Дать отзыв по карточке</summary><div class="dose-feedback"><p>Отзыв сохраняется только на тестовом устройстве.</p><div><button data-dose-act="feedback" data-value="correct" class="btn">Всё верно</button><button data-dose-act="feedback" data-value="fix" class="btn sec">Нужно исправить</button><button data-dose-act="feedback" data-value="unused" class="btn sec">Не используем</button></div>'+(fb?'<p class="dose-feedback-saved">✓ Сохранено: '+esc({correct:'верно',fix:'нужно исправить',unused:'не используем'}[fb.verdict]||fb.verdict)+(fb.note?' — '+esc(fb.note):'')+'</p>':'')+'</div></details>'}
+function doseSearchBack(bottom){return '<button class="dose-search-back'+(bottom?' bottom':'')+'" data-dose-act="close"><span aria-hidden="true">⌕</span><b>Найти другой препарат</b><small>Вернуться к поиску</small></button>'}
 function doseDetail(item){
   const s=doseStatus(item.release_status),scheme=DOSE.species==='cat'?item.cat:item.dog,rule=doseActiveRule(item),allRules=doseRulesFor(item);
-  return doseTop()+'<button class="dose-list-back" data-dose-act="close">‹ К списку препаратов</button>'+doseSpeciesControls()
+  return doseTop()+doseSearchBack(false)+doseSpeciesControls()
     +'<article class="card dose-card"><div class="dose-title"><span><small>'+esc(item.group)+'</small><h2>'+esc(item.source_name)+'</h2>'+(item.name&&item.name!==item.source_name?'<p>'+esc(item.name)+'</p>':'')+'</span>'+(allRules.length?'<i class="dose-badge calc">Расчёт доступен</i>':'<i class="dose-badge '+s.key+'">'+esc(s.label)+'</i>')+'</div>'
     +'<div class="dose-concentration"><span>Рабочая концентрация</span><b>'+esc(item.concentration||'Не указана')+'</b></div>'
-    +doseCalcPanel(item,rule)+doseDetails(item,scheme,rule)+doseFeedbackSection(item)+'</article>';
+    +doseCalcPanel(item,rule)+doseDetails(item,scheme,rule)+doseFeedbackSection(item)+'</article>'+doseSearchBack(true);
 }
 function doseHtml(){
   if(DOSE.state==='idle'){setTimeout(doseLoad,0);return doseLoading()}
@@ -174,7 +175,7 @@ document.addEventListener('click',e=>{
   else if(a==='status'){DOSE.status=v;DOSE.limit=24;document.querySelectorAll('[data-dose-act="status"]').forEach(x=>x.classList.toggle('on',x.dataset.value===v));dosePaintList()}
   else if(a==='more'){DOSE.limit+=24;dosePaintList()}
   else if(a==='open'){DOSE.selected=b.dataset.id;DOSE.doseValue='';DOSE.route='';render();window.scrollTo(0,0)}
-  else if(a==='close'){DOSE.selected=null;DOSE.doseValue='';DOSE.route='';render();window.scrollTo(0,0)}
+  else if(a==='close'){DOSE.selected=null;DOSE.query='';DOSE.limit=24;DOSE.doseValue='';DOSE.route='';render();window.scrollTo(0,0);setTimeout(()=>{const q=document.getElementById('dose-q');if(q)q.focus()},0)}
   else if(a==='species'){DOSE.species=v;DOSE.doseValue='';DOSE.route='';render()}
   else if(a==='route'){DOSE.route=v;document.querySelectorAll('[data-dose-act="route"]').forEach(x=>x.classList.toggle('on',x.dataset.value===v));dosePaintResult()}
   else if(a==='retry'){DOSE.state='idle';doseLoad()}
