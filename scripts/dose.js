@@ -1,5 +1,5 @@
 'use strict';
-/* Калькулятор доз c36: тестовый клинический сценарий без записи в Supabase.
+/* Калькулятор доз 2.0.13: клинический пилот без записи в Supabase.
    Каталог и структурированные правила загружаются только при открытии модуля. */
 const DOSE={
   state:'idle',data:null,rules:null,error:null,species:'dog',weight:'',doseValue:'',route:'',query:'',group:'all',status:'calc',selected:null,lastItem:null,patientCarried:false,limit:24,listScroll:0,scrollTimer:null,
@@ -14,11 +14,13 @@ const DOSE_STATUS={
 };
 function doseStatus(x){return DOSE_STATUS[x]||{key:'blocked',label:x||'Не определено',help:'Статус требует проверки.'}}
 const DOSE_ALIASES={
-  'алервет':'аллервет','allervet':'аллервет','пиростоп':'пиро стоп','лидокоин':'лидокаин',
-  'metoclopramide':'метоклопрамид','gabapentin':'габапентин'
+  'алервет':'аллервет','аллерветт':'аллервет','allervet':'аллервет',
+  'пиростоп':'пиро стоп','pirostop':'пиро стоп','лидокоин':'лидокаин',
+  'metoclopramide':'метоклопрамид','gabapentin':'габапентин',
+  'tramadol':'трамвет','ondansetron':'ондансетрон'
 };
 function doseNorm(s){return String(s||'').toLocaleLowerCase('ru-RU').replace(/ё/g,'е').replace(/(\d)[,.](?=\d)/g,'$1.').replace(/[^a-zа-я0-9%+.]+/gi,' ').trim()}
-function doseQuery(s){const q=doseNorm(s);return DOSE_ALIASES[q]||q}
+function doseQuery(s){const q=doseNorm(s);return q.split(' ').filter(Boolean).map(x=>DOSE_ALIASES[x]||x).join(' ')}
 function doseMatch(item,q){
   const query=doseQuery(q);if(!query)return true;
   const hay=doseNorm([item.source_name,item.name,item.concentration].join(' ')),compact=hay.replace(/\s+/g,'');
@@ -81,7 +83,7 @@ function doseSpeciesControls(){
 }
 function doseTextBlock(title,text,cls){return text?'<section class="dose-info '+(cls||'')+'"><h3>'+esc(title)+'</h3><p>'+esc(text).replace(/\n/g,'<br>')+'</p></section>':''}
 function doseDecimal(value){
-  const s=String(value==null?'':value).trim().replace(',','.');if(!/^\d+(?:\.\d+)?$/.test(s))return null;
+  const s=String(value==null?'':value).trim().replace(',','.');if(s.length>12||!/^\d+(?:\.\d+)?$/.test(s))return null;
   const p=s.split('.'),den=10n**BigInt((p[1]||'').length),num=BigInt(p[0]+(p[1]||''));return num>0n?{num,den}:null;
 }
 function doseMul(a,b){return{num:a.num*b.num,den:a.den*b.den}}
@@ -97,7 +99,7 @@ function doseChosenDose(rule){return rule&&rule.dose_min_mg_kg===rule.dose_max_m
 function doseChosenRoute(rule){return rule&&rule.routes.length===1?rule.routes[0].id:DOSE.route}
 function doseWeightWarning(){
   const w=doseDecimal(DOSE.weight);if(!w)return'';
-  const out=[];if(DOSE.patientCarried)out.push('Вес '+esc(DOSE.weight)+' кг перенесён из предыдущей карточки — подтвердите, что пациент тот же.');
+  const out=[];if(DOSE.patientCarried)out.push('Вид и вес '+esc(DOSE.weight)+' кг перенесены из предыдущей карточки — подтвердите, что пациент тот же.');
   const unusual=DOSE.species==='cat'?doseCmp(w,doseDecimal('25'))>0:doseCmp(w,doseDecimal('150'))>0;
   if(unusual)out.push('Необычная масса для выбранного вида — перепроверьте значение.');
   return out.map(x=>'<p class="dose-soft-warning">'+x+'</p>').join('');
@@ -115,7 +117,7 @@ function doseCalculation(rule){
 function doseImmediateWarnings(rule){
   if(!rule||!['high','controlled'].includes(rule.risk)||!(rule.warnings_short||[]).length)return'';
   const title=rule.risk==='controlled'?'Контролируемый препарат':'Критически важно перед расчётом';
-  return '<section class="dose-immediate-warning"><b>'+esc(title)+'</b>'+rule.warnings_short.map(x=>'<p>• '+esc(x)+'</p>').join('')+'</section>';
+  return '<section class="dose-immediate-warning '+esc(rule.risk)+'"><b>'+esc(title)+'</b>'+rule.warnings_short.map(x=>'<p>• '+esc(x)+'</p>').join('')+'</section>';
 }
 function doseResultHtml(rule){
   const c=doseCalculation(rule);
@@ -128,7 +130,7 @@ function doseResultHtml(rule){
     +(extras.length?'<div class="dose-result-warn">'+extras.map(esc).join('<br>')+'</div>':'')+'</div>';
 }
 function doseCalcPanel(item,rule){
-  if(!rule){const s=doseStatus(item.release_status),other=doseRulesFor(item),only=other.length?doseSpeciesLabel(other):'';return '<section class="dose-calc-locked"><b>Для '+(DOSE.species==='cat'?'кошки':'собаки')+' расчёт недоступен</b><p>'+esc(only?'Подготовлен расчёт: '+only.toLocaleLowerCase('ru-RU')+'. Выберите поддерживаемый вид пациента.':s.help)+'</p></section>'}
+  if(!rule){const s=doseStatus(item.release_status),other=doseRulesFor(item),only=other.length?doseSpeciesLabel(other):'',reason=only?'Подготовлен расчёт: '+only.toLocaleLowerCase('ru-RU')+'. Выберите поддерживаемый вид пациента.':item.release_status==='ПРОЕКТ СХЕМЫ'?'Правило быстрого расчёта пока не подготовлено.':s.help;return '<section class="dose-calc-locked"><b>Для '+(DOSE.species==='cat'?'кошки':'собаки')+' расчёт недоступен</b><p>'+esc(reason)+'</p></section>'}
   const fixed=rule.dose_min_mg_kg===rule.dose_max_mg_kg;
   const routes=rule.routes.map(r=>'<button data-dose-act="route" data-value="'+esc(r.id)+'" class="'+(doseChosenRoute(rule)===r.id?'on':'')+'">'+esc(r.label)+'</button>').join('');
   return '<section class="dose-calc"><div class="dose-indication"><small>СХЕМА</small><b>'+esc(rule.indication)+'</b></div>'
@@ -181,9 +183,9 @@ function dosePaintList(){
 function dosePaintResult(shouldScroll){
   if(!DOSE.selected||!DOSE.data)return;
   const item=DOSE.data.items.find(x=>x.id===DOSE.selected),root=document.getElementById('dose-calc-result');if(!item||!root)return;
-  const box=document.createElement('div');box.innerHTML=doseResultHtml(doseActiveRule(item));root.replaceWith(box.firstElementChild);
+  const box=document.createElement('div');box.innerHTML=doseResultHtml(doseActiveRule(item));const next=box.firstElementChild;root.replaceWith(next);
   const warning=document.getElementById('dose-weight-warning');if(warning)warning.innerHTML=doseWeightWarning();
-  if(shouldScroll&&box.firstElementChild&&box.firstElementChild.classList.contains('ready')){clearTimeout(DOSE.scrollTimer);DOSE.scrollTimer=setTimeout(()=>document.getElementById('dose-calc-result')?.scrollIntoView({behavior:'smooth',block:'center'}),120)}
+  if(shouldScroll&&next&&next.classList.contains('ready')){clearTimeout(DOSE.scrollTimer);DOSE.scrollTimer=setTimeout(()=>document.getElementById('dose-calc-result')?.scrollIntoView({behavior:'smooth',block:'center'}),120)}
 }
 function doseFeedbackForm(verdict){
   const x=DOSE.data&&DOSE.data.items.find(i=>i.id===DOSE.selected);if(!x)return;
@@ -196,7 +198,7 @@ function doseSaveFeedback(verdict){
   DOSE.feedback[DOSE.selected]={verdict,note,at:new Date().toISOString()};LS.set('ev_dose_feedback_test_v1',DOSE.feedback);closeOv();render();toast('Отзыв сохранён на тестовом устройстве');
 }
 function doseInputValue(el){
-  const value=el.value.replace(/\./g,',').replace(/\s/g,'').slice(0,12);if(el.value!==value)el.value=value;
+  const value=el.value.replace(/\./g,',').replace(/\s/g,'');if(el.value!==value)el.value=value;
   el.setAttribute('aria-invalid',value&&!doseDecimal(value)?'true':'false');return value;
 }
 document.addEventListener('input',e=>{

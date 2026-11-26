@@ -1,8 +1,26 @@
 'use strict';
 /* ====== Форма ====== */
-const emptyForm=()=>({admins:{},doctors:{},others:[],total:'',cash:'',cashless:'',ph_val:'',ph_cash:'',ph_cashless:'',
+const emptyForm=()=>({admins:{},doctors:{},no_doctor:false,others:[],total:'',cash:'',cashless:'',ph_val:'',ph_cash:'',ph_cashless:'',
   open:'',expenses:[],close:'',assistants:{},no_assistant:false,note:'',adv_cash:'',adv_cashless:'',adv_out:'',comp:'',cert:'',nc_comment:'',debt:'',debt_comment:'',repaid:'',diff_reason:'',corr_reason:''});
-const draftKey=()=>'ev_draft2:'+(S.person?S.person.id:0)+':'+S.branch+':'+S.date;
+/* L34a: черновик правки руководителя — отдельный ключ (буква h), не смешивается с черновиком админа на том же телефоне */
+const draftKey=()=>'ev_draft2:'+(S.headFix?'h':'')+(S.person?S.person.id:0)+':'+S.branch+':'+S.date;
+const HEAD_REASON_MIN=15; // сервер: руководитель после окна — причина от 15 знаков
+const corrMin=()=>S.headFix?HEAD_REASON_MIN:3;
+/* L34a: «Исправить отчёт» — руководитель открывает сданную версию в обычной форме */
+// сервер (ev_submit, date_range) принимает отчёт не старше 7 дней — и от руководителя тоже
+function headFixDateOk(){const t=new Date(omskToday()+'T00:00:00Z');t.setUTCDate(t.getUTCDate()-7);return S.date>=t.toISOString().slice(0,10)}
+function headFix(){
+  if(!isHead()||!S.ctx||!S.ctx.current||!headFixDateOk())return;
+  S.roHead=false;S.headFix=true;S.formErrors=[];
+  /* черновик правки берём, только если он моложе сданной версии; иначе он сделан по старой версии — выбрасываем */
+  let d=LS.get(draftKey());const sub=Date.parse(S.ctx.current.submitted_at||'')||0;
+  if(d&&d.sent)d=null; // L34: копия отправленной правки (ждёт ответа сервера) — запасная, в форму не подставляется
+  else if(d&&!(d.ts>sub)){LS.del(draftKey());d=null}
+  if(d&&d.form){S.form=Object.assign(emptyForm(),d.form);S.draftTs=d.ts||Date.now()}
+  else{S.form=formFromReport(S.ctx.current.data);S.draftTs=null}
+  render();
+  setTimeout(()=>{const e=document.querySelector('[data-p="corr_reason"]');if(e)e.scrollIntoView({behavior:'smooth',block:'center'})},0);
+}
 let draftT;
 function freshForm(){
   const f=emptyForm(),ctx=S.ctx;
@@ -16,6 +34,7 @@ function formFromReport(d){ // загрузка ранее сданной вер
   const f=emptyForm(),s=v=>(v==null?'':String(v));
   (d.admins||[]).forEach(a=>f.admins[a.id]={left:a.left||'',came:a.came||''});
   (d.doctors||[]).forEach(x=>f.doctors[x.id]={val:s(x.val)});
+  f.no_doctor=!!d.no_doctor&&!Object.keys(f.doctors).length;
   f.others=(d.others||[]).map(o=>({title:o.title||'',val:s(o.val)}));
   f.total=s(d.total);f.cash=s(d.cash);f.cashless=s(d.cashless);
   f.ph_val=s(d.pharmacy&&d.pharmacy.val);f.ph_cash=s(d.pharmacy&&d.pharmacy.cash);f.ph_cashless=s(d.pharmacy&&d.pharmacy.cashless);
@@ -48,8 +67,8 @@ function compute(){
   const checks=[];
   const add=(id,label,diff,ready,detail,miss='')=>checks.push({id,label,ready,diff:r2(diff),ok:ready&&Math.abs(diff)<=CFG.tol,detail,miss});
   const ms=a=>a.filter(Boolean).join(', ');
-  add('docs','Сумма врачей = Клиника общая',sumDocs-total,f.total!==''&&(Object.keys(f.doctors).length>0||f.others.length>0),'врачи '+money(sumDocs)+' vs общая '+money(total),
-    ms([f.total===''&&'«Клиника общая»',!(Object.keys(f.doctors).length>0||f.others.length>0)&&'отметьте врачей и введите их вал']));
+  add('docs','Сумма врачей = Клиника общая',sumDocs-total,f.total!==''&&(Object.keys(f.doctors).length>0||f.others.length>0||f.no_doctor===true),(f.no_doctor?'врачей в смене не было; ':'врачи ')+money(sumDocs)+' vs общая '+money(total),
+    ms([f.total===''&&'«Клиника общая»',!(Object.keys(f.doctors).length>0||f.others.length>0||f.no_doctor===true)&&'отметьте врачей или подтвердите «Врача сегодня не было»']));
   const repaid=N(f.repaid);
   add('pay','Нал + безнал'+(advNew?' − аванс принят + аванс списан':'')+(repaid>0?' − погашенный долг':'')+' = Клиника общая',cash+cashless-repaid-advAdj-total,f.total!==''&&(f.cash!==''||f.cashless!==''),'нал '+money(cash)+' + безнал '+money(cashless)+(advNew?' − аванс принят '+money(N(f.adv_cash)+N(f.adv_cashless))+' + списан '+money(N(f.adv_out)):'')+(repaid>0?' − погашение долга '+money(repaid):'')+' vs общая '+money(total),
     ms([f.total===''&&'«Клиника общая»',(f.cash===''&&f.cashless==='')&&'«Нал» и «Безнал»']));
@@ -82,7 +101,7 @@ function validate(){
   const calc=compute();
   const red=calc.checks.filter(c=>c.ready&&!c.ok);
   if(red.length&&!f.diff_reason.trim())errs.push('Есть расхождения — напишите причину внизу формы');
-  if(S.ctx.current&&f.corr_reason.trim().length<3)errs.push('Отчёт уже сдан — укажите причину исправления');
+  if(S.ctx.current&&f.corr_reason.trim().length<corrMin())errs.push(S.headFix?'Причина исправления — не короче '+HEAD_REASON_MIN+' знаков (сейчас '+f.corr_reason.trim().length+'): что исправили и почему':'Отчёт уже сдан — укажите причину исправления');
   return{errs,calc,red};
 }
 const aNm=n=>String(n==null?'':n).replace(/\s+[А-ЯЁ]\.(?:\s?[А-ЯЁ]\.)?$/,'');
@@ -97,7 +116,7 @@ function buildData(calc){
     return{id:Number(id),name:aNm(a.name),role,fix_normal:v.fn|0,fix_xray:v.fx|0,left:v.left||null,came:v.came||null}});
   return{
     schema:1,app:CFG.appVer,branch:S.branch,date:S.date,
-    admins,doctors,
+    admins,doctors,no_doctor:doctors.length===0&&f.no_doctor===true,
     others:f.others.map(o=>({title:o.title.trim(),val:N(o.val)})),
     total:N(f.total),cash:N(f.cash),cashless:N(f.cashless),
     pharmacy:{val:N(f.ph_val),cash:N(f.ph_cash),cashless:N(f.ph_cashless)},
@@ -133,14 +152,19 @@ async function flush(auto){
         it.status='error';it.err='HTTP '+e.http;continue;
       }
       if(!S.online){S.online=true;setHeader()}
+      if(!res||typeof res!=='object'){it.status='offline';break} /* L34: неизвестный результат — повторим сами (client_uid не даст дубля) */
       if(res.ok){
         S.queue=S.queue.filter(x=>x.uid!==it.uid);saveQueue();
+        repDraftDrop(it); /* L34: черновик удаляется только после res.ok */
+        if(S.done&&S.done.uid===it.uid&&typeof vmwStart==='function'){vmwStart(it.branch,it.date,Number(res.version)||0,!!(it.data&&Array.isArray(it.data.doctors)&&it.data.doctors.length))}   /* 2.0: экран «Ожидайте сверки» */
+        else{try{vmcAfterSubmit(it.branch,it.date,Number(res.version)||0)}catch(e){}}
         if(S.done&&S.done.uid===it.uid){S.done.sent=true;S.done.version=res.version||S.done.version;S.flags=null;loadFlags(it.branch,it.date)}
       }else if(res.error==='session'){
         S.token=null;LS.del('ev_token');S.view='login';it.status='need_login';break;
-      }else if(res.error==='reason_required'){it.status='needs_reason'}
+      }else if(res.error==='reason_required'){it.status='needs_reason';it.minLen=Number(res.min_len)||null} /* L34a: сервер говорит, сколько знаков нужно */
       else if(res.error==='conflict'){it.status='offline'}
-      else{it.status='error';it.err=res.error==='date_range'?'дата старше 7 дней, такой отчёт подать нельзя, напишите руководителю':res.error==='window_closed'?'Время правки вышло (до 12:00 следующего дня). Напишите руководителю':res.error==='person_two_branches'?'Один человек не может быть в отчётах двух филиалов в один день: '+((res.people||[]).join(', ')||'проверьте состав смены')+'. Исправьте состав и отправьте снова':res.error}
+      else if(REP_REJECT[res.error]){await repReject(it,res)} /* L34: содержательный отказ — без повтора, назад в форму */
+      else{it.status='error';it.err=String(res.error||'ошибка')}
     }
   }finally{
     flushing=false;saveQueue();
@@ -159,31 +183,119 @@ function kick(){
   kickHandover();
 }
 
+/* L34: защита от двойного нажатия «Отправить» — пока идёт одна сдача, вторая не начинается */
+let submitting=false;
 async function submit(){
-  const v=validate();
-  if(v.errs.length){S.formErrors=v.errs.slice();render();setTimeout(()=>{const e=document.getElementById('form-errors');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},0);toast('Проверьте обязательные поля',5000);return}
-  S.formErrors=[];
-  if(!Object.keys(S.form.assistants).length&&S.form.no_assistant!==true){
-    overlay('<h2>В смене не было ассистента?</h2><p class="hint">Подтвердите это отдельно или вернитесь к форме и добавьте ассистента. Без выбора отчёт не отправится.</p><button class="btn" data-act="assistantnone">Да, не было</button><button class="btn sec" style="margin-top:8px" data-act="assistantadd">Добавить ассистента</button>');
+  if(submitting)return;
+  submitting=true;
+  try{
+    const v=validate();
+    if(v.errs.length){S.formErrors=v.errs.slice();render();setTimeout(()=>{const e=document.getElementById('form-errors');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},0);overlay('<h2>Что нужно заполнить</h2><ul>'+v.errs.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><button class="btn" data-act="ovclose">Вернуться к отчёту</button>');toast('Не заполнено: '+v.errs[0],6000);return}
+    S.formErrors=[];
+    if(!Object.keys(S.form.assistants).length&&S.form.no_assistant!==true){
+      overlay('<h2>В смене не было ассистента?</h2><p class="hint">Подтвердите это отдельно или вернитесь к форме и добавьте ассистента. Без выбора отчёт не отправится.</p><button class="btn" data-act="assistantnone">Да, не было</button><button class="btn sec" style="margin-top:8px" data-act="assistantadd">Добавить ассистента</button>');
+      return;
+    }
+    if(!Object.keys(S.form.doctors).length&&S.form.no_doctor!==true){
+      overlay('<h2>Врач не выбран</h2><p class="hint">Если врач работал — вернитесь и отметьте его, чтобы выручка попала в отчёт. Только если врача физически не было весь день, подтвердите «День без врача».</p><button class="btn" data-act="doctornone">Подтвердить: день без врача</button><button class="btn sec" style="margin-top:8px" data-act="doctoradd">Вернуться и выбрать врача</button>');
+      return;
+    }
+    if(!(await trapGate()))return; /* 2.0: ловушки отчёта (traps.js) */
+    const data=Object.assign(buildData(v.calc),trapData());
+    /* L34: черновик НЕ удаляется до ответа сервера: сохраняем его сразу (без задержки) с пометкой sent —
+       это запасная копия отправленного, в форму при открытии она не подставляется (login.js), пока не придёт отказ */
+    const dk=draftKey(),dts=Date.now(),u=uid();clearTimeout(draftT);
+    LS.set(dk,{ts:dts,form:S.form,sent:u});
+    const it={uid:u,branch:S.branch,date:S.date,data,reason:S.ctx.current?S.form.corr_reason.trim():null,
+      client_time:new Date().toISOString(),status:'new',branchTitle:(BRANCHES.find(b=>b.id===S.branch)||{}).title,
+      summary:summaryText(data),dk,dts};
+    S.queue.push(it);
+    if(!saveQueue()){toast('Не удалось сохранить на устройстве! Скопируйте итоги вручную.',8000)}
+    S.done={uid:it.uid,sent:false,version:null,summary:it.summary,branch:it.branchTitle,date:S.date};
+    S.view='done';render();
+  }finally{submitting=false}
+  await flush();
+}
+
+/* ====== L34: отказ сервера возвращает в форму ======
+   Состояния: черновик → отправка (очередь) → принят / отказ (назад в форму) / нет связи (ждёт в очереди).
+   Содержательный отказ не повторяется сам: повтор того же отчёта даст тот же отказ. */
+const REP_REJECT={person_two_branches:1,data:1,branch:1,forbidden:1,date_range:1,window_closed:1};
+const REP_KEEP={forbidden:1,date_range:1,window_closed:1};
+let repNoL34=false; // функции ev_report_conflicts нет (L34 SQL не применён) — больше не спрашиваем
+function repDraftKey(it){return it.dk||('ev_draft2:'+(S.person?S.person.id:0)+':'+it.branch+':'+it.date)}
+function repDraftDrop(it){ // удалить черновик, только если после сдачи его не меняли (человек мог начать новую правку)
+  const k=repDraftKey(it),d=LS.get(k);
+  if(d&&(d.sent?d.sent===it.uid:(it.dts==null||d.ts===it.dts)))LS.del(k);
+}
+function repFormOf(it){ // форма отказанного отчёта: из черновика сдачи, иначе из данных отчёта
+  const d=LS.get(repDraftKey(it));
+  if(d&&d.form)return Object.assign(emptyForm(),d.form);
+  const f=formFromReport(it.data||{});
+  if(it.reason)f.corr_reason=it.reason;
+  ['sched_absent','sched_subst'].forEach(k=>{if(Array.isArray(it.data&&it.data[k]))f[k]=it.data[k].slice()});
+  if(it.data&&it.data.pharmacy_closed)f.pharmacy_closed=true;
+  return f;
+}
+async function repTwoBranchesText(it,res){
+  /* филиал другого отчёта: из L34 (ev_report_conflicts), если функция применена; иначе — без филиала */
+  let rows=null;
+  if(!repNoL34)try{
+    const ids=[].concat((it.data.admins||[]).map(x=>x.id),(it.data.doctors||[]).map(x=>x.id),(it.data.assistants||[]).map(x=>x.id)).filter(x=>x!=null);
+    const r=await rpc('ev_report_conflicts',{p_token:S.token,p_branch:it.branch,p_date:it.date,p_ids:ids},4000); // коротко: очередь ждёт
+    if(r&&r.ok&&Array.isArray(r.people)&&r.people.length)rows=r.people;
+  }catch(e){if(e&&e.http===404)repNoL34=true}
+  const tail='. Вернитесь к составу смены и исправьте его либо исправьте отчёт другого филиала.';
+  if(rows)return rows.map(p=>(p.name||'Сотрудник')+' уже указан(а) в отчёте филиала '+brTitle(p.branch)+' за '+ruDate(it.date)+tail).join(' ');
+  const names=(res.people||[]).map(x=>typeof x==='string'?x:(x&&x.name)).filter(Boolean);
+  return (names.length?names.join(', '):'Сотрудник из состава смены')+' уже указан(а) в отчёте другого филиала за '+ruDate(it.date)+tail;
+}
+async function repRejectText(it,res){
+  switch(res.error){
+    case'person_two_branches':return repTwoBranchesText(it,res);
+    case'date_range':return'Дата старше 7 дней: такой отчёт подать нельзя. Напишите руководителю.';
+    case'window_closed':return'Время правки вышло (до 12:00 следующего дня). Напишите руководителю.';
+    case'forbidden':return'Нет доступа к отчёту этого филиала за эту дату. Войдите заново и выберите филиал.';
+    case'branch':return'Филиал не найден или закрыт. Напишите руководителю.';
+    case'data':return'Сервер не смог прочитать отчёт. Проверьте поля и отправьте снова.';
+  }
+  return 'Сервер не принял отчёт ('+res.error+').';
+}
+async function repReject(it,res){
+  const text=await repRejectText(it,res);
+  const k=repDraftKey(it),d=LS.get(k),form=repFormOf(it);
+  /* черновик один: копию отправленного делаем обычным черновиком; новую правку (без пометки sent) не трогаем */
+  if(!d||d.sent===it.uid)LS.set(k,{ts:Date.now(),form});
+  const rej={code:res.error,text,branch:it.branch,date:it.date,branchTitle:it.branchTitle,dk:k,form,summary:it.summary};
+  /* исправимое в форме (состав, данные) — убираем из очереди; неисправимое (дата прошла, нет доступа) — оставляем
+     в очереди с ошибкой: там «Копировать итоги» и «Убрать из очереди», сам не повторяется */
+  if(REP_KEEP[res.error]){it.status='error';it.err=text}else S.queue=S.queue.filter(x=>x.uid!==it.uid);
+  saveQueue();
+  if(S.done&&S.done.uid===it.uid)S.done.rejected=rej;
+  else toast('Отчёт '+brTitle(it.branch)+' за '+ruDate(it.date)+' не принят: '+text+' Откройте отчёт — цифры сохранены.',10000);
+}
+/* «Вернуться к отчёту и исправить»: та же форма, все поля на месте */
+async function repBackToForm(){
+  const r=S.done&&S.done.rejected;if(!r)return;
+  const form=Object.assign(emptyForm(),r.form),keep=S.done;
+  S.done=null;S.formErrors=[];
+  if(S.ctx&&S.branch===r.branch&&S.date===r.date){
+    S.form=form;S.draftTs=Date.now();LS.set(r.dk,{ts:S.draftTs,form});S.view='form';render();
+    setTimeout(()=>{const e=document.querySelector('.k-staff');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},0);
     return;
   }
-  if(!(await trapGate()))return; /* 2.0: ловушки отчёта (traps.js) */
-  const data=Object.assign(buildData(v.calc),trapData());
-  const it={uid:uid(),branch:S.branch,date:S.date,data,reason:S.ctx.current?S.form.corr_reason.trim():null,
-    client_time:new Date().toISOString(),status:'new',branchTitle:(BRANCHES.find(b=>b.id===S.branch)||{}).title,
-    summary:summaryText(data)};
-  S.queue.push(it);
-  if(!saveQueue()){toast('Не удалось сохранить на устройстве! Скопируйте итоги вручную.',8000)}
-  LS.del(draftKey());
-  S.done={uid:it.uid,sent:false,version:null,summary:it.summary,branch:it.branchTitle,date:S.date};
-  S.view='done';render();
-  await flush();
+  const d=LS.get(r.dk);if(!d||d.sent)LS.set(r.dk,{ts:Date.now(),form});
+  S.date=r.date;S.dateManual=true;await openBranch(r.branch); // форма откроется из черновика
+  if(S.view==='form'&&(S.branch!==r.branch||S.date!==r.date)){ // дата уже другая (сдать за прошедший день нельзя) — назад к экрану отказа
+    S.form=null;S.done=keep;S.view='done';render();toast('Отчёт за '+ruDate(r.date)+' в форме уже не открыть. Скопируйте итоги и напишите руководителю.',8000);
+  }else if(S.view==='form'&&S.roHead&&typeof headFix==='function')headFix(); // L34a: правка руководителя — сразу в форму правки
 }
 
 function summaryText(d){
   const L=[];const bt=(BRANCHES.find(b=>b.id===d.branch)||{}).title;
   L.push('ЕВРОВЕТ '+bt+' — '+ruDate(d.date));
   L.push('Админ: '+d.admins.map(a=>a.name+(a.came?' (пришёл '+a.came+')':'')+(a.left?' (ушёл '+a.left+')':'')).join(', '));
+  if(d.no_doctor)L.push('Врача в смене не было — подтверждено администратором');
   d.doctors.forEach(x=>L.push(x.name+': '+x.val));
   d.others.forEach(x=>L.push(x.title+': '+x.val));
   L.push('Клиника общая: '+d.total);L.push('Нал: '+d.cash+'  Безнал: '+d.cashless);
@@ -207,7 +319,7 @@ function summaryText(d){
 /*HELP_END*/
 const HINTS={
   admins:['Администраторы смены','Отметьте тех, кто работал администратором в этот день. Смена считается с 9:00 до 21:00. Время прихода и ухода вписывайте, только если было иначе, например подмена: пришёл не в 9:00 или ушёл не в 21:00. Вычет или добавку считает система, самому считать не нужно. Добавку за поздний уход руководитель подтверждает отдельно.'],
-  docs:['Вал врачей','Вал врача — сумма, которую клиенты реально оплатили по проведённым счетам этого врача за день в Vetmanager. Если счёт оплачен частично, берите только оплаченную часть, остаток вписывается в блок «Долги клиентов». Отметьте работавших врачей и введите вал каждого. Врач-замена или сумма не по списку добавляются отдельной строкой внизу.'],
+  docs:['Вал врачей','Вал врача — сумма, которую клиенты реально оплатили по проведённым счетам этого врача за день в Vetmanager. Если счёт оплачен частично, берите только оплаченную часть, остаток вписывается в блок «Долги клиентов». Отметьте работавших врачей и введите вал каждого. Если врача физически не было, нажмите «Врача сегодня не было» — выбирать случайного врача с нулём не нужно. Врач-замена или сумма не по списку добавляются отдельной строкой внизу.'],
   others:['Строка не из списка','Нужна, если был врач-замена или есть сумма, которой нет среди врачей выше. Напишите, кто или за что, и сумму. Она войдёт в «Сумма врачей».'],
   total:['Клиника общая','Общий вал клиники за день по Vetmanager: сколько клиенты оплатили по проведённым счетам. Должна совпадать с суммой вала врачей и с «Нал + Безнал». Аванс и неоплаченные долги сюда не входят.'],
   pay:['Деньги клиники','«Наличные клиники» и «Безнал клиники» — все деньги клиники за сегодня, вместе с суммами, положенными на аванс, но без аптеки. Приложение отдельно учтёт, сколько положили на аванс, сколько сняли с аванса и сколько погасили прошлого долга.'],
@@ -255,7 +367,7 @@ function handoverHtml(){
   return x+'</div>';
 }
 
-function transitExpected(){return ((S.transit&&S.transit.items)||[]).filter(x=>String(x.branch)===String(S.branch)&&String(x.date)===String(S.date)&&x.status!=='cancelled').reduce((q,x)=>q+Number(x.amount||0),0)}
+function transitExpected(){return ((S.transit&&S.transit.items)||[]).filter(x=>String(x.branch)===String(S.branch)&&String(x.date)===String(S.date)&&x.source==='admin'&&x.status!=='cancelled').reduce((q,x)=>q+Number(x.amount||0),0)}
 function transitDeclared(){return (S.form.expenses||[]).filter(x=>/инкассац/i.test(String(x.article||''))).reduce((q,x)=>q+N(x.amount),0)}
 function updateTransitCheck(){
   const e=$('#transit-check');if(!e)return;
@@ -270,7 +382,7 @@ function viewForm(){
   const f=S.form,c=S.ctx;let h='';
   if(!(c&&c.current))h+='<button class="btn sec small" data-act="back" style="margin:0 0 8px">‹ На главную</button>'; /* c26: видимый выход из формы без нижней панели; черновик сохраняется */
   if(S.subAdmin&&isHead())h+='<div class="chk warn" id="subadm"><i>!</i><div><b>Вы заполняете отчёт за администратора.</b> Сдача пойдёт от вашего имени.</div></div>';
-  if(S.roHead)h+='<div class="chk ok" id="rohead"><i>👁</i><div><b>Просмотр отчёта</b> — только для чтения. Сдан'+(c.current&&c.current.submitted_at?' в '+hmOmsk(c.current.submitted_at):'')+(c.current?', версия '+c.current.version:'')+'. Исправить может администратор филиала.</div></div>';
+  if(S.roHead)h+='<div class="chk ok" id="rohead"><i>👁</i><div><b>Просмотр отчёта</b> — только для чтения. Сдан'+(c.current&&c.current.submitted_at?' в '+hmOmsk(c.current.submitted_at):'')+(c.current?', версия '+c.current.version:'')+'.'+(headFixDateOk()?'<br><button class="btn small" style="margin-top:8px" data-act="headfix">Исправить отчёт</button>':' Исправить можно за последние 7 дней.')+'</div></div>';
   if(S.formErrors&&S.formErrors.length)h+='<div class="chk bad" id="form-errors"><i>!</i><div><b>Исправьте перед отправкой: '+S.formErrors.map(esc).join('; ')+'</b></div></div>';
   if(S.draftTs){const dt=new Date(S.draftTs);const hm=dt.toLocaleString('ru-RU',{timeZone:'Asia/Omsk',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     h+='<div class="chk warn"><i>!</i><div>Восстановлен ваш несохранённый черновик от '+hm+'. Если это не сегодняшние цифры — очистите форму.<br><button class="btn sec small" style="margin-top:8px" data-act="clearDraft">Очистить форму и начать заново</button></div></div>';}
@@ -291,6 +403,7 @@ function viewForm(){
 
   h+='<div class="card k-docs"><h2>Вал врачей'+hbtn('docs')+'</h2><p class="hint">Отметьте врачей, которые работали, и введите вал каждого.</p><div class="tiles">'+
     c.doctors.map(d=>'<button class="tile'+(f.doctors[d.id]?' on':'')+'" data-act="tog" data-g="doctors" data-id="'+d.id+'">'+esc(d.name)+(d.note?'<small>'+esc(d.note)+'</small>':'')+'</button>').join('')+'</div>';
+  h+='<button class="btn sec small'+(f.no_doctor?' on':'')+'" style="margin-top:8px" data-act="doctorflag">'+(f.no_doctor?'✓ День без врача':'День без врача')+'</button>';
   Object.keys(f.doctors).forEach(id=>{h+=nfield('doctors.'+id+'.val',esc(docName(id)||id)+' — вал, ₽',f.doctors[id].val)});
   f.others.forEach((o,i)=>{
     h+='<div class="person"><b>Не из списка'+hbtn('others')+'</b><label class="f"><span>Кто или за что (например, врач-замена)</span><input data-p="others.'+i+'.title" value="'+esc(o.title)+'"></label>'+nfield('others.'+i+'.val','Сумма, ₽',o.val)+'<button class="btn sec small" data-act="delOther" data-i="'+i+'">Удалить строку</button></div>';
@@ -342,7 +455,8 @@ function viewForm(){
   }else if(op.mode==='manual'&&!S.ctxOffline)h+='<p class="hint">Утренний приём кассы недоступен или предыдущего отчёта нет — впишите начало смены по факту.</p>';
   h+='<h3>Расходы'+hbtn('exp')+'</h3>';
   const tx=transitExpected();
-  h+='<div class="sum"><span>Передано в инкассацию сегодня</span><b>'+money(tx)+'</b></div><p class="hint">Сумму в расходе введите сами: приложение не подставляет её за вас.</p><div id="transit-check" class="chk wait"></div><button class="btn sec small" data-act="transitgive">Отдал инкассацию</button>';
+  const txActive=((S.transit&&S.transit.items)||[]).find(x=>String(x.branch)===String(S.branch)&&String(x.date)===String(S.date)&&x.source==='admin'&&x.status!=='cancelled');
+  h+='<div class="sum"><span>Передано в инкассацию сегодня</span><b>'+money(tx)+'</b></div><p class="hint">Сумму в расходе введите сами: приложение не подставляет её за вас.</p><div id="transit-check" class="chk wait"></div><button class="btn sec small" data-act="transitgive">'+(txActive?'Инкассация записана · Исправить':'Отдал инкассацию')+'</button>';
   f.expenses.forEach((e,i)=>{
     h+='<div class="person"><label class="f"><span>Статья</span><select data-p="expenses.'+i+'.article"><option value="">— выберите —</option>'+
       c.articles.map(a=>'<option'+(e.article===a.title?' selected':'')+'>'+esc(a.title)+'</option>').join('')+'</select></label>'+
@@ -372,7 +486,7 @@ function viewForm(){
 
   h+='<div class="card k-check" id="chkcard"><h2>Проверка'+hbtn('checks')+'</h2><div id="checks"></div>'+
     '<label class="f"><span>Причина расхождения (обязательно, если есть красные пункты)'+hbtn('diff')+'</span><textarea data-p="diff_reason" rows="2">'+esc(f.diff_reason)+'</textarea></label>';
-  if(c.current)h+='<label class="f"><span>Причина исправления отчёта</span><textarea data-p="corr_reason" rows="2">'+esc(f.corr_reason)+'</textarea></label>';
+  if(c.current)h+='<label class="f"><span>Причина исправления отчёта'+(S.headFix?' (не короче '+HEAD_REASON_MIN+' знаков)':'')+'</span><textarea data-p="corr_reason" rows="2">'+esc(f.corr_reason)+'</textarea></label>';
   h+='</div>';
   return h;
 }
@@ -423,13 +537,20 @@ function viewDone(){
   const d=S.done;
   const it=S.queue.find(x=>x.uid===d.uid)||{};const st=it.status||'';
   const needR=!d.sent&&st==='needs_reason';
+  if(d.rejected){ /* L34: отказ — без «Отправить сейчас», только возврат в форму */
+    return '<div class="card"><h2>Отчёт не принят</h2><div class="chk bad"><i>✗</i><div>'+esc(d.rejected.text)+'</div></div>'
+      +'<p class="hint">Все цифры сохранены. Исправьте и отправьте снова.</p>'
+      +'<button class="btn" data-act="repback" style="margin:8px 0 0">Вернуться к отчёту и исправить</button>'
+      +'<button class="btn sec" data-act="copy" style="margin:8px 0">Скопировать итоги (на случай, если нет связи)</button>'
+      +'<button class="btn sec" data-act="newrep">Готово</button></div>';
+  }
   let h='<div class="card"><h2>'+(d.sent?'Отчёт принят':needR?'Нужна причина исправления':'Отчёт сохранён на устройстве')+'</h2>';
   if(d.sent){
     h+='<div class="chk ok"><i>✓</i><div>'+esc(d.branch)+' · '+ruDate(d.date)+(d.version?' · версия '+d.version:'')+'</div></div>';
     h+='<div id="flagbox">'+flagsHtml()+'</div>';
   }else if(needR){
     h+='<div class="chk warn"><i>!</i><div>За '+ruDate(d.date)+' ('+esc(d.branch)+') отчёт уже сдан. Этот будет исправлением. Впишите, что исправили и почему, и отправьте.</div></div>'
-      +'<label class="f"><span>Причина исправления</span><input id="rs-'+it.uid+'" autocomplete="off"></label>'
+      +'<label class="f"><span>Причина исправления'+(it.minLen>3?' (не короче '+it.minLen+' знаков)':'')+'</span><input id="rs-'+it.uid+'" autocomplete="off"></label>'
       +'<button class="btn" data-act="setReason" data-id="'+it.uid+'" style="margin:0 0 8px">Отправить с причиной</button>';
   }else if(st==='error'){
     h+='<div class="chk bad"><i>✗</i><div>Сервер не принял отчёт ('+esc(it.err||'ошибка')+'). Отчёт цел на устройстве. Нажмите «Отправить сейчас»; если не получится, скопируйте итоги и сообщите руководителю.</div></div>';
@@ -438,6 +559,7 @@ function viewDone(){
   }else{
     h+='<div class="chk warn"><i>!</i><div>Пока не отправлен'+((S.online&&st!=='offline')?' (идёт отправка…)':' — нет связи с сервером. Отправится сам, когда появится интернет (проверка каждые 8 секунд). Не очищайте данные браузера.')+'</div></div>';
   }
+  if(!d.sent&&!needR&&(st==='offline'||!S.online))h+='<div class="chk warn"><i>…</i><div>Сверка будет после связи.</div></div>';
   if(!d.sent&&!needR)h+='<button class="btn" data-act="flush" style="margin:8px 0 0">Отправить сейчас</button>';
   h+='<button class="btn sec" data-act="copy" style="margin:8px 0">Скопировать итоги (на случай, если нет связи)</button>';
   h+='<button class="btn" data-act="newrep">Готово</button></div>';

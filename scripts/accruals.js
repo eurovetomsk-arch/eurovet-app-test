@@ -396,9 +396,20 @@ async function showPay(from,to){
 }
 
 /* ====== Сейф (1.56): начислено, выплачено, остаток к выплате, остаток в сейфе, нехватка ====== */
+/* Кто не входит в «Остаток к выплате» сейфа (свод §14): список приходит с сервера (ev_cash_exclusions), в коде номеров нет.
+   excl: массив номеров; null — не загрузился (failed='load'), [] — пустой (failed='empty', считаем ошибкой):
+   в обоих случаях остаток к выплате и «хватает/не хватает» НЕ показываем, есть «Повторить». Старый список не держим: при каждой загрузке он сбрасывается. */
+function safeTotals(rows,excl,c){const N=v=>Number(v||0),E=(excl||[]).map(Number),skipRows=rows.filter(x=>E.includes(Number(x.id))),skip=skipRows.reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),need=rows.filter(x=>!E.includes(Number(x.id))).reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),bal=c?(c.balance!=null?N(c.balance):N(c.on_hand)):null;if(excl==null||!Array.isArray(excl)||!excl.length)return{skipRows:[],skip:0,need:null,bal,short:null,failed:Array.isArray(excl)?'empty':'load'};const short=bal==null?null:need-bal;return{skipRows,skip,need,bal,short,failed:false}}
+async function retrySafeExcl(){ // кнопка «Повторить»: запросить только список исключений
+  S.cashExcl=undefined;if(S.view==='pay'&&S.paySafe)paint();let x=null;
+  try{x=await rpc('ev_cash_exclusions',{p_token:S.token},8000)}catch(e){}
+  S.cashExcl=(x&&x.ok&&Array.isArray(x.person_ids))?x.person_ids.map(Number):null;
+  if(S.view==='pay'&&S.paySafe)paint();
+}
 async function loadSafe(){
-  try{const [r,m]=await Promise.all([rpc('ev_cash_on_hand',{p_token:S.token},8000),rpc('ev_my_cash_today',{p_token:S.token},8000)]);S.cash=(r&&r.ok)?r:null;S.myCash=(m&&m.ok)?m:null;S.safeErr=(r&&r.ok)?null:(r&&r.error==='forbidden'?'Нет доступа':'Не удалось загрузить сейф')}
-  catch(e){S.safeErr=e.net?'Нет связи.':'Ошибка сервера.'}
+  S.cashExcl=undefined; // не держим прежний список: только свежий ответ сервера
+  try{const [r,m,x]=await Promise.all([rpc('ev_cash_on_hand',{p_token:S.token},8000),rpc('ev_my_cash_today',{p_token:S.token},8000),rpc('ev_cash_exclusions',{p_token:S.token},8000).catch(()=>null)]);S.cashExcl=(x&&x.ok&&Array.isArray(x.person_ids))?x.person_ids.map(Number):null;S.cash=(r&&r.ok)?r:null;S.myCash=(m&&m.ok)?m:null;S.safeErr=(r&&r.ok)?null:(r&&r.error==='forbidden'?'Нет доступа':'Не удалось загрузить сейф')}
+  catch(e){S.cashExcl=null;S.safeErr=e.net?'Нет связи.':'Ошибка сервера.'}
   if(S.view==='pay'&&S.paySafe)paint();
 }
 function safeBody(){
@@ -406,22 +417,22 @@ function safeBody(){
   if(S.payErr)return '<div class="card"><p>'+esc(S.payErr)+'</p></div>';
   if(!r)return '<div class="card"><p class="hint">Загружаю…</p></div>';
   const rows=r.rows||[],tot=r.total||{};
-  const CASH_SKIP=((window.EVROVET_UI2_CONFIG||{}).cashExcludePersonIds||[]).map(Number),skipRows=rows.filter(x=>CASH_SKIP.includes(Number(x.id))),skip=skipRows.reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),need=rows.filter(x=>!CASH_SKIP.includes(Number(x.id))).reduce((q,x)=>q+Math.max(0,N(x.to_pay)),0),bal=c?(c.balance!=null?N(c.balance):N(c.on_hand)):null,short=bal==null?null:need-bal;
+  const {skipRows,skip,need,bal,short,failed:exclFail}=safeTotals(rows,S.cashExcl,c),exclWait=S.cashExcl===undefined;
   const prov=!!r.provisional||(r.warnings||[]).some(w=>/не закрыт|не загружен/i.test(String(w)));
   h+='<div class="card"><h3 style="margin-top:2px">Зарплата за период</h3>'
     +'<div class="srow"><span>Начислено</span><b>'+money(N(tot.accrued))+'</b></div>'
     +'<div class="srow"><span>Выплачено</span><b>'+money(N(tot.paid))+'</b></div>'
-    +'<div class="srow big"><span>Остаток к выплате</span><b>'+money(need)+'</b></div>'+(skipRows.length?'<div class="srow sub"><span>не входит в общую выдачу: '+skipRows.map(x=>esc(x.name)).join(', ')+' (расчёт ведётся отдельно)</span><b>'+money(skip)+'</b></div>':'')
+    +'<div class="srow big"><span>Остаток к выплате</span><b>'+(exclWait?'…':exclFail?'—':money(need))+'</b></div>'+(exclFail?'<p class="hint" data-safe-excl-fail>'+(exclFail==='empty'?'Список исключений пуст — остаток не показан':'Список исключений не загрузился — остаток не показан')+'</p><div class="chips"><button class="btn" data-act="safeexclretry">Повторить</button></div>':'')+(skipRows.length?'<div class="srow sub"><span>не входит в общую выдачу: '+skipRows.map(x=>esc(x.name)).join(', ')+' (расчёт ведётся отдельно)</span><b>'+money(skip)+'</b></div>':'')
     +((r.warnings||[]).length?'<p class="hint" style="margin-top:8px">'+r.warnings.map(esc).join('<br>')+'</p>':'')+'</div>';
   h+='<div class="card"><h3 style="margin-top:2px">Сейф</h3>';
-  if(!c)h+='<p class="hint">'+esc(S.safeErr||'Загружаю…')+'</p>';
+  if(!c||exclWait)h+='<p class="hint">'+esc(S.safeErr||'Загружаю…')+'</p>';
   else{
     const lack=short>0.005;
     h+='<div class="srow"><span>Подтверждённые инкассации с '+ruDate(c.from)+'</span><b>'+money(N(c.on_hand))+'</b></div>'
       +'<div class="srow"><span>Взято из сейфа на выплаты</span><b>−'+money(N(c.taken))+'</b></div>'
       +'<div class="srow big"><span>Остаток в сейфе</span><b'+(bal<0?' style="color:var(--bad)"':'')+'>'+money(bal)+'</b></div>'
       /* 1.68: крупная цветная строка-вердикт: красная «не хватает», зелёная «хватает» */
-      +'<div class="srow" style="margin-top:10px;padding:12px 14px;border-radius:12px;font-size:21px;font-weight:800;background:var(--'+(lack?'badbg':'okbg')+');color:var(--'+(lack?'bad':'ok')+')"><span>'+(lack?'Не хватает кэша':'Кэша хватает')+'</span><b>'+money(Math.abs(short))+'</b></div>'
+      +(exclFail?'<p class="hint">Хватает ли кэша — не показано: нет списка исключений.</p>':'<div class="srow" style="margin-top:10px;padding:12px 14px;border-radius:12px;font-size:21px;font-weight:800;background:var(--'+(lack?'badbg':'okbg')+');color:var(--'+(lack?'bad':'ok')+')"><span>'+(lack?'Не хватает кэша':'Кэша хватает')+'</span><b>'+money(Math.abs(short))+'</b></div>')
       +'<p class="hint">'+(prov?'Предварительно: период не закрыт. ':'')+(bal<0?'Минус: взято больше, чем подтверждено инкассаций. ':'')+(N(c.pending)?'Не подтверждено вами: '+money(N(c.pending))+' (не входит). ':'')+'</p>';
     if(S.myCash)h+='<div class="person"><h3>Мои наличные сегодня</h3><div class="srow"><span>Забрано с филиалов</span><b>'+money(N(S.myCash.collections))+'</b></div><div class="srow"><span>Взято из сейфа</span><b>'+money(N(S.myCash.safe_out))+'</b></div><div class="srow"><span>Выдано из кассы сотрудникам</span><b>−'+money(N(S.myCash.cash_payroll))+'</b></div><div class="srow big"><span>Должно быть на руках</span><b>'+money(N(S.myCash.on_hand))+'</b></div></div>';
     S.safeUid=S.safeUid||uid();
@@ -1092,7 +1103,10 @@ async function loadAppointments(){
     else{
       const allowed=new Set(['id','date','time','end','branch','status','pet_id','alias','species','reason','visit_type']);
       const states=new Set(['booked','unconfirmed','cancelled','waiting','in_treatment','completed','overdue','reschedule_requested']);
-      const rows=(Array.isArray(r.rows)?r.rows:[]).map(x=>{
+      /* c30: снимок может содержать «сырые» статусы Vetmanager — приводим к словарю приложения; deleted и неизвестные пропускаем, а не роняем весь снимок */
+      const rawSt={save:'booked',directed:'waiting',accepted:'completed',delayed:'reschedule_requested',not_approved:'unconfirmed',not_confirmed:'unconfirmed'};
+      const src=(Array.isArray(r.rows)?r.rows:[]).map(x=>(x&&typeof x==='object'&&rawSt[x.status])?Object.assign({},x,{status:rawSt[x.status]}):x).filter(x=>!(x&&typeof x==='object'&&(x.status==='deleted'||(typeof x.status==='string'&&!states.has(x.status)))));
+      const rows=src.map(x=>{
         if(!x||Object.keys(x).some(k=>!allowed.has(k))||!x.id||!/^\d{4}-\d{2}-\d{2}$/.test(x.date)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.end)||!['marksa','70let','pereleta'].includes(x.branch)||!states.has(x.status))throw Error('contract');
         const row={};Object.keys(x).forEach(k=>{if(x[k]!=null&&typeof x[k]!=='string'&&typeof x[k]!=='number')throw Error('contract');row[k]=x[k]});return row
       });
@@ -1112,7 +1126,7 @@ function appointmentsHtml(day){
   const rows=(APPT.rows||[]).filter(x=>x.status!=='cancelled'&&x.date===day);
   if(!rows.length)return h+'<p>На этот день записей пока нет.</p></div>';
   rows.forEach(x=>{
-    h+='<div class="person"><div class="srow"><span><b>'+esc(x.time)+'–'+esc(x.end)+' · '+esc(x.alias||'Служебная запись')+'</b><br><small>'+esc([x.species,br[x.branch]].filter(Boolean).join(' · '))+'</small></span><span class="chip">'+esc(st[x.status]||x.status)+'</span></div>'+(x.visit_type?'<p style="margin:8px 0 0"><b>Цель визита:</b> '+esc(x.visit_type)+'</p>':'')+(x.reason?'<p class="hint" style="margin:5px 0 0"><b>Комментарий:</b> '+esc(x.reason)+'</p>':'')+'<p class="hint" style="margin:5px 0 0">Запись №'+esc(x.id)+'</p></div>';
+    h+='<div class="person"><div class="srow"><span><b>'+esc(x.time)+'–'+esc(x.end)+' · '+esc(x.alias||'Служебная запись')+'</b><br><small>'+esc([x.species,br[x.branch]].filter(Boolean).join(' · '))+'</small></span></div>'+(x.visit_type?'<p style="margin:8px 0 0"><b>Цель визита:</b> '+esc(x.visit_type)+'</p>':'')+'<p class="hint" style="margin:5px 0 0">Запись №'+esc(x.id)+'</p></div>';
   });
   return h+'</div>';
 }

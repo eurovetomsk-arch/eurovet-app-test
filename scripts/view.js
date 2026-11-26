@@ -3,11 +3,11 @@
 function setHeader(){
   const h=$('#hdr');
   document.body.classList.toggle('login-mode',S.view==='login');
-  if(S.view==='login'){h.className='login-head';h.innerHTML='';return}
+  if(S.view==='login'){h.className='login-head';stableHtml(h,'');return}
   h.className=S.view==='form'?'form-head':'';
-  if(S.view==='help'&&!S.person){h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt="" width="42" height="42" decoding="sync"><div><b>Мой ЕВРОВЕТ</b><small>Всё о вашей работе — в одном месте</small></div></div>'+netBadge();return}
-  h.innerHTML='<div class="hl"><img class="logo" src="mark.svg" alt="" width="42" height="42" decoding="sync"><div><b>'+esc(S.person?(S.person.short_name||S.person.name):'')+'</b><small>'+esc(stageRole(S.person))+'</small></div></div><div class="hb">'+netBadge()+
-    (S.view==='form'?'<button class="pill" data-act="back" aria-label="Назад на главную">‹ Назад</button>':'')+(S.view==='cc'&&canReport()&&!isHead()?'<button class="pill" data-act="back">Отчёт</button>':'')+'</div>'; /* 2.0: «Меню» только внизу */
+  if(S.view==='help'&&!S.person){stableHtml(h,'<div class="hl"><img class="logo" src="mark.svg" alt=""><div><b>Мой ЕВРОВЕТ</b><small>Всё о вашей работе — в одном месте</small></div></div>'+netBadge(),true);return}
+  stableHtml(h,'<div class="hl"><img class="logo" src="mark.svg" alt=""><div><b>'+esc(S.person?(S.person.short_name||S.person.name):'')+'</b><small>'+esc(stageRole(S.person))+'</small></div></div><div class="hb">'+netBadge()+
+    (S.view==='form'?'<button class="pill" data-act="back" aria-label="Назад на главную">‹ Назад</button>':'')+(S.view==='cc'&&canReport()&&!isHead()?'<button class="pill" data-act="back">Отчёт</button>':'')+'</div>',true); /* 2.0: «Меню» только внизу */
 }
 function netBadge(){
   const q=S.queue.length+S.handoverQueue.length;
@@ -26,39 +26,70 @@ function evSyncHistory(){
   evHistoryView=snap.view;
 }
 let _renderedView=null;
+/* Не трогаем уже нарисованный узел, если разметка не изменилась. При изменении
+   переносим совпадающие картинки в новую разметку: декодированные иконки не
+   исчезают между несколькими фоновыми обновлениями одного экрана. */
+function stableHtml(el,html,keepImages){
+  if(!el||el.innerHTML===html)return false;
+  if(!keepImages){el.innerHTML=html;return true}
+  const t=document.createElement('template');t.innerHTML=html;
+  const pool={};el.querySelectorAll('img[src]').forEach(img=>{const k=img.getAttribute('src');(pool[k]||(pool[k]=[])).push(img)});
+  t.content.querySelectorAll('img[src]').forEach(img=>{const a=pool[img.getAttribute('src')];if(a&&a.length&&a[0].outerHTML===img.outerHTML)img.replaceWith(a.shift())});
+  el.replaceChildren(t.content);return true;
+}
+/* Активная вкладка меняет только класс кнопки. Не удаляем саму панель и SVG:
+   iOS иначе заново композитит все иконки и они заметно мигают. */
+function stableBottomBar(el,html){
+  if(!el||!html)return stableHtml(el,html);
+  const old=el.firstElementChild;
+  if(!old||el.children.length!==1||!old.matches('nav.ui2-bottom-nav'))return stableHtml(el,html);
+  const t=document.createElement('template');t.innerHTML=html;
+  const fresh=t.content.firstElementChild,ob=[...old.querySelectorAll(':scope > button')],nb=fresh?[...fresh.querySelectorAll(':scope > button')]:[];
+  const same=fresh&&fresh.matches('nav.ui2-bottom-nav')&&ob.length===nb.length&&ob.every((b,i)=>b.innerHTML===nb[i].innerHTML&&b.dataset.act===nb[i].dataset.act&&b.dataset.v===nb[i].dataset.v);
+  if(!same)return stableHtml(el,html);
+  ob.forEach((b,i)=>b.className=nb[i].className);return false;
+}
 function roLock(){
   const a=$('#app');if(!a)return;a.classList.toggle('ro',!!(S.view==='form'&&S.roHead));
   if(!(S.view==='form'&&S.roHead))return;
   a.querySelectorAll('input,select,textarea').forEach(e=>{e.disabled=true});
 }
-keepImg('mark.svg');
 function render(){
   /* c13: шторка не должна переживать смену экрана (REMARKS п.19) */
   if(_renderedView!==null&&_renderedView!==S.view&&$('#ovwrap')&&$('#ovwrap').innerHTML&&!S.keepOv)closeOv();
   _renderedView=S.view;
   evSyncHistory();
   setHeader();
-  const app=$('#app'),bar=$('#barwrap');bar.innerHTML='';
+  const app=$('#app'),bar=$('#barwrap');let html='',barHtml='';
   app.classList.toggle('ro',S.view==='form'&&!!S.roHead); /* c32: «только чтение» держится только на экране просмотра, на других экранах не прячет кнопки */
-  if(S.view==='login')app.innerHTML=viewLogin();
-  else if(S.view==='branch')app.innerHTML=viewBranch();
-  else if(S.view==='form'){app.innerHTML=viewForm();bar.innerHTML=viewBar();if(!S.nosub)updateChecks();roLock()}
-  else if(S.view==='done')app.innerHTML=viewDone();
-  else if(S.view==='help')app.innerHTML=viewHelp();
-  else if(S.view==='ctl')app.innerHTML=ctlHtml();
-  else if(S.view==='rev')app.innerHTML=revHtml()+revDoctorsHtml();
-  else if(S.view==='sal')app.innerHTML=salHtml();
-  else if(S.view==='cc')app.innerHTML=ccHtml();
-  else if(S.view==='work')app.innerHTML=workHtml();
-  else if(S.view==='pay')app.innerHTML=payHtml();
-  else if(S.view==='mu')app.innerHTML=muHtml();
-  else if(S.view==='sched')app.innerHTML=schedHtml();
-  else if(S.view==='prepare')app.innerHTML=prepareHtml();
-  else if(S.view==='vac')app.innerHTML=vacHtml();
-  else if(S.view==='dose')app.innerHTML=doseHtml();
-  if(S.person&&['branch','ctl','rev','sal','cc','work','pay','sched','prepare','vac','dose'].includes(S.view))bar.innerHTML=navHtml();
+  if(S.view==='login')html=viewLogin();
+  else if(S.view==='branch')html=viewBranch();
+  else if(S.view==='form'){html=viewForm();barHtml=viewBar()}
+  else if(S.view==='done')html=viewDone();
+  else if(S.view==='vmw')html=vmwHtml();
+  else if(S.view==='help')html=viewHelp();
+  else if(S.view==='ctl')html=ctlHtml();
+  else if(S.view==='rev')html=revHtml()+revDoctorsHtml();
+  else if(S.view==='sal')html=salHtml();
+  else if(S.view==='cc')html=ccHtml();
+  else if(S.view==='work')html=workHtml();
+  else if(S.view==='pay')html=payHtml();
+  else if(S.view==='mu')html=muHtml();
+  else if(S.view==='sched')html=schedHtml();
+  else if(S.view==='prepare')html=prepareHtml();
+  else if(S.view==='vac')html=vacHtml();
+  else if(S.view==='med')html=medHtml();
+  else if(S.view==='dose')html=doseHtml();
+  else if(S.view==='an')html=analyticsHtml();
+  else if(S.view==='card')html=cardHtml();
+  stableHtml(app,html,true);
+  if(S.view==='form'){if(!S.nosub)updateChecks();roLock()}
+  if(S.person&&['branch','ctl','rev','sal','cc','work','pay','sched','prepare','vac','med','dose','an','card'].includes(S.view))barHtml=navHtml();
+  stableBottomBar(bar,barHtml);
+  document.body.classList.toggle('has-bottom-bar',!!barHtml);
 }
 window.addEventListener('popstate',e=>{
+  if(typeof vmwBlockBack==='function'&&vmwBlockBack())return; /* экран «Ожидайте сверки»: назад не выводит */
   const x=e.state&&e.state.evrovet;if(!x)return;
   evHistoryApplying=true;
   S.view=x.view||homeView();S.branch=x.branch||null;S.date=x.date||omskToday();
@@ -106,12 +137,43 @@ async function loadTransit(branch,date){
   if(!S.token)return;
   try{const r=await rpc('ev_collection_transit_list',{p_token:S.token,p_branch:branch||null,p_date:date||omskToday()},8000);if(r&&r.ok){S.transit=r;if(S.view==='form'||S.view==='branch')paint()}}catch(e){}
 }
-function transitGiveForm(){S.transitUid=S.transitUid||uid();overlay('<h2>Отдал инкассацию</h2><p class="hint">Запишем факт передачи сейчас. В отчёте сумму введите отдельно.</p><label class="f"><span>Сумма, ₽</span><input id="tra" inputmode="decimal"></label><label class="f"><span>Кому</span><input id="trr" maxlength="80" value="Михаил"></label><button class="btn" data-act="transitgo" data-source="admin">Отдал</button><button class="btn sec" style="margin-top:8px" data-act="ovclose">Отмена</button>')}
+function activeAdminTransit(){return((S.transit&&S.transit.items)||[]).find(x=>String(x.branch)===String(S.branch)&&String(x.date)===String(S.date)&&x.source==='admin'&&x.status!=='cancelled')||null}
+function transitGiveForm(){
+  const cur=activeAdminTransit();
+  if(cur){
+    overlay('<h2>Инкассация уже записана</h2><p>Передано <b>'+money(Number(cur.amount))+'</b>'+(cur.recipient?' · '+esc(cur.recipient):'')+'.</p><p class="hint">Повторная запись не создаётся. Если сумма или получатель указаны неверно, исправьте запись с обязательной причиной.</p><button class="btn" data-act="transitfix">Исправить</button><button class="btn sec" style="margin-top:8px" data-act="ovclose">Закрыть</button>');
+    return;
+  }
+  S.transitUid=S.transitUid||uid();overlay('<h2>Отдал инкассацию</h2><p class="hint">Запишем факт передачи сейчас. В отчёте сумму введите отдельно.</p><label class="f"><span>Сумма, ₽</span><input id="tra" inputmode="decimal"></label><label class="f"><span>Кому</span><input id="trr" maxlength="80" value="Михаил"></label><button class="btn" data-act="transitgo" data-source="admin">Отдал</button><button class="btn sec" style="margin-top:8px" data-act="ovclose">Отмена</button>')
+}
+function transitFixForm(){
+  const cur=activeAdminTransit();
+  if(!cur){closeOv();toast('Активная инкассация не найдена',5000);return}
+  S.transitUid=uid();
+  overlay('<h2>Исправить инкассацию</h2><p class="hint">Старая запись '+money(Number(cur.amount))+' останется в истории как отменённая. Будет создана новая запись.</p><label class="f"><span>Правильная сумма, ₽</span><input id="tra" inputmode="decimal" value="'+esc(cur.amount)+'"></label><label class="f"><span>Кому</span><input id="trr" maxlength="80" value="'+esc(cur.recipient||'Михаил')+'"></label><label class="f"><span>Причина исправления</span><input id="trwhy" maxlength="300" placeholder="что было указано неверно"></label><button class="btn" data-act="transitfixgo">Сохранить исправление</button><button class="btn sec" style="margin-top:8px" data-act="ovclose">Отмена</button>');
+}
 function transitPickupForm(){S.transitUid=S.transitUid||uid();overlay('<h2>Забрал с филиала</h2><label class="f"><span>Филиал</span><select id="trb">'+BRANCHES.filter(x=>!x.testOnly).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.title)+'</option>').join('')+'</select></label><label class="f"><span>Сумма, ₽</span><input id="tra" inputmode="decimal"></label><button class="btn" data-act="transitgo" data-source="head">Забрал</button><button class="btn sec" style="margin-top:8px" data-act="ovclose">Отмена</button>')}
-async function doTransit(source){
+let transitBusy=false;
+async function doTransit(source,correct){
+  if(transitBusy)return;
   const amount=num((($('#tra')||{}).value)),branch=source==='admin'?S.branch:(($('#trb')||{}).value),recipient=(($('#trr')||{}).value||'').trim();
   if(amount==null||amount<=0){toast('Введите сумму');return}
-  try{const fn=source==='admin'?'ev_collection_handoff':'ev_collection_pickup',args=source==='admin'?{p_token:S.token,p_branch:branch,p_amount:amount,p_recipient:recipient,p_uid:S.transitUid}:{p_token:S.token,p_branch:branch,p_amount:amount,p_uid:S.transitUid};const r=await rpc(fn,args,10000);if(!r||!r.ok){toast('Не удалось: '+(r&&r.error),6000);return}S.transitUid=null;closeOv();toast(source==='admin'?'Передача записана':'Получение записано');await loadTransit(branch,omskToday())}catch(e){toast(e.net?'Нет связи':'Ошибка сервера',6000)}
+  const reason=correct?((($('#trwhy')||{}).value||'').trim()):'';
+  if(correct&&reason.length<5){toast('Напишите причину исправления',5000);return}
+  transitBusy=true;
+  const btn=document.querySelector('[data-act="'+(correct?'transitfixgo':'transitgo')+'"]');if(btn)btn.disabled=true;
+  try{
+    const fn=correct?'ev_collection_handoff_correct':source==='admin'?'ev_collection_handoff':'ev_collection_pickup';
+    const args=source==='admin'?{p_token:S.token,p_branch:branch,p_amount:amount,p_recipient:recipient,p_uid:S.transitUid}:{p_token:S.token,p_branch:branch,p_amount:amount,p_uid:S.transitUid};
+    if(correct)args.p_reason=reason;
+    const r=await rpc(fn,args,10000);
+    if(!r||!r.ok){
+      if(r&&r.error==='handoff_exists'){await loadTransit(branch,omskToday());closeOv();toast('Инкассация уже записана. Для изменения нажмите «Исправить».',7000);return}
+      if(r&&r.error==='no_change'){toast('Сумма и получатель не изменились',5000);return}
+      toast('Не удалось: '+(r&&r.error),6000);return
+    }
+    S.transitUid=null;closeOv();toast(correct?'Исправление сохранено':source==='admin'?(r.already_recorded?'Инкассация уже была записана':'Передача записана'):'Получение записано');await loadTransit(branch,omskToday())
+  }catch(e){toast(e.net?'Нет связи':'Ошибка сервера',6000)}finally{transitBusy=false;if(btn)btn.disabled=false}
 }
 /* 1.57: «ушёл позже / пришёл раньше» ждёт подтверждения руководителя (ev_leave_pending / ev_leave_decide) */
 function lvHtml(){
@@ -261,7 +323,7 @@ function navHtml(){
   return '<nav class="nv ui2-bottom-nav">'+bottomNavItems().map(n=>'<button '+(n.key==='menu'?'data-act="menu"':'data-act="go" data-v="'+n.view+'"')+' class="'+(cur===n.key?'on':'')+'"><i>'+NAV_ICON[n.key]+'</i>'+n.label+'</button>').join('')+'</nav>';
 }
 async function showControl(){
-  S.view='ctl';S.ctlLoad=true;S.ctlErr=null;paint();window.scrollTo(0,0);loadMr();loadVmNames();
+  S.view='ctl';S.ctlLoad=true;S.ctlErr=null;paint();window.scrollTo(0,0);loadMr();loadVmNames();loadVmFlags();
   try{
     const r=await rpc('ev_flags_pending',{p_token:S.token},20000);
     if(!r||!r.ok)S.ctlErr=(r&&r.error==='session'?'Сессия закончилась, войдите заново.':'Нет доступа.');
@@ -291,7 +353,7 @@ function ctlOldRows(flAll,cv){
   return [...m.values()].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:String(a.branch).localeCompare(String(b.branch)));
 }
 function ctlHtml(){
-  let h='<div class="mrbox">'+mrHtml()+'</div><div class="card"><h2>Контроль · с 27.10</h2>';
+  let h='<div class="mrbox">'+mrHtml()+'</div>'+vmFlagsHtml()+'<div class="card"><h2>Контроль · с 27.10</h2>';
   if(S.ctlErr)h+='<p>'+esc(S.ctlErr)+'</p><button class="btn sec small" data-act="go" data-v="ctl">Повторить</button>';
   else if(S.ctlLoad&&!S.ctl)h+='<p class="hint">Загружаю…</p>';
   else{
@@ -492,11 +554,20 @@ document.addEventListener('change',e=>{
     if(mm){const e=S.form.expenses[Number(mm[1])];if(e){e.method=isRet(e.article)?(e.method==='cash'||e.method==='noncash'?e.method:''):''}saveDraft();const y=window.scrollY;render();window.scrollTo(0,y);return}
     saveDraft();updateChecks()}
 });
+let loginPointerUntil=0;
+/* На сенсорном экране принимаем цифру уже на pointerdown. Это убирает
+   задержку/слипание быстрых касаний Safari; последующий click игнорируется. */
+document.addEventListener('pointerdown',e=>{
+  const b=e.target.closest&&e.target.closest('.ui2-pad button[data-act]');if(!b)return;
+  e.preventDefault();loginPointerUntil=performance.now()+900;
+  loginKeyPress(b.dataset.act,b.dataset.n);
+},{capture:true});
 document.addEventListener('click',async e=>{
   const ov=e.target.closest('.ov');
   if(ov&&!e.target.closest('[data-stop]')){closeOv();return}
   const b=e.target.closest('[data-act]');if(!b||b.classList.contains('ov'))return;
   const a=b.dataset.act,d=b.dataset;
+  if(b.closest('.ui2-pad')&&performance.now()<loginPointerUntil)return;
   switch(a){
     case'wkper':showWork(d.from,d.to);break;
     case'wktab':S.wkTab=d.k;paint();break;
@@ -541,7 +612,10 @@ document.addEventListener('click',async e=>{
     case'payaddgo':doPayAdd(d.id);break;
     case'safeadd':doSafeAdd();break;
     case'transitgive':transitGiveForm();break;
+    case'transitfix':transitFixForm();break;
+    case'transitfixgo':doTransit('admin',true);break;
     case'transitpickup':transitPickupForm();break;
+    case'safeexclretry':retrySafeExcl();break;
     case'transitgo':doTransit(d.source);break;
     case'safecancel':doSafeCancel(d.id);break;
     case'advform':advForm(d.id);break;
@@ -593,22 +667,11 @@ document.addEventListener('click',async e=>{
     case'loginstart':if(!applySavedNumber()){S.loginScreen='keypad';S.loginStep='number';S.loginNumber='';S.loginPin=''}render();break;
     case'loginnotme':try{localStorage.removeItem(LOGIN_NUM_KEY)}catch(e){}S.loginRemembered=false;S.loginStep='number';S.loginNumber='';S.loginPin='';render();break;
     case'loginchange':S.loginStep='number';S.loginNumber='';S.loginPin='';render();break;
-    case'logindel':if(S.busy)break;if(S.loginStep==='pin'){S.loginPin=S.loginPin.slice(0,-1);if(!S.loginPin.length&&S.loginNumber.length<3)S.loginStep='number'}else S.loginNumber=S.loginNumber.slice(0,-1);render();break;
-    case'logindigit':{
-      if(S.busy)break;
-      const n=String(d.n||'');if(!/^\d$/.test(n))break;
-      if(S.loginStep==='number'){
-        if(S.loginNumber.length<3)S.loginNumber+=n;
-        if(S.loginNumber.length===3)S.loginStep='pin';
-        render();
-      }else if(S.loginPin.length<6){
-        S.loginPin+=n;render();
-        if(S.loginPin.length===6)setTimeout(()=>doLogin(S.loginPin),0);
-      }
-      break}
+    case'logindel':loginKeyPress(a);break;
+    case'logindigit':loginKeyPress(a,d.n);break;
     case'branch':{const dt=$('#dt');if(dt&&dt.value)S.date=dt.value;S.dateManual=S.date!==omskToday();openBranch(d.id);break}
     case'reloadctx':openBranch(S.branch);break;
-    case'back':closeOv();saveDraftNow();S.view='branch';S.form=null;S.roHead=false;S.nosub=false;S.subAdmin=false;render();break;
+    case'back':closeOv();saveDraftNow();S.view='branch';S.form=null;S.roHead=false;S.headFix=false;S.nosub=false;S.subAdmin=false;render();break;
     case'ccopen':closeOv();showCC();break;
     case'ccper':showCC(d.from,d.to);break;
     case'ccmark':ccMarkAsk(d.dt,d.on==='1');break;
@@ -619,6 +682,7 @@ document.addEventListener('click',async e=>{
       const g=d.g,id=d.id,f=S.form;
       if(f[g][id])delete f[g][id];
       else f[g][id]=g==='doctors'?{val:''}:g==='admins'?{left:'',came:''}:{fn:0,fx:0,left:'',came:''};
+      if(g==='doctors'&&f[g][id])f.no_doctor=false;
       if(g==='assistants')f.no_assistant=false;
       saveDraft();render();break}
     case'inc':{
@@ -631,13 +695,20 @@ document.addEventListener('click',async e=>{
     case'addOther':S.form.others.push({title:'',val:''});saveDraft();render();break;
     case'delOther':S.form.others.splice(Number(d.i),1);saveDraft();render();break;
     case'submit':if(!S.busy)submit();break;
-    case'trap-pharm-closed':case'trap-pharm-fill':case'trap-sched-absent':case'trap-sched-add':await trapAct(a,b);break;
+    case'trap-pharm-closed':case'trap-pharm-fill':case'trap-sched-absent':case'trap-sched-add':case'trap-subst-yes':case'trap-subst-drop':await trapAct(a,b);break;
     case'assistantnone':S.form.no_assistant=true;saveDraft();closeOv();await submit();break;
     case'assistantadd':closeOv();setTimeout(()=>{const e=document.querySelector('.k-assist');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},0);break;
+    case'doctornone':S.form.no_doctor=true;saveDraft();closeOv();await submit();break;
+    case'doctoradd':closeOv();setTimeout(()=>{const e=document.querySelector('.k-docs');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},0);break;
+    case'doctorflag':S.form.no_doctor=!S.form.no_doctor;if(S.form.no_doctor)S.form.doctors={};saveDraft();render();break;
     case'copy':if(S.done)clip(S.done.summary);break;
+    case'headfix':headFix();break; /* L34a */
+    case'repback':repBackToForm();break; /* L34 */
     case'copyq':{const it=S.queue.find(x=>x.uid===d.id);if(it)clip(it.summary);break}
     case'dropq':{const it=S.queue.find(x=>x.uid===d.id);if(!it)break;if(!confirm('Убрать этот отчёт ('+it.branchTitle+', '+ruDate(it.date)+') из очереди? Итоги можно сначала скопировать.'))break;S.queue=S.queue.filter(x=>x.uid!==d.id);saveQueue();showQueue();render();break}
     case'drophq':{const it=S.handoverQueue.find(x=>x.uid===d.id);if(!it)break;if(!confirm('Убрать неотправленную приёмку кассы из очереди?'))break;S.handoverQueue=S.handoverQueue.filter(x=>x.uid!==d.id);saveHandoverQueue();showQueue();render();break}
+    case'vmwfix':{S.vmw=null;S.done=null;S.form=null;openBranch(d.branch);break}
+    case'vmwhome':S.vmw=null;
     case'newrep':S.done=null;S.form=null;S.view='branch';S.date=omskToday();S.dateManual=false;if(!isHead()&&!S.queue.length&&!S.handoverQueue.length){logout();break}render();break; // 1.65: после сданного отчёта админ выходит сам
     case'menu':showMenu();break;
     case'schappt':{const s=schEnsure();s.apptDay=d.d;if(apptAllowed()&&apptInWindow(d.d)&&APPT.status==='idle')loadAppointments();else paint();break}
@@ -663,10 +734,9 @@ document.addEventListener('click',async e=>{
       overlay('<h2>'+esc(h[0])+'</h2><p style="margin:0 0 14px">'+esc(h[1])+'</p><button class="btn" data-act="ovclose">Понятно</button>');break}
     case'logout':closeOv();if((S.queue.length||S.handoverQueue.length)&&!confirm('Есть неотправленные данные. Они останутся на устройстве и уйдут после следующего входа. Выйти?'))break;logout();break;
     case'flush':if(S.queue.length&&S.queue.every(x=>x.status==='needs_reason')&&!S.handoverQueue.length){toast('Сначала впишите причину исправления и нажмите «Отправить с причиной»',5000);break}S.queue.forEach(x=>{if(x.status==='offline'||x.status==='error')x.status='new'});S.handoverQueue.forEach(x=>{if(x.status==='offline')x.status='new'});closeOv();kick();break;
-    case'setReason':{const v=(($('#rs-'+d.id)||{}).value||'').trim();if(v.length<3){toast('Напишите причину');break}
-      const it=S.queue.find(x=>x.uid===d.id);if(it){it.reason=v;it.status='new'}saveQueue();closeOv();await flush();break}
+    case'setReason':{const v=(($('#rs-'+d.id)||{}).value||'').trim(),it=S.queue.find(x=>x.uid===d.id),mn=(it&&it.minLen)||3;if(v.length<mn){toast(mn>3?'Причина — не короче '+mn+' знаков':'Напишите причину');break}if(it){it.reason=v;it.status='new'}saveQueue();closeOv();await flush();break}
     case'doUpdate':reloadNew();break;
-    case'go':{closeOv();const v=d.v;if(v==='work')showWork(S.wkFrom,S.wkTo);else if(v==='cc')showCC();else if(v==='sched')showSched();else if(v==='branch'){S.view='branch';render();window.scrollTo(0,0)}else if(v==='ctl')showControl();else if(v==='vac')showVac();else if(v==='dose')doseOpen();else if(v==='rev')showRevenue();else if(v==='pay'){S.pplMode=false;S.paySafe=false;showPay()}else if(v==='safe'){S.pplMode=false;S.paySafe=true;showPay(S.payFrom,S.payTo);loadSafe()}else if(v==='ppl'){S.pplMode=true;S.paySafe=false;S.pplId=null;showPay()}else if(v==='sal')showSalary(S.salFrom,S.salTo);break}
+    case'go':{closeOv();const v=d.v;if(v==='work')showWork(S.wkFrom,S.wkTo);else if(v==='cc')showCC();else if(v==='sched')showSched();else if(v==='branch'){S.view='branch';render();window.scrollTo(0,0)}else if(v==='ctl')showControl();else if(v==='vac')showVac();else if(v==='dose')doseOpen();else if(v==='med')showMed();else if(v==='an')showAnalytics();else if(v==='rev')showRevenue();else if(v==='pay'){S.pplMode=false;S.paySafe=false;showPay()}else if(v==='safe'){S.pplMode=false;S.paySafe=true;showPay(S.payFrom,S.payTo);loadSafe()}else if(v==='ppl'){S.pplMode=true;S.paySafe=false;S.pplId=null;showPay()}else if(v==='sal')showSalary(S.salFrom,S.salTo);break}
     case'salcopy':copyPay();break;
     case'salper':showSalary(d.from,d.to);break;
     case'saldates':S.salDates=!S.salDates;paint();break;

@@ -132,7 +132,7 @@ function handoverCorrectGo(eventId){
 async function openBranch(id,opts){
   closeOv();
   const asAdmin=!!(opts&&opts.asAdmin),headView=isHead()&&!asAdmin;
-  S.roHead=false;S.nosub=false;S.nosubInfo=null;S.subAdmin=asAdmin;
+  S.roHead=false;S.headFix=false;S.nosub=false;S.nosubInfo=null;S.subAdmin=asAdmin;
   if(!isHead()){S.date=omskToday();S.dateManual=false;}
   S.branch=id;S.busy=true;render();
   let ctx=null;S.ctxOffline=false;
@@ -169,7 +169,7 @@ async function openBranch(id,opts){
   S.handover=S.ctxOffline?null:{branch:id,date:S.date,loading:true,ctx:null,actual:'',error:null,offline:false};
   const draft=LS.get(draftKey());
   S.draftTs=null;
-  if(draft&&draft.form){S.form=Object.assign(emptyForm(),draft.form);S.draftTs=draft.ts||Date.now()}
+  if(draft&&draft.form&&!draft.sent){S.form=Object.assign(emptyForm(),draft.form);S.draftTs=draft.ts||Date.now()}
   else if(ctx.current){S.form=formFromReport(ctx.current.data)}
   else S.form=freshForm();
   S.busy=false;S.view='form';S.flags=null;render();
@@ -225,6 +225,42 @@ function loginBoxes(){
     +'<div class="ui2-field-label" style="margin-top:10px;opacity:.7;font-weight:600">Автоматический выход через 30 минут без действий (кроме руководителя).</div>';
 }
 function loginPad(){return '<div class="ui2-pad">'+['1','2','3','4','5','6','7','8','9'].map(n=>'<button data-act="logindigit" data-n="'+n+'">'+n+'</button>').join('')+'<button class="blank" tabindex="-1" aria-hidden="true"></button><button data-act="logindigit" data-n="0">0</button><button class="del" data-act="logindel" aria-label="Стереть">⌫</button></div>'}
+/* Цифровая клавиатура остаётся тем же DOM-узлом между нажатиями.
+   Раньше полный render() после каждой цифры удалял кнопки прямо под пальцем,
+   поэтому быстрые касания на телефоне терялись. */
+function refreshLoginKeypad(){
+  const shell=document.querySelector('.ui2-key-login'),entry=shell&&shell.querySelector('.ui2-login-entry'),title=shell&&shell.querySelector('h2');
+  if(!shell||!entry||!title){render();return}
+  title.textContent=S.loginStep==='number'?'Ваш личный номер':'Введите PIN';
+  /* На одном и том же шаге не перестраиваем даже область индикатора: Safari
+     не тратит кадр на новую разметку между двумя быстрыми касаниями. */
+  if(entry.dataset.step!==S.loginStep){entry.innerHTML=loginBoxes();entry.dataset.step=S.loginStep;return}
+  if(S.loginStep==='number'){
+    const boxes=entry.querySelectorAll('.ui2-digits span');
+    boxes.forEach((box,i)=>{box.textContent=S.loginNumber[i]||'';box.classList.toggle('cur',i===S.loginNumber.length)});
+    const digits=entry.querySelector('.ui2-digits');if(digits)digits.setAttribute('aria-label','Введено цифр: '+S.loginNumber.length);
+  }else{
+    entry.querySelectorAll('.ui2-dots i').forEach((dot,i)=>dot.classList.toggle('on',i<S.loginPin.length));
+    const dots=entry.querySelector('.ui2-dots');if(dots)dots.setAttribute('aria-label','Введено цифр PIN: '+S.loginPin.length);
+  }
+}
+function loginKeyPress(act,n){
+  if(S.view!=='login'||S.loginScreen!=='keypad'||S.busy)return;
+  if(act==='logindel'){
+    if(S.loginStep==='pin'){S.loginPin=S.loginPin.slice(0,-1);if(!S.loginPin.length&&S.loginNumber.length<3)S.loginStep='number'}
+    else S.loginNumber=S.loginNumber.slice(0,-1);
+    refreshLoginKeypad();return;
+  }
+  n=String(n||'');if(act!=='logindigit'||!/^[0-9]$/.test(n))return;
+  if(S.loginStep==='number'){
+    if(S.loginNumber.length<3)S.loginNumber+=n;
+    if(S.loginNumber.length===3)S.loginStep='pin';
+    refreshLoginKeypad();
+  }else if(S.loginPin.length<6){
+    S.loginPin+=n;refreshLoginKeypad();
+    if(S.loginPin.length===6)setTimeout(()=>doLogin(S.loginPin),0);
+  }
+}
 /* c21: без сети войти нельзя (вход проверяет сервер), но данные не потеряны — говорим об этом прямо */
 function loginNetNote(){
   const q=(S.queue||[]).length,hq=(S.handoverQueue||[]).length;
@@ -236,5 +272,5 @@ function loginNetNote(){
 }
 function viewLogin(){
   if(S.loginScreen==='start')return '<section class="ui2-login-shell ui2-start"><div class="ui2-login-spacer"></div><div class="ui2-halo">'+evroMark('evro-mark')+'</div>'+loginWordmark('lg')+'<p class="ui2-login-lead">'+esc(loginSlogan())+'</p>'+loginNetNote()+'<div class="ui2-login-spacer"></div><button class="btn ui2-login-btn" data-act="loginstart">Войти</button></section>';
-  return '<section class="ui2-login-shell ui2-key-login">'+loginWordmark('sm')+'<h2>'+(S.loginStep==='number'?'Ваш личный номер':'Введите PIN')+'</h2><div class="ui2-login-entry">'+loginBoxes()+'</div><div class="ui2-login-spacer"></div>'+loginPad()+''+loginNetNote()+'<p class="ui2-login-fine">Номер и PIN — ваша подпись. Никому не передавайте</p>'+(S.busy?'<div class="ui2-login-busy">Входим…</div>':'')+'</section>';
+  return '<section class="ui2-login-shell ui2-key-login">'+loginWordmark('sm')+'<h2>'+(S.loginStep==='number'?'Ваш личный номер':'Введите PIN')+'</h2><div class="ui2-login-entry" data-step="'+S.loginStep+'">'+loginBoxes()+'</div><div class="ui2-login-spacer"></div>'+loginPad()+''+loginNetNote()+'<p class="ui2-login-fine">Номер и PIN — ваша подпись. Никому не передавайте</p>'+(S.busy?'<div class="ui2-login-busy">Входим…</div>':'')+'</section>';
 }

@@ -1,10 +1,10 @@
 'use strict';
 /* ====== Настройки (публичные по замыслу: доступ к данным только через функции с PIN) ====== */
 const CFG={
-  url:'https://txcibtcfuzqhhebeguby.supabase.co',
+  url:window.STAGE1.url,
   key:window.STAGE1?.key||'',
   tol:10,                // допустимая погрешность включительно, ₽
-  appVer:'2.0-test-c36'
+  appVer:'2.0-test-c37'
 };
 const BRANCHES=[
   {id:'marksa',title:'Маркса, 45'},
