@@ -116,7 +116,7 @@ const HOME_TILE_META={
   where_i_work:{section:'work',size:'wide',title:'Где я работаю',sub:'Мои смены и кто где сегодня',view:'sched'},
   vaccines:{section:'preparations',size:'sm',title:'Вакцины',sub:'Остатки по филиалам',view:'vac',prepare:'Здесь будут остатки вакцин и их движение по филиалам.'},
   vaccines_all_branches:{section:'preparations',size:'sm',title:'Вакцины по филиалам',sub:'Остатки во всех клиниках',view:'vac',prepare:'Здесь будут остатки вакцин по всем филиалам.'},
-  dose_calculator:{section:'preparations',size:'sm',title:'Расчёт дозы',sub:'107 препаратов · тест врачами',view:'dose'},
+  dose_calculator:{section:'preparations',size:'sm',title:'Расчёт дозы',sub:'8 препаратов уже считают · тест',view:'dose'},
   supplies:{section:'preparations',size:'sm',title:'Препараты и расходники',sub:'Заявка и остатки',prepare:'Скоро: заявка препаратов и расходников — здесь же будут остатки.'},
   supplies_all_requests:{section:'preparations',size:'sm',title:'Заявки филиалов',sub:'Все заявки на снабжение',prepare:'Здесь будут заявки филиалов на препараты и расходники.'},
   supply_order:{section:'preparations',size:'sm',title:'Заказ снабжения',sub:'Собрать и отметить заказ',prepare:'Здесь можно будет собрать и отметить заказ снабжения.'},

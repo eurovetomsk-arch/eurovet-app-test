@@ -43,8 +43,8 @@ window.EVROVET_UI2_CONFIG=Object.freeze({
        Раздел плитки определяется функцией homeTileSection (home.js); порядок плиток внутри раздела = порядок в этом списке. */
     admin:Object.freeze(['cash_acceptance','evening_report','vaccines','supplies','my_schedule','my_accruals']),
     doctor:Object.freeze(['appointments','vaccines','dose_calculator','supplies','my_schedule','my_accruals']),
-    assistant_clinical:Object.freeze(['vaccines','dose_calculator','supplies','my_schedule','my_accruals']),
-    assistant_tech:Object.freeze(['vaccines','dose_calculator','supplies','my_schedule','my_accruals']),
+    assistant_clinical:Object.freeze(['vaccines','supplies','my_schedule','my_accruals']),
+    assistant_tech:Object.freeze(['vaccines','supplies','my_schedule','my_accruals']),
     /* 2.0, п.15: график (плановые дни) и отметка выхода — разные вещи; отметка — большая кнопка на главной */
     callcenter:Object.freeze(['vaccines','my_schedule','my_accruals','callcenter_shift']),
     courier:Object.freeze(['my_accruals','vaccines_all_branches','supplies_all_requests','supply_order'])

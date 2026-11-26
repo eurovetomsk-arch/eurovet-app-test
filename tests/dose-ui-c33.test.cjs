@@ -30,7 +30,7 @@ let origin;
       const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
       const ms=await enter(page);
       assert.ok(ms<2000,engine+' '+size.name+': открытие '+ms+' мс');
-      assert.equal(await page.locator('#dose-results .dose-row').count(),24,engine+' '+size.name+': виртуальный первый пакет');
+      assert.equal(await page.locator('#dose-results .dose-row').count(),8,engine+' '+size.name+': на старте только рабочие расчёты');
       const geom=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,bar:!!document.querySelector('.ui2-bottom-nav'),h1:document.querySelector('.dose-head h1')?.textContent}));
       assert.ok(geom.sw<=geom.cw+1,engine+' '+size.name+': горизонтальный скролл '+geom.sw+'/'+geom.cw);
       assert.equal(geom.bar,true,engine+' '+size.name+': нижняя навигация');assert.equal(geom.h1,'Расчёт дозы');
@@ -38,17 +38,25 @@ let origin;
       if(shots&&(size.name==='phone-320'||size.name==='desktop'))await page.screenshot({path:path.join(shots,engine+'-'+size.name+'.png'),fullPage:true});
       report.push({engine,viewport:size.name,open_ms:ms});await context.close();
     }
-    /* Функциональный сценарий — поиск, карточка, быстрый ввод массы, HARD STOP и отзыв. */
+    /* Боевой тестовый сценарий — конкретный расчёт, крупный результат, locked-карточка и отзыв. */
     const context=await browser.newContext({viewport:{width:390,height:844},locale:'ru-RU'});const page=await context.newPage();await enter(page);
-    await page.locator('#dose-q').fill('Адреналин');await page.locator('#dose-results .dose-row').first().click();
-    await page.locator('#dose-weight').pressSequentially('4,51234',{delay:0});
-    assert.equal(await page.locator('#dose-weight').inputValue(),'4,512');
-    assert.match(await page.locator('.dose-card').innerText(),/Эпинефрин|адреналин/i);
+    await page.locator('#dose-q').fill('Аллервет');await page.locator('#dose-results .dose-row').first().dispatchEvent('click');
+    await page.locator('[data-dose-act="species"][data-value="cat"]').dispatchEvent('click');
+    await page.locator('#dose-weight').pressSequentially('2',{delay:0});
+    await page.locator('#dose-dose').pressSequentially('2',{delay:0});
+    await page.locator('[data-dose-act="route"][data-value="SC"]').dispatchEvent('click');
+    assert.match(await page.locator('.dose-result.ready').innerText(),/0,4 мл/);
+    assert.match(await page.locator('.dose-result.ready').innerText(),/Подкожно/);
+    assert.match(await page.locator('.dose-result.ready').innerText(),/2–3 раза в сутки/);
+    assert.equal(await page.locator('.dose-details').evaluate(x=>x.open),false,'подробности закрыты по умолчанию');
     if(shots)await page.screenshot({path:path.join(shots,engine+'-detail.png'),fullPage:true});
-    await page.locator('[data-dose-act="close"]').click();await page.locator('#dose-q').fill('Анестофол 5%');await page.locator('#dose-results .dose-row').first().click();
-    assert.match(await page.locator('.dose-status-note').innerText(),/Стоп/);assert.match(await page.locator('.dose-calc-locked').innerText(),/Автоматический расчёт пока закрыт/);
-    const feedback=page.locator('[data-dose-act="feedback"][data-value="fix"]');await feedback.scrollIntoViewIfNeeded();await feedback.dispatchEvent('click');await page.locator('#dose-fb-note').waitFor();await page.locator('#dose-fb-note').fill('Проверить формулировку');await page.locator('[data-dose-act="feedback-save"]').dispatchEvent('click');
-    assert.match(await page.locator('.dose-feedback-saved').innerText(),/нужно исправить/);
+    await page.locator('[data-dose-act="close"]').dispatchEvent('click');await page.locator('#dose-q').fill('Пиро-Стоп');await page.locator('#dose-results .dose-row').first().dispatchEvent('click');
+    await page.locator('[data-dose-act="species"][data-value="dog"]').dispatchEvent('click');await page.locator('#dose-weight').fill('10');await page.locator('[data-dose-act="route"][data-value="SC"]').dispatchEvent('click');
+    assert.match(await page.locator('.dose-result.ready').innerText(),/0,5 мл/);assert.match(await page.locator('.dose-result.ready').innerText(),/Не более 2 мл/);
+    await page.evaluate(()=>{DOSE.selected=null;DOSE.query='Анестофол 5%';DOSE.status='all';render()});await page.locator('#dose-results .dose-row').first().dispatchEvent('click');
+    assert.match(await page.locator('.dose-badge.stop').innerText(),/Стоп/);assert.match(await page.locator('.dose-calc-locked').innerText(),/Быстрый расчёт недоступен/);
+    await page.locator('.dose-review summary').dispatchEvent('click');const feedback=page.locator('[data-dose-act="feedback"][data-value="fix"]');await feedback.dispatchEvent('click');await page.locator('#dose-fb-note').waitFor();await page.locator('#dose-fb-note').fill('Проверить формулировку');await page.locator('[data-dose-act="feedback-save"]').dispatchEvent('click');
+    assert.match(await page.locator('.dose-feedback-saved').textContent(),/нужно исправить/);
     console.log(engine,'functional PASS');await context.close();await browser.close();
   }
   console.log('dose ui PASS',JSON.stringify(report));server.close();

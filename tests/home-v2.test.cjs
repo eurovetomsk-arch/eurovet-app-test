@@ -70,11 +70,12 @@ async function inspect(engineName,engine){
         assert.deepEqual(nav,role==='courier'?['Главная','Начисления','Меню']:role==='head'?['Главная','График','Зарплата','Меню']:['Главная','График','Начисления','Меню']);
         if(role==='admin'){for(const t of ['Вечерний отчёт','Приём кассы','Вакцины','Препараты и расходники'])assert.match(body,new RegExp(t))}
         if(role==='doctor')for(const t of ['Мои записи','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
-        if(role==='assistant')for(const t of ['Мои начисления','График','Вакцины','Расчёт дозы','Препараты и расходники'])assert.match(body,new RegExp(t));
+        if(role==='assistant'){for(const t of ['Мои начисления','График','Вакцины','Препараты и расходники'])assert.match(body,new RegExp(t));assert.doesNotMatch(body,/Расчёт дозы/)}
         if(role==='callcenter')for(const t of ['Мои выходы','Мои начисления','Вакцины','График'])assert.match(body,new RegExp(t));
         {const tiles=await page.locator('.ui2-role-tile .t').allTextContents(),ix=t=>tiles.indexOf(t);
           if(role==='admin')assert.ok(ix('Приём кассы')<ix('Вечерний отчёт')&&ix('Вечерний отчёт')<ix('Вакцины')&&ix('Вакцины')<ix('Препараты и расходники')&&ix('Препараты и расходники')<ix('График')&&ix('График')<ix('Мои начисления'),'§17 админ: '+tiles.join('|'));
-          if(role==='doctor'||role==='assistant')assert.ok(ix('Вакцины')<ix('Расчёт дозы')&&ix('Расчёт дозы')<ix('Препараты и расходники')&&ix('Препараты и расходники')<ix('График')&&ix('График')<ix('Мои начисления'),'§17 врач/ассистент: '+tiles.join('|'));
+          if(role==='doctor')assert.ok(ix('Вакцины')<ix('Расчёт дозы')&&ix('Расчёт дозы')<ix('Препараты и расходники')&&ix('Препараты и расходники')<ix('График')&&ix('График')<ix('Мои начисления'),'§17 врач: '+tiles.join('|'));
+          if(role==='assistant')assert.ok(ix('Вакцины')<ix('Препараты и расходники')&&ix('Препараты и расходники')<ix('График')&&ix('График')<ix('Мои начисления'),'§17 ассистент: '+tiles.join('|'));
           if(role==='callcenter')assert.ok(ix('Вакцины')<ix('График')&&ix('График')<ix('Мои начисления'),'§17 колл-центр: '+tiles.join('|'))}
         assert.equal(await page.locator('.av').evaluateAll(a=>a.filter(e=>getComputedStyle(e).display!=='none').length),0,'нет кружков с инициалами');
         if(role==='head'){for(const t of ['Выручка','Сейф и наличные','Зарплата','Отчёты филиалов','Касса и инкассации','Вечерний отчёт','Вакцины по филиалам','Препараты и расходники','Расчёт дозы','График','Люди и доступы','Поздравления','Финансы','Препараты','Клиника'])assert.match(body,new RegExp(t,'i'));assert.equal(await page.locator('header [data-act="menu"]').count(),0,'нет кнопки «Меню» вверху')}
@@ -83,11 +84,12 @@ async function inspect(engineName,engine){
         const sectionTitles=await page.locator('.ui2-group-title').allTextContents();
         const expectedOrder=role==='head'?['Финансы','Препараты','Клиника']:['Работа','Препараты','Клиника','Финансы'].filter(x=>sectionTitles.includes(x));
         assert.deepEqual(sectionTitles,expectedOrder,`${engineName}/${width}/${role}: section order`);
-        if(['doctor','assistant','head'].includes(role))assert.equal(await page.locator('.ui2-role-tile img[src="icons/20-dose-calc.png"]').count(),1,`${engineName}/${width}/${role}: dose icon`);
+        if(['doctor','head'].includes(role))assert.equal(await page.locator('.ui2-role-tile img[src="icons/20-dose-calc.png"]').count(),1,`${engineName}/${width}/${role}: dose icon`);
+        if(role==='assistant')assert.equal(await page.locator('.ui2-role-tile img[src="icons/20-dose-calc.png"]').count(),0,`${engineName}/${width}/${role}: no clinical dose access`);
         if(role==='assistant'){
-          const supply=page.locator('.ui2-role-tile',{hasText:'Препараты и расходники'}),grid=supply.locator('..');
-          const [sbox,gbox]=await Promise.all([supply.boundingBox(),grid.boundingBox()]);
-          assert.ok(sbox&&gbox&&Math.abs(sbox.width-gbox.width)<2,`${engineName}/${width}: assistant lone last tile not full width`);
+          const supply=page.locator('.ui2-role-tile',{hasText:'Препараты и расходники'}),vaccines=page.locator('.ui2-role-tile',{hasText:'Вакцины'});
+          const [sbox,vbox]=await Promise.all([supply.boundingBox(),vaccines.boundingBox()]);
+          assert.ok(sbox&&vbox&&Math.abs(sbox.width-vbox.width)<2,`${engineName}/${width}: assistant preparation tiles unequal`);
         }
         await page.close();
       }
