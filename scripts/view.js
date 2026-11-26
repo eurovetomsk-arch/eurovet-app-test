@@ -62,9 +62,10 @@ window.addEventListener('popstate',e=>{
   const x=e.state&&e.state.evrovet;if(!x)return;
   evHistoryApplying=true;
   S.view=x.view||homeView();S.branch=x.branch||null;S.date=x.date||omskToday();
+  if(S.view==='dose'&&typeof doseRestoreHistory==='function')doseRestoreHistory(e.state&&e.state.dose);
   if(x.wkFrom){S.wkFrom=x.wkFrom;S.wkTo=x.wkTo}
   if(x.sch){const s=schEnsure();s.m=x.sch.m;s.tab=x.sch.tab;s.day=x.sch.day;s.flt=x.sch.flt||''}
-  closeOv();render();window.scrollTo(0,0);evHistoryApplying=false;evHistoryView=S.view;
+  closeOv();render();if(S.view==='dose'&&typeof doseAfterHistory==='function')doseAfterHistory();else window.scrollTo(0,0);evHistoryApplying=false;evHistoryView=S.view;
 });
 function currentHelpHtml(){return HELP_HTML
   .replace('разница до 10 рублей включительно','разница до 10 рублей включительно')
