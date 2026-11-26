@@ -80,14 +80,14 @@ const sent=()=>rpcLog.filter(x=>x.startsWith('ev_submit')).length;
       await pm.goto(url);await until(pm,async()=>(await caches.keys()).some(k=>k.startsWith('ev-shell-')));
       const before=await pm.evaluate(async()=>(await caches.keys()).join(','));assert.match(before,/ev-shell-v92b/,eng+': старый sw установлен');
       oldSw=null;await pm.evaluate(()=>navigator.serviceWorker.getRegistration().then(r=>r.update()));
-      await until(pm,async()=>{const k=await caches.keys();return k.includes('ev2-shell-1')&&!k.some(x=>x.startsWith('ev-shell-'))});
+      await until(pm,async()=>{const k=await caches.keys();return k.includes('ev2-shell-2')&&!k.some(x=>x.startsWith('ev-shell-'))});
       console.log(eng,'переход 1.92→2.0: старый sw заменён новым, старый кэш удалён');await cm.close();
      }else console.log(eng,'старого sw.js 1.92 нет рядом — переход не проверен')}
     /* 2. онлайн: sw ставится и кэширует оболочку */
     await p.goto(url);
     await p.waitForFunction(()=>navigator.serviceWorker&&navigator.serviceWorker.controller||false,null,{timeout:15000}).catch(()=>{});
     await p.evaluate(()=>navigator.serviceWorker.ready);
-    await until(p,async()=>{const ks=await caches.keys();if(!ks.includes('ev2-shell-1'))return false;const c=await caches.open('ev2-shell-1');return (await c.keys()).length>=36},30000);
+    await until(p,async()=>{const ks=await caches.keys();if(!ks.includes('ev2-shell-2'))return false;const c=await caches.open('ev2-shell-2');return (await c.keys()).length>=39},30000);
     await p.reload();await p.waitForFunction(()=>!!navigator.serviceWorker.controller,null,{timeout:10000});
     console.log(eng,'sw: оболочка в кэше');
     /* 3. вошли, открыли филиал онлайн (список сохраняется «в запас»), сеть пропала */

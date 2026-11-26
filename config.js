@@ -29,7 +29,7 @@ window.EVROVET_UI2_CONFIG=Object.freeze({
     vaccines:true,
     vaccines_all_branches:true,
     vaccines_input:false,
-    dose_calculator:false,
+    dose_calculator:true,
     supplies:false,
     supplies_all_requests:false,
     supply_order:false,
